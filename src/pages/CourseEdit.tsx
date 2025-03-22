@@ -238,9 +238,13 @@ const CourseEdit = () => {
     }
   });
 
-  // Lesson mutations
+  // Lesson mutations - Fix for the type error in the saveLesson mutation
+  interface LessonData extends LessonForm {
+    course_id: string;
+  }
+
   const saveLesson = useMutation({
-    mutationFn: async (lessonData: LessonForm & { course_id: string }) => {
+    mutationFn: async (lessonData: LessonData) => {
       if (selectedLessonId) {
         // Update existing lesson
         const { data, error } = await supabase
@@ -298,18 +302,26 @@ const CourseEdit = () => {
   // Handle form changes
   const handleCourseInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setCourseForm({
-      ...courseForm,
-      [name]: name === 'price' ? parseFloat(value) : value,
-    });
+    const newCourseForm = { ...courseForm };
+    if (name === 'price') {
+      newCourseForm.price = parseFloat(value);
+    } else {
+      // Using type assertion to avoid type errors with dynamic property access
+      (newCourseForm as any)[name] = value;
+    }
+    setCourseForm(newCourseForm);
   };
 
   const handleLessonInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setLessonForm({
-      ...lessonForm,
-      [name]: name === 'order_number' ? parseInt(value) : value,
-    });
+    const newLessonForm = { ...lessonForm };
+    if (name === 'order_number') {
+      newLessonForm.order_number = parseInt(value);
+    } else {
+      // Using type assertion to avoid type errors with dynamic property access
+      (newLessonForm as any)[name] = value;
+    }
+    setLessonForm(newLessonForm);
   };
 
   // Handle form submissions
@@ -323,7 +335,7 @@ const CourseEdit = () => {
     if (!id) return;
     
     // Fix for the spread type error - explicitly construct the object
-    const lessonData = {
+    const lessonData: LessonData = {
       title: lessonForm.title,
       description: lessonForm.description,
       order_number: lessonForm.order_number,
@@ -409,11 +421,10 @@ const CourseEdit = () => {
         .from('course_images')
         .getPublicUrl(filePath);
 
-      // Update form
-      setCourseForm({
-        ...courseForm,
-        image_url: publicUrl,
-      });
+      // Update form - Avoid spread operator to fix TypeScript error
+      const newCourseForm = { ...courseForm };
+      newCourseForm.image_url = publicUrl;
+      setCourseForm(newCourseForm);
 
       toast.success('تم رفع الصورة بنجاح');
     } catch (error) {
@@ -473,12 +484,11 @@ const CourseEdit = () => {
         .from('course_videos')
         .getPublicUrl(filePath);
 
-      // Update form
-      setLessonForm({
-        ...lessonForm,
-        video_url: publicUrl,
-        video_file_name: fileName,
-      });
+      // Update form - Avoid spread operator to fix TypeScript error
+      const newLessonForm = { ...lessonForm };
+      newLessonForm.video_url = publicUrl;
+      newLessonForm.video_file_name = fileName;
+      setLessonForm(newLessonForm);
 
       toast.success('تم رفع الفيديو بنجاح');
     } catch (error) {
@@ -495,10 +505,9 @@ const CourseEdit = () => {
   };
 
   const removeImage = () => {
-    setCourseForm({
-      ...courseForm,
-      image_url: '',
-    });
+    const newCourseForm = { ...courseForm };
+    newCourseForm.image_url = '';
+    setCourseForm(newCourseForm);
     setPreviewUrl(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
@@ -506,11 +515,10 @@ const CourseEdit = () => {
   };
 
   const removeVideo = () => {
-    setLessonForm({
-      ...lessonForm,
-      video_url: '',
-      video_file_name: '',
-    });
+    const newLessonForm = { ...lessonForm };
+    newLessonForm.video_url = '';
+    newLessonForm.video_file_name = '';
+    setLessonForm(newLessonForm);
     setVideoPreviewUrl(null);
     if (videoInputRef.current) {
       videoInputRef.current.value = '';
