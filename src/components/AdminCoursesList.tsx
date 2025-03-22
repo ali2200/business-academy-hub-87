@@ -66,8 +66,25 @@ const AdminCoursesList = () => {
   };
 
   const handleViewCourse = (courseId: string) => {
-    window.open(`/courses/${courseId}`, '_blank');
+    // Navigate to the admin course player view instead of opening in a new tab
+    navigate(`/admin-course-player/${courseId}`);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-10">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="text-center py-10 text-red-500">
+        حدث خطأ أثناء تحميل الدورات
+      </div>
+    );
+  }
 
   return (
     <Card className="shadow-md">

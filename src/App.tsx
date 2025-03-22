@@ -23,6 +23,7 @@ import MediaManagement from "@/pages/MediaManagement";
 import BooksManagement from "@/pages/BooksManagement";
 import CoursesManagement from "@/pages/CoursesManagement";
 import ArticlesManagement from "@/pages/ArticlesManagement";
+import AdminCoursePlayer from "@/pages/AdminCoursePlayer";
 
 function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -55,6 +56,7 @@ function App() {
           <Route path="/books-management" element={<BooksManagement />} />
           <Route path="/courses-management/*" element={<CoursesManagement />} />
           <Route path="/articles-management" element={<ArticlesManagement />} />
+          <Route path="/admin-course-player/:id" element={<AdminCoursePlayer />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <WhatsAppButton />
