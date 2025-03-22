@@ -99,7 +99,7 @@ const Navbar = () => {
         <div className="flex md:hidden items-center">
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="فتح القائمة" className="bg-primary-light text-slate-50 rounded-none">
+              <Button variant="ghost" size="icon" aria-label="فتح القائمة" className="bg-primary-light text-slate-50 rounded-2xl">
                 <Menu size={24} />
               </Button>
             </SheetTrigger>
