@@ -142,11 +142,18 @@ const Navbar = () => {
               </Button>
             </Link>
           ) : (
-            <Link to="/signin">
-              <Button variant="outline" className="flex items-center gap-2 text-white border-white/50 bg-white/10 hover:bg-primary hover:text-white hover:border-primary rounded-full px-6">
-                <span className="font-hacen">تسجيل الدخول</span>
-              </Button>
-            </Link>
+            <div className="flex overflow-hidden rounded-full shadow-md">
+              <Link to="/signin" className="group">
+                <div className="bg-primary hover:bg-white text-white hover:text-primary transition-all duration-300 px-4 py-2 rounded-r-full font-hacen flex items-center">
+                  <span className="group-hover:font-semibold">تسجيل الدخول</span>
+                </div>
+              </Link>
+              <Link to="/signup" className="group">
+                <div className="bg-white hover:bg-primary text-primary hover:text-white transition-all duration-300 px-4 py-2 rounded-l-full font-hacen flex items-center">
+                  <span className="group-hover:font-semibold">إنشاء حساب</span>
+                </div>
+              </Link>
+            </div>
           )}
         </div>
 
@@ -268,15 +275,26 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
               </Button>
             </Link>
           ) : (
-            <Link 
-              to="/signin" 
-              className="w-full"
-              onClick={onClick}
-            >
-              <Button variant="outline" className="flex items-center w-full justify-center gap-2 text-white border-white/50 bg-white/10 hover:bg-primary hover:text-white hover:border-primary rounded-full">
-                <span className="font-hacen">تسجيل الدخول</span>
-              </Button>
-            </Link>
+            <div className="flex overflow-hidden rounded-full shadow-md w-full">
+              <Link 
+                to="/signin" 
+                className="w-1/2 group"
+                onClick={onClick}
+              >
+                <div className="bg-primary hover:bg-white text-white hover:text-primary transition-all duration-300 py-2 text-center rounded-r-full font-hacen flex items-center justify-center">
+                  <span className="group-hover:font-semibold">تسجيل الدخول</span>
+                </div>
+              </Link>
+              <Link 
+                to="/signup" 
+                className="w-1/2 group"
+                onClick={onClick}
+              >
+                <div className="bg-white hover:bg-primary text-primary hover:text-white transition-all duration-300 py-2 text-center rounded-l-full font-hacen flex items-center justify-center">
+                  <span className="group-hover:font-semibold">إنشاء حساب</span>
+                </div>
+              </Link>
+            </div>
           )}
           
           <Link 

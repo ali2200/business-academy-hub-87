@@ -147,12 +147,18 @@ const SignIn = () => {
         </CardContent>
         
         <CardFooter className="flex justify-center border-t p-6">
-          <p className="text-center text-sm text-gray-600">
-            ليس لديك حساب؟{" "}
-            <Link to="/signup" className="font-medium text-primary hover:text-secondary">
-              إنشاء حساب جديد
+          <div className="flex overflow-hidden rounded-full shadow-md w-full max-w-xs">
+            <Link to="/signin" className="w-1/2 group">
+              <div className="bg-primary hover:bg-white text-white hover:text-primary transition-all duration-300 py-2 text-center rounded-r-full font-hacen flex items-center justify-center">
+                <span className="group-hover:font-semibold">تسجيل الدخول</span>
+              </div>
             </Link>
-          </p>
+            <Link to="/signup" className="w-1/2 group">
+              <div className="bg-white hover:bg-primary text-primary hover:text-white transition-all duration-300 py-2 text-center rounded-l-full font-hacen flex items-center justify-center">
+                <span className="group-hover:font-semibold">إنشاء حساب</span>
+              </div>
+            </Link>
+          </div>
         </CardFooter>
       </Card>
     </div>
