@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Upload, FileUp, PlusCircle } from 'lucide-react';
+import { supabase } from "@/integrations/supabase/client";
 
 type ContentType = 'article' | 'book' | 'course';
 
@@ -35,6 +36,7 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({
   const [description, setDescription] = useState('');
   const [htmlContent, setHtmlContent] = useState('');
   const [activeTab, setActiveTab] = useState<'basic' | 'import'>('basic');
+  const [loading, setLoading] = useState(false);
 
   const contentTypeMap = {
     article: {
@@ -57,34 +59,89 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Create the new content object
-    const newContent = {
-      title,
-      description,
-      content: activeTab === 'import' ? htmlContent : '',
-      createdAt: new Date().toISOString(),
-      status: 'draft'
-    };
-    
-    // Call the onAdd callback if provided
-    if (onAdd) {
-      onAdd(newContent);
+    if (!title.trim()) {
+      toast.error('يرجى إدخال العنوان');
+      return;
     }
     
-    // Show success toast
-    toast.success(contentTypeMap[contentType].successMessage, {
-      description: contentTypeMap[contentType].successDescription
-    });
+    setLoading(true);
     
-    // Reset form and close dialog
-    setTitle('');
-    setDescription('');
-    setHtmlContent('');
-    setActiveTab('basic');
-    setOpen(false);
+    try {
+      let newContent;
+      
+      // Create the appropriate content based on type
+      if (contentType === 'article') {
+        const { data, error } = await supabase
+          .from('articles')
+          .insert({
+            title,
+            excerpt: description,
+            content: activeTab === 'import' ? htmlContent : '<p>محتوى المقال</p>',
+            status: 'draft'
+          })
+          .select();
+          
+        if (error) throw error;
+        newContent = data[0];
+        
+      } else if (contentType === 'book') {
+        const { data, error } = await supabase
+          .from('books')
+          .insert({
+            title,
+            author: 'المؤلف',
+            description,
+            price: 0,
+            status: 'draft'
+          })
+          .select();
+          
+        if (error) throw error;
+        newContent = data[0];
+        
+      } else if (contentType === 'course') {
+        const { data, error } = await supabase
+          .from('courses')
+          .insert({
+            title,
+            instructor: 'المدرب',
+            description,
+            price: 0,
+            currency: 'EGP',
+            status: 'draft'
+          })
+          .select();
+          
+        if (error) throw error;
+        newContent = data[0];
+      }
+      
+      // Show success toast
+      toast.success(contentTypeMap[contentType].successMessage, {
+        description: contentTypeMap[contentType].successDescription
+      });
+      
+      // Call the onAdd callback if provided
+      if (onAdd) {
+        onAdd(newContent);
+      }
+      
+      // Reset form and close dialog
+      setTitle('');
+      setDescription('');
+      setHtmlContent('');
+      setActiveTab('basic');
+      setOpen(false);
+      
+    } catch (error) {
+      console.error('Error creating content:', error);
+      toast.error(`حدث خطأ أثناء إنشاء ${contentTypeMap[contentType].title}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleHtmlImport = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -157,8 +214,8 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({
               </div>
               
               <DialogFooter className="mt-6">
-                <Button type="submit" className="w-full">
-                  إنشاء {contentTypeMap[contentType].title}
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading ? 'جاري الإنشاء...' : `إنشاء ${contentTypeMap[contentType].title}`}
                 </Button>
               </DialogFooter>
             </form>
@@ -220,9 +277,9 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({
                 <Button 
                   onClick={handleSubmit} 
                   className="w-full"
-                  disabled={contentType !== 'article' && true}
+                  disabled={contentType !== 'article' && true || loading}
                 >
-                  استيراد {contentTypeMap[contentType].title}
+                  {loading ? 'جاري الإنشاء...' : `استيراد ${contentTypeMap[contentType].title}`}
                 </Button>
               </DialogFooter>
             </div>

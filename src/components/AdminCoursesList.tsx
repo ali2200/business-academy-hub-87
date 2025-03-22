@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   PlusCircle, 
   Search, 
@@ -64,6 +65,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import AddContentDialog from "@/components/AddContentDialog";
 
 type CourseStatus = "published" | "draft";
 type CourseLevel = "beginner" | "intermediate" | "advanced";
@@ -112,6 +114,7 @@ const defaultNewCourse: NewCourseForm = {
 };
 
 const AdminCoursesList = () => {
+  const navigate = useNavigate();
   const [courses, setCourses] = useState<CourseItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -427,18 +430,23 @@ const AdminCoursesList = () => {
     }
   };
 
+  const viewCourseDetails = (courseId: string) => {
+    navigate(`/admin-dashboard/courses/${courseId}`);
+  };
+
   return (
     <Card>
       <CardContent className="p-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
           <div className="flex gap-2">
-            <Button
-              onClick={() => setIsAddDialogOpen(true)}
-              className="flex items-center gap-2"
-            >
-              <PlusCircle className="h-4 w-4" />
-              إضافة دورة جديدة
-            </Button>
+            <AddContentDialog 
+              contentType="course" 
+              onAdd={(courseData) => {
+                handleAddCourse();
+                setRefreshTrigger(prev => prev + 1);
+              }}
+            />
+            
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -601,6 +609,7 @@ const AdminCoursesList = () => {
                           variant="ghost"
                           size="icon"
                           title="عرض"
+                          onClick={() => viewCourseDetails(course.id)}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -649,160 +658,6 @@ const AdminCoursesList = () => {
           </PaginationContent>
         </Pagination>
       </CardContent>
-
-      {/* Dialog for adding a new course */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>إضافة دورة جديدة</DialogTitle>
-            <DialogDescription>
-              أدخل معلومات الدورة الجديدة. اضغط "حفظ" عند الانتهاء.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">عنوان الدورة</Label>
-                <Input 
-                  id="title" 
-                  name="title" 
-                  value={newCourse.title} 
-                  onChange={handleInputChange} 
-                  placeholder="أدخل عنوان الدورة"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="instructor">المدرب</Label>
-                <Input 
-                  id="instructor" 
-                  name="instructor" 
-                  value={newCourse.instructor} 
-                  onChange={handleInputChange} 
-                  placeholder="اسم المدرب"
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="price">السعر</Label>
-                <Input 
-                  id="price" 
-                  name="price" 
-                  type="number" 
-                  value={newCourse.price} 
-                  onChange={handleNumberInputChange} 
-                  placeholder="أدخل السعر"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="currency">العملة</Label>
-                <Select 
-                  value={newCourse.currency} 
-                  onValueChange={(value) => handleSelectChange(value, 'currency')}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر العملة" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="EGP">جنيه مصري</SelectItem>
-                    <SelectItem value="USD">دولار أمريكي</SelectItem>
-                    <SelectItem value="SAR">ريال سعودي</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="level">المستوى</Label>
-                <Select 
-                  value={newCourse.level} 
-                  onValueChange={(value) => handleSelectChange(value as CourseLevel, 'level')}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر المستوى" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="beginner">مبتدئ</SelectItem>
-                    <SelectItem value="intermediate">متوسط</SelectItem>
-                    <SelectItem value="advanced">متقدم</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="status">الحالة</Label>
-                <Select 
-                  value={newCourse.status} 
-                  onValueChange={(value) => handleSelectChange(value as CourseStatus, 'status')}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر الحالة" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="published">منشور</SelectItem>
-                    <SelectItem value="draft">مسودة</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="category">التصنيف</Label>
-                <Input 
-                  id="category" 
-                  name="category" 
-                  value={newCourse.category || ''} 
-                  onChange={handleInputChange} 
-                  placeholder="أدخل التصنيف"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="duration">المدة</Label>
-                <Input 
-                  id="duration" 
-                  name="duration" 
-                  value={newCourse.duration || ''} 
-                  onChange={handleInputChange} 
-                  placeholder="مثال: 8 أسابيع"
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="image_url">رابط صورة الدورة</Label>
-              <Input 
-                id="image_url" 
-                name="image_url" 
-                value={newCourse.image_url || ''} 
-                onChange={handleInputChange} 
-                placeholder="أدخل رابط الصورة"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="description">وصف الدورة</Label>
-              <Textarea 
-                id="description" 
-                name="description" 
-                value={newCourse.description || ''} 
-                onChange={handleInputChange} 
-                placeholder="أدخل وصفاً تفصيلياً للدورة"
-                rows={5}
-              />
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">إلغاء</Button>
-            </DialogClose>
-            <Button onClick={handleAddCourse}>حفظ</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Dialog for editing a course */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
@@ -946,6 +801,7 @@ const AdminCoursesList = () => {
                   onChange={handleInputChange} 
                   placeholder="أدخل وصفاً تفصيلياً للدورة"
                   rows={5}
+                  autoSize
                 />
               </div>
             </div>
