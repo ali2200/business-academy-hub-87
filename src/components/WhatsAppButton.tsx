@@ -2,9 +2,11 @@
 import React, { useState, useEffect } from 'react';
 import { MessageSquare } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const WhatsAppButton = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const toggleVisibility = () => {
@@ -25,7 +27,7 @@ const WhatsAppButton = () => {
   }, []);
 
   return (
-    <div className={`fixed bottom-8 left-8 z-50 transition-all duration-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}>
+    <div className={`fixed ${isMobile ? 'bottom-4 right-4' : 'bottom-8 left-8'} z-50 transition-all duration-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}>
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -33,15 +35,15 @@ const WhatsAppButton = () => {
               href="https://wa.me/201000820752" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="flex items-center justify-center w-16 h-16 bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 transition-all hover:shadow-xl animate-pulse-glow"
+              className="flex items-center justify-center w-14 h-14 bg-primary text-white rounded-full shadow-lg hover:bg-primary-light transition-all hover:shadow-xl animate-pulse-glow"
               aria-label="تواصل معنا عبر واتساب"
             >
               <div className="relative">
-                <MessageSquare className="w-8 h-8 fill-white text-white" />
+                <MessageSquare className="w-6 h-6 fill-white text-white" />
               </div>
             </a>
           </TooltipTrigger>
-          <TooltipContent side="right" className="bg-primary text-white">
+          <TooltipContent side={isMobile ? "left" : "right"} className="bg-primary text-white">
             <p>تواصل معنا عبر واتساب</p>
           </TooltipContent>
         </Tooltip>

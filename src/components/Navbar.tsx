@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, ShoppingCart, User, LogIn } from 'lucide-react';
+import { Menu, X, ShoppingCart, User, LogIn, MessageSquare } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -10,6 +11,7 @@ const Navbar = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -36,10 +38,13 @@ const Navbar = () => {
       }
     };
 
+    // Close mobile menu when changing routes
+    setIsMobileMenuOpen(false);
+
     checkAuth();
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [location.pathname]);
 
   const isActive = (path: string) => {
     return location.pathname === path;
@@ -51,18 +56,31 @@ const Navbar = () => {
     navigate('/');
   };
 
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (isMobileMenuOpen && !target.closest('.mobile-menu-container') && !target.closest('.mobile-menu-button')) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMobileMenuOpen]);
+
   return (
     <header 
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         isScrolled 
-          ? 'py-3 bg-white/90 backdrop-blur-md shadow-md' 
-          : 'py-5 bg-transparent'
+          ? 'py-2 bg-white/90 backdrop-blur-md shadow-md' 
+          : 'py-3 lg:py-5 bg-transparent'
       }`}
     >
       <div className="container mx-auto px-4 flex justify-between items-center">
         {/* Logo */}
         <Link to="/" className="flex items-center animate-fade-in">
-          <img src="/images/logo.svg" alt="بيزنس أكاديمي" className="h-10" />
+          <img src="/images/logo.svg" alt="بيزنس أكاديمي" className="h-8 md:h-10" />
         </Link>
 
         {/* Desktop Navigation */}
@@ -71,7 +89,7 @@ const Navbar = () => {
         </nav>
 
         {/* Mobile Menu Button */}
-        <div className="flex md:hidden items-center">
+        <div className="flex md:hidden items-center mobile-menu-button">
           <Button 
             variant="ghost" 
             size="icon" 
@@ -85,7 +103,7 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       <div 
-        className={`md:hidden absolute top-full left-0 right-0 bg-white shadow-lg transform transition-transform duration-300 ease-in-out ${
+        className={`md:hidden absolute top-full left-0 right-0 bg-white shadow-lg transform transition-transform duration-300 ease-in-out mobile-menu-container ${
           isMobileMenuOpen ? 'translate-y-0' : '-translate-y-full'
         }`}
       >
@@ -136,14 +154,14 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
           to={link.path}
           className={`${
             isActive(link.path) ? 'nav-link-active' : 'nav-link'
-          } text-lg mx-2 py-2 ${isMobile ? 'block' : 'inline-block'} animate-fade-in`}
+          } text-base lg:text-lg mx-2 py-2 ${isMobile ? 'block w-full text-right' : 'inline-block'} animate-fade-in`}
           style={{ animationDelay: `${index * 0.1}s` }}
           onClick={onClick}
         >
           {link.label}
         </Link>
       ))}
-      <div className="flex items-center space-x-2 rtl:space-x-reverse mr-4">
+      <div className={`flex ${isMobile ? 'flex-col' : 'items-center'} ${isMobile ? 'space-y-3' : 'space-x-2 rtl:space-x-reverse mr-4'}`}>
         <Button 
           variant="ghost" 
           size="icon" 
@@ -156,10 +174,10 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
         {isAuthenticated ? (
           <Link 
             to="/dashboard" 
-            className="animate-fade-in"
+            className="animate-fade-in w-full"
             style={{ animationDelay: `${(links.length + 1) * 0.1}s` }}
           >
-            <Button variant="outline" className="flex items-center space-x-2 rtl:space-x-reverse">
+            <Button variant="outline" className={`flex items-center ${isMobile ? 'w-full justify-center' : ''} space-x-2 rtl:space-x-reverse`}>
               <User size={18} />
               <span>حسابي</span>
             </Button>
@@ -167,13 +185,20 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
         ) : (
           <Link 
             to="/signin" 
-            className="animate-fade-in"
+            className={`animate-fade-in ${isMobile ? 'w-full' : ''}`}
             style={{ animationDelay: `${(links.length + 1) * 0.1}s` }}
           >
-            <Button variant="outline" className="flex items-center space-x-2 rtl:space-x-reverse">
+            <Button variant="outline" className={`flex items-center ${isMobile ? 'w-full justify-center' : ''} space-x-2 rtl:space-x-reverse`}>
               <LogIn size={18} />
               <span>تسجيل الدخول</span>
             </Button>
+          </Link>
+        )}
+        
+        {isMobile && (
+          <Link to="#" className="flex items-center space-x-2 rtl:space-x-reverse text-primary">
+            <MessageSquare size={18} />
+            <span>تواصل معنا على واتساب</span>
           </Link>
         )}
       </div>
