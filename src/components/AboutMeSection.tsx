@@ -7,9 +7,15 @@ const AboutMeSection = () => {
   return (
     <section className="section-padding py-24 bg-gradient-to-b from-white to-gray-50">
       <div className="container mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* Video */}
-          <div className="order-2 lg:order-1 relative">
+        <div className="flex flex-col items-center">
+          {/* Title */}
+          <h2 className="text-4xl font-bold mb-12 text-center">
+            <span className="text-primary">تعرف على </span>
+            <span className="text-secondary">بيزنس أكاديمي</span>
+          </h2>
+
+          {/* Video Section - Now at the top */}
+          <div className="w-full max-w-5xl mx-auto mb-16 relative">
             <div className="absolute -top-10 -left-10 w-64 h-64 bg-primary/5 rounded-full blur-3xl"></div>
             <div className="relative z-10 rounded-2xl overflow-hidden border border-gray-100 shadow-xl">
               <video 
@@ -30,56 +36,51 @@ const AboutMeSection = () => {
             </div>
           </div>
 
-          {/* Content */}
-          <div className="order-1 lg:order-2">
-            <h2 className="text-4xl font-bold mb-6 text-primary">تعرف على <span className="text-secondary">بيزنس أكاديمي</span></h2>
-            <p className="text-lg text-gray-600 mb-8">
+          {/* Content Section - Now below the video */}
+          <div className="w-full max-w-4xl mx-auto">
+            <p className="text-lg text-gray-600 mb-10 text-center">
               أنا أحمد، خبير في مجال البيزنس والمبيعات مع خبرة تمتد لأكثر من 10 سنوات في السوق المصري. أسست بيزنس أكاديمي لمساعدة رواد الأعمال والمهنيين المصريين على تطوير مهاراتهم وتحقيق النجاح في عالم الأعمال.
             </p>
 
-            <div className="space-y-6 mb-8">
-              <div className="flex items-start space-x-4 rtl:space-x-reverse">
-                <div className="bg-primary/10 p-3 rounded-lg">
-                  <GraduationCap className="w-6 h-6 text-primary" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+              <div className="bg-white p-8 rounded-xl shadow-md hover:shadow-lg transition-all">
+                <div className="bg-primary/10 p-4 rounded-lg inline-block mb-4">
+                  <GraduationCap className="w-8 h-8 text-primary" />
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold text-primary mb-2">دورات تدريبية احترافية</h3>
-                  <p className="text-gray-600">
-                    دورات متخصصة في مجالات البيع والتسويق وإدارة الأعمال مقدمة باللهجة المصرية لتناسب احتياجات السوق المحلي.
-                  </p>
-                </div>
+                <h3 className="text-xl font-bold text-primary mb-3">دورات تدريبية احترافية</h3>
+                <p className="text-gray-600">
+                  دورات متخصصة في مجالات البيع والتسويق وإدارة الأعمال مقدمة باللهجة المصرية لتناسب احتياجات السوق المحلي.
+                </p>
               </div>
 
-              <div className="flex items-start space-x-4 rtl:space-x-reverse">
-                <div className="bg-secondary/10 p-3 rounded-lg">
-                  <BookOpen className="w-6 h-6 text-secondary" />
+              <div className="bg-white p-8 rounded-xl shadow-md hover:shadow-lg transition-all">
+                <div className="bg-secondary/10 p-4 rounded-lg inline-block mb-4">
+                  <BookOpen className="w-8 h-8 text-secondary" />
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold text-primary mb-2">كتب ومراجع تعليمية</h3>
-                  <p className="text-gray-600">
-                    مجموعة من الكتب الإلكترونية المتخصصة التي تشرح أساسيات ومفاهيم البيزنس بطريقة سهلة وعملية.
-                  </p>
-                </div>
+                <h3 className="text-xl font-bold text-primary mb-3">كتب ومراجع تعليمية</h3>
+                <p className="text-gray-600">
+                  مجموعة من الكتب الإلكترونية المتخصصة التي تشرح أساسيات ومفاهيم البيزنس بطريقة سهلة وعملية.
+                </p>
               </div>
 
-              <div className="flex items-start space-x-4 rtl:space-x-reverse">
-                <div className="bg-green-100 p-3 rounded-lg">
-                  <Award className="w-6 h-6 text-green-600" />
+              <div className="bg-white p-8 rounded-xl shadow-md hover:shadow-lg transition-all">
+                <div className="bg-green-100 p-4 rounded-lg inline-block mb-4">
+                  <Award className="w-8 h-8 text-green-600" />
                 </div>
-                <div>
-                  <h3 className="text-xl font-bold text-primary mb-2">خبرة عملية حقيقية</h3>
-                  <p className="text-gray-600">
-                    محتوى مبني على تجارب حقيقية وخبرات عملية في السوق المصري، وليس مجرد نظريات.
-                  </p>
-                </div>
+                <h3 className="text-xl font-bold text-primary mb-3">خبرة عملية حقيقية</h3>
+                <p className="text-gray-600">
+                  محتوى مبني على تجارب حقيقية وخبرات عملية في السوق المصري، وليس مجرد نظريات.
+                </p>
               </div>
             </div>
 
-            <Button 
-              className="bg-primary hover:bg-primary-light text-white px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transition-all"
-            >
-              اعرف المزيد عني
-            </Button>
+            <div className="flex justify-center">
+              <Button 
+                className="bg-primary hover:bg-primary-light text-white px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transition-all"
+              >
+                اعرف المزيد عني
+              </Button>
+            </div>
           </div>
         </div>
       </div>
