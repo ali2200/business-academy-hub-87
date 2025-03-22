@@ -322,10 +322,19 @@ const CourseEdit = () => {
     e.preventDefault();
     if (!id) return;
     
-    saveLesson.mutate({
-      ...lessonForm,
-      course_id: id,
-    });
+    // Fix for the spread type error - explicitly construct the object
+    const lessonData = {
+      title: lessonForm.title,
+      description: lessonForm.description,
+      order_number: lessonForm.order_number,
+      is_free: lessonForm.is_free,
+      video_url: lessonForm.video_url,
+      video_file_name: lessonForm.video_file_name,
+      duration: lessonForm.duration,
+      course_id: id
+    };
+    
+    saveLesson.mutate(lessonData);
   };
 
   // Handle edit lesson
