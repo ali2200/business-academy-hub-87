@@ -102,8 +102,8 @@ const Navbar = () => {
     <header 
       className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
         isScrolled 
-          ? 'py-2 bg-transparent backdrop-blur-md shadow-md' 
-          : 'py-3 lg:py-5 bg-transparent'
+          ? 'py-2 bg-white/10 backdrop-blur-md shadow-md' 
+          : 'py-3 lg:py-5 bg-white/5 backdrop-blur-sm'
       }`}
     >
       <div className="container mx-auto px-4 flex justify-between items-center">
@@ -114,7 +114,7 @@ const Navbar = () => {
 
         {/* Desktop Navigation - Centered with Border Frame */}
         <div className="hidden md:flex justify-center flex-1">
-          <div className="border-2 border-white/30 rounded-full px-6 py-1">
+          <div className="border-2 border-white/50 rounded-full px-6 py-1 bg-white/10 backdrop-blur-sm shadow-sm">
             <NavigationMenu className="mx-auto">
               <NavigationMenuList className="font-hacen flex-row-reverse"> {/* RTL order */}
                 <NavLinks isActive={isActive} />
@@ -128,7 +128,7 @@ const Navbar = () => {
           <Button 
             variant="ghost" 
             size="icon" 
-            className="text-white hover:text-primary"
+            className="text-white hover:bg-white/20 hover:text-primary"
             aria-label="سلة التسوق"
           >
             <ShoppingCart size={20} />
@@ -136,14 +136,14 @@ const Navbar = () => {
           
           {isAuthenticated ? (
             <Link to="/dashboard">
-              <Button variant="outline" className="flex items-center gap-2 text-white border-white hover:bg-primary hover:text-white hover:border-primary">
+              <Button variant="outline" className="flex items-center gap-2 text-white border-white/50 bg-white/10 hover:bg-primary hover:text-white hover:border-primary">
                 <User size={18} />
                 <span>حسابي</span>
               </Button>
             </Link>
           ) : (
             <Link to="/signin">
-              <Button variant="outline" className="flex items-center gap-2 text-white border-white hover:bg-primary hover:text-white hover:border-primary rounded-full px-6">
+              <Button variant="outline" className="flex items-center gap-2 text-white border-white/50 bg-white/10 hover:bg-primary hover:text-white hover:border-primary rounded-full px-6">
                 <span className="font-hacen">تسجيل الدخول</span>
               </Button>
             </Link>
@@ -156,7 +156,7 @@ const Navbar = () => {
             variant="ghost" 
             size="icon" 
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="text-white"
+            className="text-white hover:bg-white/20"
             aria-label={isMobileMenuOpen ? "إغلاق القائمة" : "فتح القائمة"}
           >
             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -166,7 +166,7 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       <div 
-        className={`md:hidden fixed inset-0 bg-transparent backdrop-blur-sm z-50 transition-transform duration-300 ease-in-out mobile-menu-container overflow-y-auto pt-20 ${
+        className={`md:hidden fixed inset-0 bg-primary/80 backdrop-blur-md z-50 transition-transform duration-300 ease-in-out mobile-menu-container overflow-y-auto pt-20 ${
           isMobileMenuOpen ? 'translate-y-0' : '-translate-y-full'
         }`}
       >
@@ -219,9 +219,9 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
               to={link.path}
               className={`${
                 isActive(link.path) 
-                  ? 'text-primary font-bold' 
-                  : 'text-white hover:text-primary'
-              } text-xl py-3 block w-full text-center border-b border-gray-800 font-hacen transition-all duration-300 animate-fade-in`}
+                  ? 'text-primary font-bold bg-white/90 rounded-md' 
+                  : 'text-white hover:text-primary hover:bg-white/20 rounded-md'
+              } text-xl py-3 block w-full text-center border-b border-white/20 font-hacen transition-all duration-300 animate-fade-in`}
               style={{ animationDelay: `${index * 0.1}s` }}
               onClick={onClick}
             >
@@ -233,9 +233,9 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
                 to={link.path}
                 className={`${
                   isActive(link.path) 
-                    ? 'text-primary' 
-                    : 'text-white'
-                } font-hacen px-4 py-2 transition-all duration-300 hover:text-primary text-base`}
+                    ? 'text-primary bg-white/90 font-bold' 
+                    : 'text-white hover:text-primary hover:bg-white/20'
+                } font-hacen px-4 py-2 transition-all duration-300 text-base rounded-md`}
                 onClick={onClick}
               >
                 {link.label}
@@ -250,7 +250,7 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
           <Button 
             variant="ghost" 
             size="icon" 
-            className="mx-auto text-white hover:text-primary"
+            className="mx-auto text-white hover:bg-white/20 hover:text-primary"
             aria-label="سلة التسوق"
           >
             <ShoppingCart size={20} />
@@ -262,7 +262,7 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
               className="w-full"
               onClick={onClick}
             >
-              <Button variant="outline" className="flex items-center w-full justify-center gap-2 text-white border-white hover:bg-primary hover:text-white hover:border-primary">
+              <Button variant="outline" className="flex items-center w-full justify-center gap-2 text-white border-white/50 bg-white/10 hover:bg-primary hover:text-white hover:border-primary">
                 <User size={18} />
                 <span className="font-hacen">حسابي</span>
               </Button>
@@ -273,7 +273,7 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
               className="w-full"
               onClick={onClick}
             >
-              <Button variant="outline" className="flex items-center w-full justify-center gap-2 text-white border-white hover:bg-primary hover:text-white hover:border-primary rounded-full">
+              <Button variant="outline" className="flex items-center w-full justify-center gap-2 text-white border-white/50 bg-white/10 hover:bg-primary hover:text-white hover:border-primary rounded-full">
                 <span className="font-hacen">تسجيل الدخول</span>
               </Button>
             </Link>
@@ -283,7 +283,7 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
             to="https://wa.me/201000820752" 
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 text-white font-hacen py-3 w-full border border-gray-800 rounded-md mt-4 hover:bg-primary/20 hover:border-primary/40 transition-all"
+            className="flex items-center justify-center gap-2 text-white font-hacen py-3 w-full border border-white/30 bg-white/10 rounded-md mt-4 hover:bg-primary/20 hover:border-primary/40 transition-all"
             onClick={onClick}
           >
             <MessageSquare size={18} strokeWidth={1.5} className="fill-primary" />
