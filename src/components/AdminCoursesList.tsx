@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -135,14 +134,12 @@ const AdminCoursesList = () => {
     try {
       setLoading(true);
       
-      // Fetch real data from Supabase
       const { data, error } = await supabase
         .from('courses')
         .select('*');
       
       if (error) throw error;
       
-      // Transform the data to match our component's format
       const formattedCourses = data.map(course => ({
         id: course.id,
         title: course.title,
@@ -165,7 +162,6 @@ const AdminCoursesList = () => {
       console.error('Error fetching courses:', error);
       toast.error('فشل في تحميل الدورات');
       
-      // Fallback to mock data if API fails
       const mockCourses: CourseItem[] = [
         {
           id: '1',
@@ -252,13 +248,11 @@ const AdminCoursesList = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     if (selectedCourse) {
-      // Edit mode - update selected course
       setSelectedCourse({
         ...selectedCourse,
         [name]: value
       });
     } else {
-      // Add mode - update new course
       setNewCourse({
         ...newCourse,
         [name]: value
@@ -268,13 +262,11 @@ const AdminCoursesList = () => {
 
   const handleSelectChange = (value: string, fieldName: string) => {
     if (selectedCourse) {
-      // Edit mode
       setSelectedCourse({
         ...selectedCourse,
         [fieldName]: value
       });
     } else {
-      // Add mode
       setNewCourse({
         ...newCourse,
         [fieldName]: value
@@ -287,13 +279,11 @@ const AdminCoursesList = () => {
     const numValue = parseFloat(value);
     
     if (selectedCourse) {
-      // Edit mode
       setSelectedCourse({
         ...selectedCourse,
         [name]: numValue
       });
     } else {
-      // Add mode
       setNewCourse({
         ...newCourse,
         [name]: numValue
@@ -303,7 +293,6 @@ const AdminCoursesList = () => {
 
   const handleAddCourse = async () => {
     try {
-      // Insert new course into database
       const { data, error } = await supabase
         .from('courses')
         .insert({
@@ -337,7 +326,6 @@ const AdminCoursesList = () => {
     if (!selectedCourse) return;
     
     try {
-      // Update course in database
       const { error } = await supabase
         .from('courses')
         .update({
@@ -370,7 +358,6 @@ const AdminCoursesList = () => {
     if (!selectedCourse) return;
     
     try {
-      // Delete course from database
       const { error } = await supabase
         .from('courses')
         .delete()
@@ -392,7 +379,6 @@ const AdminCoursesList = () => {
     if (selectedCourses.length === 0) return;
     
     try {
-      // Delete multiple courses
       const { error } = await supabase
         .from('courses')
         .delete()
@@ -413,7 +399,6 @@ const AdminCoursesList = () => {
     if (selectedCourses.length === 0) return;
     
     try {
-      // Update status for multiple courses
       const { error } = await supabase
         .from('courses')
         .update({ status })
@@ -583,7 +568,12 @@ const AdminCoursesList = () => {
                           }}
                         />
                         <div>
-                          <p className="font-medium">{course.title}</p>
+                          <p 
+                            className="font-medium cursor-pointer hover:text-primary hover:underline"
+                            onClick={() => viewCourseDetails(course.id)}
+                          >
+                            {course.title}
+                          </p>
                           <p className="text-gray-500 text-sm">{course.instructor}</p>
                         </div>
                       </div>
@@ -659,7 +649,6 @@ const AdminCoursesList = () => {
         </Pagination>
       </CardContent>
 
-      {/* Dialog for editing a course */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -816,7 +805,6 @@ const AdminCoursesList = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog for deleting a course */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>

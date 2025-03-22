@@ -1,244 +1,227 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
+import { toast } from "sonner";
+import { useMutation, useQuery } from 'react-query';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from "@/components/ui/card";
+import { useDropzone } from 'react-dropzone';
+import { format } from 'date-fns';
+import { ar } from 'date-fns/locale';
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import {
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose
+} from "@/components/ui/dialog";
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationNext, 
+  PaginationPrevious 
+} from "@/components/ui/pagination";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import { 
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Calendar } from "@/components/ui/calendar";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose,
-} from "@/components/ui/dialog";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { 
-  ArrowLeft, 
-  Save, 
-  Plus, 
-  Edit, 
-  Trash2, 
-  Play, 
-  Pause, 
-  Video,
-  Upload,
-  X,
-  FileText
-} from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { Progress } from "@/components/ui/progress";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { CalendarIcon, Check, ChevronsUpDown, Copy, Edit, Eye, File, FileText, Loader2, Plus, RefreshCw, Trash2, Upload, Video } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
-interface CourseForm {
+interface Course {
+  id: string;
   title: string;
-  description: string;
+  instructor: string;
   price: number;
   currency: string;
-  instructor: string;
-  category: string;
-  level: string;
-  duration: string;
-  image_url: string;
+  description?: string;
+  category?: string;
+  studentsCount: number;
+  duration?: string;
+  level?: string;
+  image_url?: string;
   status: string;
-}
-
-interface LessonForm {
-  title: string;
-  description: string;
-  order_number: number;
-  is_free: boolean;
-  video_url: string;
-  video_file_name: string;
-  duration: string;
+  lastUpdated?: string;
+  updated_at?: string;
 }
 
 interface LessonData {
-  id?: string;
   title: string;
   description: string;
-  order_number: number;
-  is_free: boolean;
   video_url: string;
   video_file_name: string;
   duration: string;
-  course_id: string;
+  is_free: boolean;
+  order_number: number;
 }
 
 const CourseEdit = () => {
-  const { id } = useParams();
+  const { id: courseId } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const videoInputRef = useRef<HTMLInputElement>(null);
-  const [activeTab, setActiveTab] = useState('details');
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
-  const [courseForm, setCourseForm] = useState<CourseForm>({
+  const [lessons, setLessons] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [lessonData, setLessonData] = useState<LessonData>({
     title: '',
     description: '',
-    price: 0,
-    currency: 'EGP',
-    instructor: '',
-    category: '',
-    level: 'beginner',
-    duration: '',
-    image_url: '',
-    status: 'draft',
-  });
-
-  const [lessonForm, setLessonForm] = useState<LessonForm>({
-    title: '',
-    description: '',
-    order_number: 1,
-    is_free: false,
     video_url: '',
     video_file_name: '',
     duration: '',
+    is_free: false,
+    order_number: 1
   });
+  const [uploading, setUploading] = useState(false);
+  const [fileUrl, setFileUrl] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [date, setDate] = useState<Date | undefined>(new Date());
 
-  const [isAddLessonOpen, setIsAddLessonOpen] = useState(false);
-  const [isEditLessonOpen, setIsEditLessonOpen] = useState(false);
-  const [isDeleteLessonOpen, setIsDeleteLessonOpen] = useState(false);
-  const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
-  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
-
-  const { data: course, isLoading: isCourseLoading } = useQuery({
-    queryKey: ['course', id],
-    queryFn: async () => {
-      if (!id || id === 'create') return null;
-      
+  const { data: course, error: courseError } = useQuery(
+    ['course', courseId],
+    async () => {
       const { data, error } = await supabase
         .from('courses')
         .select('*')
-        .eq('id', id)
+        .eq('id', courseId)
         .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!id && id !== 'create'
-  });
 
-  const { data: lessons, isLoading: isLessonsLoading } = useQuery({
-    queryKey: ['lessons', id],
-    queryFn: async () => {
-      if (!id || id === 'create') return [];
+      if (error) {
+        console.error('Error fetching course:', error);
+        throw new Error('Failed to load course');
+      }
+      return data;
+    }
+  );
+
+  useEffect(() => {
+    fetchLessons();
+  }, [refreshTrigger]);
+
+  const fetchLessons = async () => {
+    try {
+      setLoading(true);
       
+      // Fetch real data from Supabase
       const { data, error } = await supabase
         .from('lessons')
         .select('*')
-        .eq('course_id', id)
+        .eq('course_id', courseId)
         .order('order_number', { ascending: true });
       
       if (error) throw error;
-      return data || [];
-    },
-    enabled: !!id && id !== 'create'
-  });
-
-  useEffect(() => {
-    if (course) {
-      setCourseForm({
-        title: course.title || '',
-        description: course.description || '',
-        price: course.price || 0,
-        currency: course.currency || 'EGP',
-        instructor: course.instructor || '',
-        category: course.category || '',
-        level: course.level || 'beginner',
-        duration: course.duration || '',
-        image_url: course.image_url || '',
-        status: course.status || 'draft',
-      });
-
-      if (course.image_url) {
-        setPreviewUrl(course.image_url);
-      }
+      
+      setLessons(data);
+    } catch (error) {
+      console.error('Error fetching lessons:', error);
+      toast.error('فشل في تحميل الدروس');
+    } finally {
+      setLoading(false);
     }
-  }, [course]);
-
-  const resetLessonForm = (orderNumber?: number) => {
-    setLessonForm({
-      title: '',
-      description: '',
-      order_number: orderNumber || (lessons?.length ? lessons.length + 1 : 1),
-      is_free: false,
-      video_url: '',
-      video_file_name: '',
-      duration: '',
-    });
-    setVideoPreviewUrl(null);
   };
 
-  const saveCourse = useMutation({
-    mutationFn: async (courseData: CourseForm) => {
-      if (id && id !== 'create') {
-        const { data, error } = await supabase
-          .from('courses')
-          .update(courseData)
-          .eq('id', id);
-        
-        if (error) throw error;
-        return { ...data, id };
-      } else {
-        const { data, error } = await supabase
-          .from('courses')
-          .insert([courseData])
-          .select();
-        
-        if (error) throw error;
-        return data?.[0];
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${uuidv4()}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    setUploading(true);
+
+    try {
+      const { data, error } = await supabase.storage
+        .from('course-videos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('Error uploading file:', error);
+        toast.error('فشل في رفع الملف');
+        setUploading(false);
+        return;
       }
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({queryKey: ['course', id]});
-      queryClient.invalidateQueries({queryKey: ['courses']});
-      toast.success(id === 'create' ? 'تم إنشاء الدورة بنجاح' : 'تم تحديث الدورة بنجاح');
-      
-      if (id === 'create' && data?.id) {
-        navigate(`/courses-management/${data.id}`);
-      }
-    },
-    onError: (error) => {
-      console.error('Error saving course:', error);
-      toast.error('حدث خطأ أثناء حفظ الدورة');
+
+      const url = `${supabase.storageUrl}/object/public/${supabase.storageBucket}/course-videos/${filePath}`;
+      setFileUrl(url);
+      setFileName(fileName);
+      setLessonData({
+        ...lessonData,
+        video_url: url,
+        video_file_name: fileName
+      });
+      toast.success('تم رفع الملف بنجاح');
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      toast.error('فشل في رفع الملف');
+    } finally {
+      setUploading(false);
     }
-  });
+  }, [lessonData, setLessonData]);
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: 'video/*' })
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value, type, checked } = e.target;
+  
+    // Handle boolean value for checkbox
+    const inputValue = type === 'checkbox' ? checked : value;
+  
+    setLessonData({
+      ...lessonData,
+      [name]: inputValue
+    });
+  };
+  
+  const handleNumberInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    const numValue = parseInt(value);
+    
+    setLessonData({
+      ...lessonData,
+      [name]: numValue
+    });
+  };
 
   const saveLesson = useMutation({
     mutationFn: async (lessonData: LessonData) => {
@@ -246,18 +229,18 @@ const CourseEdit = () => {
         const dataToUpdate = {
           title: lessonData.title,
           description: lessonData.description,
-          order_number: lessonData.order_number,
-          is_free: lessonData.is_free,
           video_url: lessonData.video_url,
           video_file_name: lessonData.video_file_name,
           duration: lessonData.duration,
-          course_id: lessonData.course_id
+          is_free: lessonData.is_free,
+          order_number: lessonData.order_number
         };
         
         const { data, error } = await supabase
           .from('lessons')
           .update(dataToUpdate)
-          .eq('id', selectedLessonId);
+          .eq('id', selectedLessonId)
+          .select();
         
         if (error) throw error;
         return data;
@@ -265,29 +248,40 @@ const CourseEdit = () => {
         const dataToInsert = {
           title: lessonData.title,
           description: lessonData.description,
-          order_number: lessonData.order_number,
-          is_free: lessonData.is_free,
           video_url: lessonData.video_url,
           video_file_name: lessonData.video_file_name,
           duration: lessonData.duration,
-          course_id: lessonData.course_id
+          is_free: lessonData.is_free,
+          order_number: lessonData.order_number,
+          course_id: courseId
         };
         
         const { data, error } = await supabase
           .from('lessons')
-          .insert([dataToInsert])
+          .insert(dataToInsert)
           .select();
         
         if (error) throw error;
-        return data?.[0];
+        return data;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: ['lessons', id]});
-      toast.success(selectedLessonId ? 'تم تحديث الدرس بنجاح' : 'تم إضافة الدرس بنجاح');
-      setIsAddLessonOpen(false);
-      setIsEditLessonOpen(false);
-      resetLessonForm();
+      toast.success('تم حفظ الدرس بنجاح');
+      setIsAddDialogOpen(false);
+      setIsEditDialogOpen(false);
+      setLessonData({
+        title: '',
+        description: '',
+        video_url: '',
+        video_file_name: '',
+        duration: '',
+        is_free: false,
+        order_number: 1
+      });
+      setFileUrl(null);
+      setFileName(null);
+      setSelectedLessonId(null);
+      setRefreshTrigger(prev => prev + 1);
     },
     onError: (error) => {
       console.error('Error saving lesson:', error);
@@ -295,709 +289,148 @@ const CourseEdit = () => {
     }
   });
 
-  const deleteLesson = useMutation({
-    mutationFn: async (lessonId: string) => {
-      const { data, error } = await supabase
+  const handleDeleteLesson = async () => {
+    if (!selectedLessonId) return;
+    
+    try {
+      // Delete lesson from database
+      const { error } = await supabase
         .from('lessons')
         .delete()
-        .eq('id', lessonId);
+        .eq('id', selectedLessonId);
       
       if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: ['lessons', id]});
+      
       toast.success('تم حذف الدرس بنجاح');
-      setIsDeleteLessonOpen(false);
-    },
-    onError: (error) => {
+      setIsDeleteDialogOpen(false);
+      setSelectedLessonId(null);
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error) {
       console.error('Error deleting lesson:', error);
       toast.error('حدث خطأ أثناء حذف الدرس');
     }
-  });
-
-  const handleCourseInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    const newCourseForm = { ...courseForm };
-    if (name === 'price') {
-      newCourseForm.price = parseFloat(value);
-    } else {
-      (newCourseForm as any)[name] = value;
-    }
-    setCourseForm(newCourseForm);
   };
 
-  const handleLessonInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    const newLessonForm = { ...lessonForm };
-    if (name === 'order_number') {
-      newLessonForm.order_number = parseInt(value);
-    } else {
-      (newLessonForm as any)[name] = value;
-    }
-    setLessonForm(newLessonForm);
-  };
-
-  const handleSaveCourse = (e: React.FormEvent) => {
-    e.preventDefault();
-    saveCourse.mutate(courseForm);
-  };
-
-  const handleSaveLesson = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!id) return;
-    
-    const lessonData: LessonData = {
-      title: lessonForm.title,
-      description: lessonForm.description,
-      order_number: lessonForm.order_number,
-      is_free: lessonForm.is_free,
-      video_url: lessonForm.video_url,
-      video_file_name: lessonForm.video_file_name,
-      duration: lessonForm.duration,
-      course_id: id
-    };
-    
+  const handleAddLesson = () => {
     saveLesson.mutate(lessonData);
   };
 
-  const handleEditLesson = (lesson: any) => {
+  const handleUpdateLesson = () => {
+    saveLesson.mutate(lessonData);
+  };
+
+  const editLesson = (lesson: any) => {
     setSelectedLessonId(lesson.id);
-    setLessonForm({
+    setLessonData({
       title: lesson.title,
-      description: lesson.description || '',
-      order_number: lesson.order_number,
-      is_free: lesson.is_free || false,
-      video_url: lesson.video_url || '',
-      video_file_name: lesson.video_file_name || '',
-      duration: lesson.duration || '',
+      description: lesson.description,
+      video_url: lesson.video_url,
+      video_file_name: lesson.video_file_name,
+      duration: lesson.duration,
+      is_free: lesson.is_free,
+      order_number: lesson.order_number
     });
-    
-    if (lesson.video_url) {
-      setVideoPreviewUrl(lesson.video_url);
-    } else {
-      setVideoPreviewUrl(null);
-    }
-    
-    setIsEditLessonOpen(true);
+    setFileUrl(lesson.video_url);
+    setFileName(lesson.video_file_name);
+    setIsEditDialogOpen(true);
   };
-
-  const handleDeleteLesson = (lessonId: string) => {
-    setSelectedLessonId(lessonId);
-    setIsDeleteLessonOpen(true);
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${uuidv4()}.${fileExt}`;
-    const filePath = `${fileName}`;
-
-    setIsUploading(true);
-    setUploadProgress(0);
-    
-    try {
-      const objectUrl = URL.createObjectURL(file);
-      setPreviewUrl(objectUrl);
-      
-      const uploadOptions = {
-        cacheControl: '3600',
-        upsert: true
-      };
-      
-      const xhr = new XMLHttpRequest();
-      xhr.upload.addEventListener('progress', (event) => {
-        if (event.lengthComputable) {
-          const percent = Math.round((event.loaded / event.total) * 100);
-          setUploadProgress(percent);
-        }
-      });
-      
-      const { data, error } = await supabase.storage
-        .from('course_images')
-        .upload(filePath, file, uploadOptions);
-
-      if (error) throw error;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('course_images')
-        .getPublicUrl(filePath);
-
-      const newCourseForm = { ...courseForm };
-      newCourseForm.image_url = publicUrl;
-      setCourseForm(newCourseForm);
-
-      toast.success('تم رفع الصورة بنجاح');
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      toast.error('حدث خطأ أثناء رفع الصورة');
-      setPreviewUrl(null);
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-
-  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${uuidv4()}.${fileExt}`;
-    const filePath = `${fileName}`;
-
-    setIsUploading(true);
-    setUploadProgress(0);
-    
-    try {
-      const objectUrl = URL.createObjectURL(file);
-      setVideoPreviewUrl(objectUrl);
-      
-      const uploadOptions = {
-        cacheControl: '3600',
-        upsert: true
-      };
-      
-      const xhr = new XMLHttpRequest();
-      xhr.upload.addEventListener('progress', (event) => {
-        if (event.lengthComputable) {
-          const percent = Math.round((event.loaded / event.total) * 100);
-          setUploadProgress(percent);
-        }
-      });
-      
-      const { data, error } = await supabase.storage
-        .from('course_videos')
-        .upload(filePath, file, uploadOptions);
-
-      if (error) throw error;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('course_videos')
-        .getPublicUrl(filePath);
-
-      const newLessonForm = { ...lessonForm };
-      newLessonForm.video_url = publicUrl;
-      newLessonForm.video_file_name = fileName;
-      setLessonForm(newLessonForm);
-
-      toast.success('تم رفع الفيديو بنجاح');
-    } catch (error) {
-      console.error('Error uploading video:', error);
-      toast.error('حدث خطأ أثناء رفع الفيديو');
-      setVideoPreviewUrl(null);
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
-      if (videoInputRef.current) {
-        videoInputRef.current.value = '';
-      }
-    }
-  };
-
-  const removeImage = () => {
-    const newCourseForm = { ...courseForm };
-    newCourseForm.image_url = '';
-    setCourseForm(newCourseForm);
-    setPreviewUrl(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
-
-  const removeVideo = () => {
-    const newLessonForm = { ...lessonForm };
-    newLessonForm.video_url = '';
-    newLessonForm.video_file_name = '';
-    setLessonForm(newLessonForm);
-    setVideoPreviewUrl(null);
-    if (videoInputRef.current) {
-      videoInputRef.current.value = '';
-    }
-  };
-
-  if (isCourseLoading && id && id !== 'create') {
-    return <div className="flex justify-center items-center h-96">جاري التحميل...</div>;
-  }
 
   return (
-    <div>
-      <header className="mb-6">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/courses-management')}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+      <div className="max-w-7xl mx-auto">
+        <header className="mb-8">
+          <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold">
-                {id === 'create' ? 'إضافة دورة جديدة' : `تعديل دورة: ${courseForm.title}`}
+              <h1 className="text-3xl font-bold text-primary">
+                {course ? `تعديل الدورة: ${course.title}` : 'جاري التحميل...'}
               </h1>
-              <p className="text-gray-600">
-                {id === 'create' ? 'أدخل تفاصيل الدورة الجديدة' : 'تعديل تفاصيل ومحتوى الدورة'}
+              <p className="text-gray-600 mt-1">
+                إدارة وتنظيم محتوى الدورة التدريبية
               </p>
             </div>
+            <Button
+              onClick={() => navigate('/courses-management')}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              العودة إلى إدارة الدورات
+            </Button>
           </div>
-          <Button
-            onClick={handleSaveCourse}
-            disabled={saveCourse.isPending}
-            className="flex items-center gap-2"
-          >
-            <Save className="h-4 w-4" />
-            حفظ الدورة
-          </Button>
-        </div>
-      </header>
+        </header>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-        <TabsList className="w-full md:w-auto">
-          <TabsTrigger value="details" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            تفاصيل الدورة
-          </TabsTrigger>
-          <TabsTrigger 
-            value="lessons" 
-            className="flex items-center gap-2"
-            disabled={id === 'create'}
-          >
-            <Video className="h-4 w-4" />
-            دروس الدورة
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="details">
-          <Card>
-            <CardHeader>
-              <CardTitle>معلومات الدورة الأساسية</CardTitle>
-              <CardDescription>
-                أدخل المعلومات الأساسية للدورة التدريبية
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form className="space-y-6">
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="title">عنوان الدورة</Label>
-                      <Input
-                        id="title"
-                        name="title"
-                        value={courseForm.title}
-                        onChange={handleCourseInputChange}
-                        placeholder="عنوان الدورة"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="instructor">اسم المدرب</Label>
-                      <Input
-                        id="instructor"
-                        name="instructor"
-                        value={courseForm.instructor}
-                        onChange={handleCourseInputChange}
-                        placeholder="اسم المدرب"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="description">وصف الدورة</Label>
-                    <Textarea
-                      id="description"
-                      name="description"
-                      value={courseForm.description}
-                      onChange={handleCourseInputChange}
-                      placeholder="وصف مفصل للدورة"
-                      rows={5}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="price">سعر الدورة</Label>
-                      <Input
-                        id="price"
-                        name="price"
-                        type="number"
-                        value={courseForm.price}
-                        onChange={handleCourseInputChange}
-                        placeholder="سعر الدورة"
-                        min="0"
-                        required
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="currency">العملة</Label>
-                      <Select 
-                        name="currency"
-                        value={courseForm.currency}
-                        onValueChange={(value) => setCourseForm({...courseForm, currency: value})}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="اختر العملة" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="EGP">جنيه مصري</SelectItem>
-                          <SelectItem value="USD">دولار أمريكي</SelectItem>
-                          <SelectItem value="SAR">ريال سعودي</SelectItem>
-                          <SelectItem value="AED">درهم إماراتي</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="duration">مدة الدورة</Label>
-                      <Input
-                        id="duration"
-                        name="duration"
-                        value={courseForm.duration}
-                        onChange={handleCourseInputChange}
-                        placeholder="مثال: 10 ساعات"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <Label htmlFor="category">فئة الدورة</Label>
-                      <Input
-                        id="category"
-                        name="category"
-                        value={courseForm.category}
-                        onChange={handleCourseInputChange}
-                        placeholder="مثال: برمجة، تسويق، إدارة أعمال"
-                      />
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="level">مستوى الدورة</Label>
-                      <Select 
-                        name="level"
-                        value={courseForm.level}
-                        onValueChange={(value) => setCourseForm({...courseForm, level: value})}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="اختر المستوى" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="beginner">مبتدئ</SelectItem>
-                          <SelectItem value="intermediate">متوسط</SelectItem>
-                          <SelectItem value="advanced">متقدم</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="status">حالة الدورة</Label>
-                      <Select 
-                        name="status"
-                        value={courseForm.status}
-                        onValueChange={(value) => setCourseForm({...courseForm, status: value})}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="اختر الحالة" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="draft">مسودة</SelectItem>
-                          <SelectItem value="published">منشور</SelectItem>
-                          <SelectItem value="archived">مؤرشف</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label>صورة الدورة</Label>
-                    <div className="border border-input rounded-md p-4">
-                      {previewUrl ? (
-                        <div className="relative">
-                          <img 
-                            src={previewUrl} 
-                            alt="معاينة صورة الدورة" 
-                            className="h-48 w-auto object-cover rounded-md mx-auto"
-                          />
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            className="absolute top-2 right-2 h-8 w-8 rounded-full"
-                            onClick={removeImage}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg">
-                          <Upload className="h-10 w-10 text-gray-400 mb-2" />
-                          <p className="text-sm text-gray-600 mb-2">اضغط لتحميل صورة للدورة</p>
-                          <Button 
-                            type="button" 
-                            variant="outline"
-                            onClick={() => fileInputRef.current?.click()}
-                            disabled={isUploading}
-                          >
-                            اختر صورة
-                          </Button>
-                        </div>
-                      )}
-                      
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        className="hidden"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                      />
-                      
-                      {isUploading && (
-                        <div className="mt-4">
-                          <Label className="mb-2 block">جارِ الرفع: {uploadProgress}%</Label>
-                          <Progress value={uploadProgress} className="h-2" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </form>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={() => navigate('/courses-management')}>
-                إلغاء
-              </Button>
-              <Button onClick={handleSaveCourse} disabled={saveCourse.isPending}>
-                {saveCourse.isPending ? 'جارِ الحفظ...' : 'حفظ الدورة'}
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="lessons">
-          <Card>
-            <CardHeader>
+        <Card>
+          <CardContent className="p-6">
+            <div className="mb-6">
+              <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+                الدروس والمحاضرات
+              </h2>
               <div className="flex justify-between items-center">
-                <div>
-                  <CardTitle>قائمة الدروس</CardTitle>
-                  <CardDescription>
-                    إدارة دروس الدورة وفيديوهات المحتوى
-                  </CardDescription>
-                </div>
-                <Dialog open={isAddLessonOpen} onOpenChange={setIsAddLessonOpen}>
-                  <DialogTrigger asChild>
-                    <Button onClick={() => {
-                      resetLessonForm();
-                      setSelectedLessonId(null);
-                    }}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      إضافة درس جديد
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-[600px]">
-                    <DialogHeader>
-                      <DialogTitle>إضافة درس جديد</DialogTitle>
-                      <DialogDescription>
-                        أضف تفاصيل الدرس وقم برفع فيديو المحتوى
-                      </DialogDescription>
-                    </DialogHeader>
-                    
-                    <div className="grid gap-4 py-4">
-                      <div className="grid gap-2">
-                        <Label htmlFor="lesson-title">عنوان الدرس</Label>
-                        <Input
-                          id="lesson-title"
-                          name="title"
-                          value={lessonForm.title}
-                          onChange={handleLessonInputChange}
-                          placeholder="عنوان الدرس"
-                          required
-                        />
-                      </div>
-                      
-                      <div className="grid gap-2">
-                        <Label htmlFor="lesson-description">وصف الدرس</Label>
-                        <Textarea
-                          id="lesson-description"
-                          name="description"
-                          value={lessonForm.description}
-                          onChange={handleLessonInputChange}
-                          placeholder="وصف محتوى الدرس"
-                          rows={3}
-                        />
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-2">
-                          <Label htmlFor="order_number">ترتيب الدرس</Label>
-                          <Input
-                            id="order_number"
-                            name="order_number"
-                            type="number"
-                            value={lessonForm.order_number}
-                            onChange={handleLessonInputChange}
-                            min="1"
-                            required
-                          />
-                        </div>
-                        
-                        <div className="grid gap-2">
-                          <Label htmlFor="duration">مدة الدرس</Label>
-                          <Input
-                            id="duration"
-                            name="duration"
-                            value={lessonForm.duration}
-                            onChange={handleLessonInputChange}
-                            placeholder="مثال: 45 دقيقة"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div className="grid gap-2">
-                        <div className="flex items-center space-x-2 space-x-reverse">
-                          <input
-                            type="checkbox"
-                            id="is_free"
-                            className="h-4 w-4 rounded border-gray-300"
-                            checked={lessonForm.is_free}
-                            onChange={(e) => setLessonForm({...lessonForm, is_free: e.target.checked})}
-                          />
-                          <Label htmlFor="is_free">درس مجاني؟</Label>
-                        </div>
-                        <p className="text-sm text-gray-500">
-                          الدروس المجانية يمكن للمستخدمين مشاهدتها دون شراء الدورة
-                        </p>
-                      </div>
-                      
-                      <div className="grid gap-2">
-                        <Label>فيديو الدرس</Label>
-                        <div className="border border-input rounded-md p-4">
-                          {videoPreviewUrl ? (
-                            <div className="relative">
-                              <video 
-                                src={videoPreviewUrl} 
-                                controls
-                                className="w-full h-auto rounded-md"
-                              />
-                              <Button
-                                type="button"
-                                variant="destructive"
-                                size="icon"
-                                className="absolute top-2 right-2 h-8 w-8 rounded-full"
-                                onClick={removeVideo}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg">
-                              <Video className="h-10 w-10 text-gray-400 mb-2" />
-                              <p className="text-sm text-gray-600 mb-2">اضغط لتحميل فيديو الدرس</p>
-                              <Button 
-                                type="button" 
-                                variant="outline"
-                                onClick={() => videoInputRef.current?.click()}
-                                disabled={isUploading}
-                              >
-                                اختر فيديو
-                              </Button>
-                            </div>
-                          )}
-                          
-                          <input
-                            type="file"
-                            ref={videoInputRef}
-                            className="hidden"
-                            accept="video/*"
-                            onChange={handleVideoUpload}
-                          />
-                          
-                          {isUploading && (
-                            <div className="mt-4">
-                              <Label className="mb-2 block">جارِ الرفع: {uploadProgress}%</Label>
-                              <Progress value={uploadProgress} className="h-2" />
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <DialogFooter>
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={() => {
-                          setIsAddLessonOpen(false);
-                          resetLessonForm();
-                        }}
-                      >
-                        إلغاء
-                      </Button>
-                      <Button 
-                        type="button" 
-                        onClick={handleSaveLesson}
-                        disabled={!lessonForm.title || saveLesson.isPending}
-                      >
-                        {saveLesson.isPending ? 'جارِ الحفظ...' : 'حفظ الدرس'}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                <p className="text-gray-500">
+                  إضافة وتعديل الدروس والمحاضرات الخاصة بالدورة
+                </p>
+                <Button
+                  onClick={() => setIsAddDialogOpen(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  إضافة درس جديد
+                </Button>
               </div>
-            </CardHeader>
-            <CardContent>
-              {isLessonsLoading ? (
-                <div className="flex justify-center items-center h-40">جاري تحميل الدروس...</div>
-              ) : lessons && lessons.length > 0 ? (
-                <Table>
-                  <TableHeader>
+            </div>
+
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>عنوان الدرس</TableHead>
+                    <TableHead>المدة</TableHead>
+                    <TableHead>مجاني؟</TableHead>
+                    <TableHead>الترتيب</TableHead>
+                    <TableHead className="text-left">الإجراءات</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
                     <TableRow>
-                      <TableHead className="w-12">#</TableHead>
-                      <TableHead>عنوان الدرس</TableHead>
-                      <TableHead>المدة</TableHead>
-                      <TableHead>الحالة</TableHead>
-                      <TableHead className="text-left">الإجراءات</TableHead>
+                      <TableCell colSpan={5} className="text-center py-8">
+                        جاري التحميل...
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {lessons.map((lesson: any, index: number) => (
+                  ) : lessons.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8">
+                        لا توجد دروس متاحة
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    lessons.map(lesson => (
                       <TableRow key={lesson.id}>
-                        <TableCell>{lesson.order_number}</TableCell>
                         <TableCell>
-                          <div className="font-medium">{lesson.title}</div>
-                          {lesson.description && (
-                            <div className="text-gray-500 text-xs truncate max-w-60">
-                              {lesson.description}
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <p className="font-medium">{lesson.title}</p>
                             </div>
-                          )}
+                          </div>
                         </TableCell>
-                        <TableCell>{lesson.duration || 'غير محدد'}</TableCell>
+                        <TableCell>{lesson.duration}</TableCell>
                         <TableCell>
-                          {lesson.is_free ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              مجاني
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                              مدفوع
-                            </span>
-                          )}
+                          {lesson.is_free ? 'نعم' : 'لا'}
                         </TableCell>
+                        <TableCell>{lesson.order_number}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <Button
                               variant="ghost"
                               size="icon"
+                              title="عرض"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
                               title="تعديل"
-                              onClick={() => handleEditLesson(lesson)}
+                              onClick={() => editLesson(lesson)}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -1005,216 +438,286 @@ const CourseEdit = () => {
                               variant="ghost"
                               size="icon"
                               title="حذف"
-                              onClick={() => handleDeleteLesson(lesson.id)}
+                              onClick={() => {
+                                setSelectedLessonId(lesson.id);
+                                setIsDeleteDialogOpen(true);
+                              }}
                             >
                               <Trash2 className="h-4 w-4 text-red-500" />
                             </Button>
-                            {lesson.video_url && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                title="عرض الفيديو"
-                                asChild
-                              >
-                                <a href={lesson.video_url} target="_blank" rel="noreferrer">
-                                  <Play className="h-4 w-4 text-green-500" />
-                                </a>
-                              </Button>
-                            )}
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              ) : (
-                <div className="text-center py-10 border rounded-md">
-                  <Video className="h-10 w-10 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900">لا توجد دروس</h3>
-                  <p className="text-gray-500 mt-2">قم بإضافة دروس جديدة للدورة من خلال الزر أعلاه</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
 
-      <Dialog open={isEditLessonOpen} onOpenChange={setIsEditLessonOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>تعديل الدرس</DialogTitle>
-            <DialogDescription>
-              قم بتعديل تفاصيل الدرس وفيديو المحتوى
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="edit-lesson-title">عنوان الدرس</Label>
-              <Input
-                id="edit-lesson-title"
-                name="title"
-                value={lessonForm.title}
-                onChange={handleLessonInputChange}
-                placeholder="عنوان الدرس"
-                required
-              />
-            </div>
+        {/* Dialog for adding a lesson */}
+        <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>إضافة درس جديد</DialogTitle>
+              <DialogDescription>
+                إضافة معلومات الدرس. اضغط "حفظ" عند الانتهاء.
+              </DialogDescription>
+            </DialogHeader>
             
-            <div className="grid gap-2">
-              <Label htmlFor="edit-lesson-description">وصف الدرس</Label>
-              <Textarea
-                id="edit-lesson-description"
-                name="description"
-                value={lessonForm.description}
-                onChange={handleLessonInputChange}
-                placeholder="وصف محتوى الدرس"
-                rows={3}
-              />
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="edit-order_number">ترتيب الدرس</Label>
-                <Input
-                  id="edit-order_number"
-                  name="order_number"
-                  type="number"
-                  value={lessonForm.order_number}
-                  onChange={handleLessonInputChange}
-                  min="1"
-                  required
-                />
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="title">عنوان الدرس</Label>
+                  <Input 
+                    id="title" 
+                    name="title" 
+                    value={lessonData.title} 
+                    onChange={handleInputChange} 
+                    placeholder="أدخل عنوان الدرس"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">وصف الدرس</Label>
+                  <Textarea 
+                    id="description" 
+                    name="description" 
+                    value={lessonData.description} 
+                    onChange={handleInputChange} 
+                    placeholder="أدخل وصفاً تفصيلياً للدرس"
+                    rows={3}
+                    autoSize
+                  />
+                </div>
               </div>
               
-              <div className="grid gap-2">
-                <Label htmlFor="edit-duration">مدة الدرس</Label>
-                <Input
-                  id="edit-duration"
-                  name="duration"
-                  value={lessonForm.duration}
-                  onChange={handleLessonInputChange}
-                  placeholder="مثال: 45 دقيقة"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="duration">المدة</Label>
+                  <Input 
+                    id="duration" 
+                    name="duration" 
+                    value={lessonData.duration} 
+                    onChange={handleInputChange} 
+                    placeholder="مثال: 25 دقيقة"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="order_number">الترتيب</Label>
+                  <Input 
+                    id="order_number" 
+                    name="order_number" 
+                    type="number"
+                    value={lessonData.order_number} 
+                    onChange={handleNumberInputChange} 
+                    placeholder="أدخل ترتيب الدرس"
+                  />
+                </div>
               </div>
-            </div>
-            
-            <div className="grid gap-2">
-              <div className="flex items-center space-x-2 space-x-reverse">
-                <input
-                  type="checkbox"
-                  id="edit-is_free"
-                  className="h-4 w-4 rounded border-gray-300"
-                  checked={lessonForm.is_free}
-                  onChange={(e) => setLessonForm({...lessonForm, is_free: e.target.checked})}
-                />
-                <Label htmlFor="edit-is_free">درس مجاني؟</Label>
-              </div>
-              <p className="text-sm text-gray-500">
-                الدروس المجانية يمكن للمستخدمين مشاهدتها دون شراء الدورة
-              </p>
-            </div>
-            
-            <div className="grid gap-2">
-              <Label>فيديو الدرس</Label>
-              <div className="border border-input rounded-md p-4">
-                {videoPreviewUrl ? (
-                  <div className="relative">
-                    <video 
-                      src={videoPreviewUrl} 
-                      controls
-                      className="w-full h-auto rounded-md"
-                    />
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="icon"
-                      className="absolute top-2 right-2 h-8 w-8 rounded-full"
-                      onClick={removeVideo}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-lg">
-                    <Video className="h-10 w-10 text-gray-400 mb-2" />
-                    <p className="text-sm text-gray-600 mb-2">اضغط لتحميل فيديو الدرس</p>
-                    <Button 
-                      type="button" 
-                      variant="outline"
-                      onClick={() => videoInputRef.current?.click()}
-                      disabled={isUploading}
-                    >
-                      اختر فيديو
-                    </Button>
-                  </div>
-                )}
-                
-                <input
-                  type="file"
-                  ref={videoInputRef}
-                  className="hidden"
-                  accept="video/*"
-                  onChange={handleVideoUpload}
-                />
-                
-                {isUploading && (
-                  <div className="mt-4">
-                    <Label className="mb-2 block">جارِ الرفع: {uploadProgress}%</Label>
-                    <Progress value={uploadProgress} className="h-2" />
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => {
-                setIsEditLessonOpen(false);
-                resetLessonForm();
-              }}
-            >
-              إلغاء
-            </Button>
-            <Button 
-              type="button" 
-              onClick={handleSaveLesson}
-              disabled={!lessonForm.title || saveLesson.isPending}
-            >
-              {saveLesson.isPending ? 'جارِ الحفظ...' : 'حفظ التغييرات'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
-      <Dialog open={isDeleteLessonOpen} onOpenChange={setIsDeleteLessonOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>حذف الدرس</DialogTitle>
-            <DialogDescription>
-              هل أنت متأكد من رغبتك في حذف هذا الدرس؟ لا يمكن التراجع عن هذا الإجراء.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteLessonOpen(false)}>
-              إلغاء
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => selectedLessonId && deleteLesson.mutate(selectedLessonId)}
-              disabled={deleteLesson.isPending}
-            >
-              {deleteLesson.isPending ? 'جارِ الحذف...' : 'حذف'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+              <div className="flex items-center space-x-2">
+                <Input 
+                  type="checkbox" 
+                  id="is_free" 
+                  name="is_free"
+                  checked={lessonData.is_free}
+                  onChange={handleInputChange} 
+                  className="h-4 w-4" 
+                />
+                <Label htmlFor="is_free">الدرس مجاني؟</Label>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="video_url">رابط الفيديو</Label>
+                <div {...getRootProps()} className="border-dashed border-2 rounded-md p-4 cursor-pointer">
+                  <input {...getInputProps()} />
+                  {uploading ? (
+                    <div className="flex items-center justify-center">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <span>جاري الرفع...</span>
+                    </div>
+                  ) : fileUrl ? (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <Video className="mr-2 h-4 w-4" />
+                        <span>{fileName}</span>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => {
+                        setFileUrl(null);
+                        setFileName(null);
+                        setLessonData({
+                          ...lessonData,
+                          video_url: '',
+                          video_file_name: ''
+                        });
+                      }}>
+                        تغيير
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center">
+                      <Upload className="h-6 w-6 text-gray-500" />
+                      <p className="text-gray-500">
+                        {isDragActive ? "أفلت الملف هنا..." : "إضغط أو اسحب الملف لرفعه"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">إلغاء</Button>
+              </DialogClose>
+              <Button onClick={handleAddLesson}>حفظ</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog for editing a lesson */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader>
+              <DialogTitle>تعديل الدرس</DialogTitle>
+              <DialogDescription>
+                تعديل معلومات الدرس. اضغط "حفظ" عند الانتهاء.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-1 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-title">عنوان الدرس</Label>
+                  <Input 
+                    id="edit-title" 
+                    name="title" 
+                    value={lessonData.title} 
+                    onChange={handleInputChange} 
+                    placeholder="أدخل عنوان الدرس"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-description">وصف الدرس</Label>
+                  <Textarea 
+                    id="edit-description" 
+                    name="description" 
+                    value={lessonData.description} 
+                    onChange={handleInputChange} 
+                    placeholder="أدخل وصفاً تفصيلياً للدرس"
+                    rows={3}
+                    autoSize
+                  />
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-duration">المدة</Label>
+                  <Input 
+                    id="edit-duration" 
+                    name="duration" 
+                    value={lessonData.duration} 
+                    onChange={handleInputChange} 
+                    placeholder="مثال: 25 دقيقة"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-order_number">الترتيب</Label>
+                  <Input 
+                    id="edit-order_number" 
+                    name="order_number" 
+                    type="number"
+                    value={lessonData.order_number} 
+                    onChange={handleNumberInputChange} 
+                    placeholder="أدخل ترتيب الدرس"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Input 
+                  type="checkbox" 
+                  id="edit-is_free" 
+                  name="is_free"
+                  checked={lessonData.is_free}
+                  onChange={handleInputChange} 
+                  className="h-4 w-4" 
+                />
+                <Label htmlFor="edit-is_free">الدرس مجاني؟</Label>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-video_url">رابط الفيديو</Label>
+                <div {...getRootProps()} className="border-dashed border-2 rounded-md p-4 cursor-pointer">
+                  <input {...getInputProps()} />
+                  {uploading ? (
+                    <div className="flex items-center justify-center">
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      <span>جاري الرفع...</span>
+                    </div>
+                  ) : fileUrl ? (
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <Video className="mr-2 h-4 w-4" />
+                        <span>{fileName}</span>
+                      </div>
+                      <Button variant="outline" size="sm" onClick={() => {
+                        setFileUrl(null);
+                        setFileName(null);
+                        setLessonData({
+                          ...lessonData,
+                          video_url: '',
+                          video_file_name: ''
+                        });
+                      }}>
+                        تغيير
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center">
+                      <Upload className="h-6 w-6 text-gray-500" />
+                      <p className="text-gray-500">
+                        {isDragActive ? "أفلت الملف هنا..." : "إضغط أو اسحب الملف لرفعه"}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">إلغاء</Button>
+              </DialogClose>
+              <Button onClick={handleUpdateLesson}>حفظ</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog for deleting a lesson */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent className="sm:max-w-[400px]">
+            <DialogHeader>
+              <DialogTitle>حذف الدرس</DialogTitle>
+              <DialogDescription>
+                هل أنت متأكد من حذف هذا الدرس؟ هذا الإجراء لا يمكن التراجع عنه.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">إلغاء</Button>
+              </DialogClose>
+              <Button variant="destructive" onClick={handleDeleteLesson}>
+                حذف
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 };
 
 export default CourseEdit;
-
