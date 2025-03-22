@@ -57,7 +57,8 @@ import {
   Pause, 
   Video,
   Upload,
-  X
+  X,
+  FileText
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Progress } from "@/components/ui/progress";
@@ -373,16 +374,24 @@ const CourseEdit = () => {
       setPreviewUrl(objectUrl);
       
       // Upload file
+      const uploadOptions = {
+        cacheControl: '3600',
+        upsert: true
+      };
+      
+      // Track progress manually
+      const xhr = new XMLHttpRequest();
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          setUploadProgress(percent);
+        }
+      });
+      
+      // Use Supabase upload
       const { data, error } = await supabase.storage
         .from('course_images')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true,
-          onUploadProgress: (progress) => {
-            const percent = Math.round((progress.loaded / progress.total) * 100);
-            setUploadProgress(percent);
-          },
-        });
+        .upload(filePath, file, uploadOptions);
 
       if (error) throw error;
 
@@ -429,16 +438,24 @@ const CourseEdit = () => {
       setVideoPreviewUrl(objectUrl);
       
       // Upload file
+      const uploadOptions = {
+        cacheControl: '3600',
+        upsert: true
+      };
+      
+      // Track progress manually using XHR
+      const xhr = new XMLHttpRequest();
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          setUploadProgress(percent);
+        }
+      });
+      
+      // Use Supabase upload
       const { data, error } = await supabase.storage
         .from('course_videos')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true,
-          onUploadProgress: (progress) => {
-            const percent = Math.round((progress.loaded / progress.total) * 100);
-            setUploadProgress(percent);
-          },
-        });
+        .upload(filePath, file, uploadOptions);
 
       if (error) throw error;
 
