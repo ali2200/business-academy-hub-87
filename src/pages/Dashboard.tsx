@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X, Home, BookOpen, ShoppingCart, Settings, LogOut, Play, Award, Book, Clock, Check, Info, Edit, FileText, Video, Save, Plus, Trash2 } from 'lucide-react';
+import { Menu, X, Home, BookOpen, ShoppingCart, Settings, LogOut, Play, Award, Book, Clock, Check, Info, Edit, FileText, Video, Save, Plus, Trash2, School } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -527,7 +527,7 @@ const Dashboard = () => {
                           <div className="flex justify-between items-center mb-3">
                             <div className="flex items-center gap-2">
                               <div className="bg-primary/10 p-2 rounded">
-                                {feature.icon === "graduation-cap" && <GraduationCap className="w-5 h-5 text-primary" />}
+                                {feature.icon === "graduation-cap" && <School className="w-5 h-5 text-primary" />}
                                 {feature.icon === "book-open" && <BookOpen className="w-5 h-5 text-primary" />}
                                 {feature.icon === "award" && <Award className="w-5 h-5 text-primary" />}
                                 {feature.icon === "info" && <Info className="w-5 h-5 text-primary" />}
@@ -622,7 +622,7 @@ const Dashboard = () => {
                       {(editMode ? tempContent.features : aboutContent.features).map((feature) => (
                         <div key={feature.id} className="flex items-start space-x-3 rtl:space-x-reverse">
                           <div className="bg-primary/10 p-2 rounded-lg">
-                            {feature.icon === "graduation-cap" && <GraduationCap className="w-5 h-5 text-primary" />}
+                            {feature.icon === "graduation-cap" && <School className="w-5 h-5 text-primary" />}
                             {feature.icon === "book-open" && <BookOpen className="w-5 h-5 text-primary" />}
                             {feature.icon === "award" && <Award className="w-5 h-5 text-primary" />}
                             {feature.icon === "info" && <Info className="w-5 h-5 text-primary" />}
