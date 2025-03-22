@@ -1,148 +1,160 @@
+
 import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { 
-  FileText, 
-  Save, 
-  X, 
-  PlusCircle,
+  PenTool, 
+  Search, 
+  PlusCircle, 
+  Eye, 
+  Edit, 
+  Trash2, 
   Image,
-  Video,
+  FileVideo,
   Link as LinkIcon,
+  File,
   RefreshCw,
-  CheckSquare,
-  Layout,
-  Settings,
-  Home
+  Filter
 } from 'lucide-react';
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogClose
+} from "@/components/ui/dialog";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationItem, 
+  PaginationLink, 
+  PaginationNext, 
+  PaginationPrevious 
+} from "@/components/ui/pagination";
 import { supabase } from "@/integrations/supabase/client";
-import { ContentItem } from '@/hooks/use-content';
 
-// Define types for content items
-type ContentType = 'text' | 'image' | 'video' | 'link';
-
-// Group content items by section
-interface GroupedContent {
-  [section: string]: ContentItem[];
+// Define the content item type
+interface ContentItem {
+  id: string;
+  section: string;
+  key: string;
+  content: string;
+  content_type: 'text' | 'image' | 'video' | 'link';
+  created_at?: string;
+  updated_at?: string;
 }
 
 const ContentManagement = () => {
+  const navigate = useNavigate();
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
-  const [groupedContent, setGroupedContent] = useState<GroupedContent>({});
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('homepage');
-  const [editingItem, setEditingItem] = useState<ContentItem | null>(null);
-  const [editFormVisible, setEditFormVisible] = useState(false);
-  const [newItemFormVisible, setNewItemFormVisible] = useState(false);
-  const [newItem, setNewItem] = useState({
+  const [activeTab, setActiveTab] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
+  
+  // Form state for new content
+  const [newContent, setNewContent] = useState({
     section: '',
     key: '',
-    content_type: 'text' as ContentType,
-    content: ''
+    content: '',
+    content_type: 'text' as 'text' | 'image' | 'video' | 'link'
   });
 
-  // Fetch content from database
-  const fetchContent = async () => {
-    setLoading(true);
+  // Load content from Supabase
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        setLoading(true);
+        
+        const { data, error } = await supabase
+          .from('website_content')
+          .select('*');
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (data) {
+          setContentItems(data as ContentItem[]);
+        }
+      } catch (error) {
+        console.error('Error fetching content:', error);
+        toast.error('فشل في تحميل المحتوى');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchContent();
+  }, [refreshTrigger]);
+
+  // Filter content based on search term and active tab
+  const filteredContent = contentItems.filter(item => {
+    const matchesSearch = 
+      item.key.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.section.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.content.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    if (activeTab === 'all') {
+      return matchesSearch;
+    }
+    
+    return item.section === activeTab && matchesSearch;
+  });
+
+  // Get unique sections for tabs
+  const sections = Array.from(new Set(contentItems.map(item => item.section)));
+
+  // Handle adding new content
+  const handleAddContent = async () => {
     try {
       const { data, error } = await supabase
         .from('website_content')
-        .select('*')
-        .order('section', { ascending: true });
-
+        .insert([newContent])
+        .select();
+      
       if (error) {
         throw error;
       }
-
-      if (data) {
-        setContentItems(data as ContentItem[]);
-        
-        // Group content by section
-        const grouped = data.reduce((acc: GroupedContent, item: ContentItem) => {
-          if (!acc[item.section]) {
-            acc[item.section] = [];
-          }
-          acc[item.section].push(item);
-          return acc;
-        }, {});
-        
-        setGroupedContent(grouped);
-      }
-    } catch (error) {
-      console.error('Error fetching content:', error);
-      toast.error('فشل في تحميل المحتوى');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchContent();
-  }, []);
-
-  // Handle updating content item
-  const handleUpdateContent = async () => {
-    if (!editingItem) return;
-
-    try {
-      const { error } = await supabase
-        .from('website_content')
-        .update({
-          content: editingItem.content,
-          content_type: editingItem.content_type,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', editingItem.id);
-
-      if (error) {
-        throw error;
-      }
-
-      toast.success('تم تحديث المحتوى بنجاح');
-      fetchContent();
-      setEditFormVisible(false);
-      setEditingItem(null);
-    } catch (error) {
-      console.error('Error updating content:', error);
-      toast.error('فشل في تحديث المحتوى');
-    }
-  };
-
-  // Handle adding new content item
-  const handleAddContent = async () => {
-    try {
-      if (!newItem.section || !newItem.key || !newItem.content) {
-        toast.error('جميع الحقول مطلوبة');
-        return;
-      }
-
-      const { error } = await supabase
-        .from('website_content')
-        .insert([{
-          section: newItem.section,
-          key: newItem.key,
-          content_type: newItem.content_type,
-          content: newItem.content
-        }]);
-
-      if (error) {
-        throw error;
-      }
-
-      toast.success('تم إضافة المحتوى بنجاح');
-      fetchContent();
-      setNewItemFormVisible(false);
-      setNewItem({
+      
+      toast.success('تمت إضافة المحتوى بنجاح');
+      setIsAddDialogOpen(false);
+      setRefreshTrigger(prev => prev + 1);
+      setNewContent({
         section: '',
         key: '',
-        content_type: 'text',
-        content: ''
+        content: '',
+        content_type: 'text'
       });
     } catch (error) {
       console.error('Error adding content:', error);
@@ -150,260 +162,393 @@ const ContentManagement = () => {
     }
   };
 
-  // Handle deleting content item
-  const handleDeleteContent = async (id: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذا المحتوى؟')) return;
+  // Handle updating content
+  const handleUpdateContent = async () => {
+    if (!selectedItem) return;
+    
+    try {
+      const { error } = await supabase
+        .from('website_content')
+        .update({
+          section: selectedItem.section,
+          key: selectedItem.key,
+          content: selectedItem.content,
+          content_type: selectedItem.content_type,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedItem.id);
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast.success('تم تحديث المحتوى بنجاح');
+      setIsEditDialogOpen(false);
+      setRefreshTrigger(prev => prev + 1);
+    } catch (error) {
+      console.error('Error updating content:', error);
+      toast.error('فشل في تحديث المحتوى');
+    }
+  };
 
+  // Handle deleting content
+  const handleDeleteContent = async () => {
+    if (!selectedItem) return;
+    
     try {
       const { error } = await supabase
         .from('website_content')
         .delete()
-        .eq('id', id);
-
+        .eq('id', selectedItem.id);
+      
       if (error) {
         throw error;
       }
-
+      
       toast.success('تم حذف المحتوى بنجاح');
-      fetchContent();
+      setIsDeleteDialogOpen(false);
+      setRefreshTrigger(prev => prev + 1);
     } catch (error) {
       console.error('Error deleting content:', error);
       toast.error('فشل في حذف المحتوى');
     }
   };
 
-  // Render content item card
-  const renderContentItem = (item: ContentItem) => {
-    return (
-      <Card key={item.id} className="mb-4">
-        <CardHeader className="pb-2">
+  // Render content type icon
+  const renderContentTypeIcon = (type: 'text' | 'image' | 'video' | 'link') => {
+    switch (type) {
+      case 'image':
+        return <Image className="h-4 w-4" />;
+      case 'video':
+        return <FileVideo className="h-4 w-4" />;
+      case 'link':
+        return <LinkIcon className="h-4 w-4" />;
+      case 'text':
+      default:
+        return <File className="h-4 w-4" />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+      <div className="max-w-7xl mx-auto">
+        <header className="mb-8">
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle className="text-base">{item.key}</CardTitle>
-              <CardDescription>{getContentTypeLabel(item.content_type as ContentType)}</CardDescription>
+              <h1 className="text-3xl font-bold text-primary">إدارة المحتوى</h1>
+              <p className="text-gray-600 mt-1">تعديل محتوى الموقع من مكان واحد</p>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => {
-                setEditingItem(item);
-                setEditFormVisible(true);
-              }}
-            >
-              تعديل
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {renderContentPreview(item)}
-        </CardContent>
-      </Card>
-    );
-  };
-
-  // Get label for content type
-  const getContentTypeLabel = (type: ContentType) => {
-    switch (type) {
-      case 'text': return 'نص';
-      case 'image': return 'صورة';
-      case 'video': return 'فيديو';
-      case 'link': return 'رابط';
-      default: return type;
-    }
-  };
-
-  // Render content preview based on type
-  const renderContentPreview = (item: ContentItem) => {
-    const contentType = item.content_type as ContentType;
-    switch (contentType) {
-      case 'text':
-        return <p className="text-sm break-words">{item.content}</p>;
-      case 'image':
-        return (
-          <div className="relative h-32 w-full overflow-hidden rounded-md">
-            <img 
-              src={item.content} 
-              alt={item.key} 
-              className="h-full w-full object-contain"
-            />
-          </div>
-        );
-      case 'video':
-        return (
-          <div className="relative h-32 w-full overflow-hidden rounded-md">
-            <video 
-              src={item.content}
-              className="h-full w-full object-contain"
-              controls
-            />
-          </div>
-        );
-      case 'link':
-        return (
-          <a 
-            href={item.content} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-blue-600 hover:underline break-words"
-          >
-            {item.content}
-          </a>
-        );
-      default:
-        return <p className="text-sm">{item.content}</p>;
-    }
-  };
-
-  // Get sections for current active tab
-  const getTabSections = () => {
-    switch (activeTab) {
-      case 'homepage':
-        return ['hero', 'about', 'features', 'testimonials', 'cta'];
-      case 'courses':
-        return ['courses_page', 'course_detail'];
-      case 'books':
-        return ['books_page', 'book_detail'];
-      default:
-        return Object.keys(groupedContent);
-    }
-  };
-
-  // Create edit form for content
-  const renderEditForm = () => {
-    if (!editingItem) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <Card className="w-full max-w-lg">
-          <CardHeader>
-            <CardTitle>تعديل المحتوى</CardTitle>
-            <CardDescription>
-              قسم: {editingItem.section} | مفتاح: {editingItem.key}
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">نوع المحتوى</label>
-                  <Select
-                    value={editingItem.content_type}
-                    onValueChange={(value: string) => setEditingItem({
-                      ...editingItem,
-                      content_type: value
-                    })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر نوع المحتوى" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="text">نص</SelectItem>
-                      <SelectItem value="image">صورة</SelectItem>
-                      <SelectItem value="video">فيديو</SelectItem>
-                      <SelectItem value="link">رابط</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium">المحتوى</label>
-                {editingItem.content_type === "text" ? (
-                  <Textarea
-                    value={editingItem.content}
-                    onChange={(e) => setEditingItem({
-                      ...editingItem,
-                      content: e.target.value
-                    })}
-                    rows={5}
-                    className="mt-1"
-                  />
-                ) : (
-                  <Input
-                    value={editingItem.content}
-                    onChange={(e) => setEditingItem({
-                      ...editingItem,
-                      content: e.target.value
-                    })}
-                    className="mt-1"
-                    dir={editingItem.content_type === "text" ? 'rtl' : 'ltr'}
-                  />
-                )}
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter className="flex justify-between">
             <Button
+              onClick={() => navigate('/admin-dashboard')}
               variant="outline"
-              onClick={() => {
-                setEditFormVisible(false);
-                setEditingItem(null);
-              }}
+              className="flex items-center gap-2"
             >
-              <X className="ml-2 h-4 w-4" />
-              إلغاء
+              العودة للوحة التحكم
             </Button>
-            <Button onClick={handleUpdateContent}>
-              <Save className="ml-2 h-4 w-4" />
-              حفظ التغييرات
-            </Button>
-          </CardFooter>
+          </div>
+        </header>
+
+        <Card className="mb-8">
+          <CardContent className="pt-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setIsAddDialogOpen(true)}
+                  className="flex items-center gap-2"
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  إضافة محتوى جديد
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setRefreshTrigger(prev => prev + 1)}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  تحديث
+                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" className="flex items-center gap-2">
+                      <Filter className="h-4 w-4" />
+                      تصفية
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>تصفية حسب النوع</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setActiveTab('all')}>
+                      الكل
+                    </DropdownMenuItem>
+                    {sections.map(section => (
+                      <DropdownMenuItem 
+                        key={section} 
+                        onClick={() => setActiveTab(section)}
+                      >
+                        {section}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              <div className="relative w-full sm:w-64">
+                <Search className="absolute right-3 top-2.5 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="بحث في المحتوى..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pr-10"
+                />
+              </div>
+            </div>
+
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="mb-6">
+                <TabsTrigger value="all">الكل</TabsTrigger>
+                {sections.map(section => (
+                  <TabsTrigger key={section} value={section}>
+                    {section}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+
+              <TabsContent value={activeTab} className="space-y-4">
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50 text-right">
+                        <th className="px-4 py-3 text-sm font-medium text-gray-600">القسم</th>
+                        <th className="px-4 py-3 text-sm font-medium text-gray-600">المفتاح</th>
+                        <th className="px-4 py-3 text-sm font-medium text-gray-600">المحتوى</th>
+                        <th className="px-4 py-3 text-sm font-medium text-gray-600">النوع</th>
+                        <th className="px-4 py-3 text-sm font-medium text-gray-600">آخر تحديث</th>
+                        <th className="px-4 py-3 text-sm font-medium text-gray-600">الإجراءات</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {loading ? (
+                        <tr>
+                          <td colSpan={6} className="text-center py-4">
+                            جاري التحميل...
+                          </td>
+                        </tr>
+                      ) : filteredContent.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="text-center py-4">
+                            لا توجد نتائج
+                          </td>
+                        </tr>
+                      ) : (
+                        filteredContent.map(item => (
+                          <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
+                            <td className="px-4 py-3">
+                              <Badge variant="outline">{item.section}</Badge>
+                            </td>
+                            <td className="px-4 py-3 font-medium">{item.key}</td>
+                            <td className="px-4 py-3">
+                              <div className="max-w-xs truncate">
+                                {item.content_type === 'image' || item.content_type === 'video' ? (
+                                  <a
+                                    href={item.content}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline"
+                                  >
+                                    عرض الملف
+                                  </a>
+                                ) : item.content_type === 'link' ? (
+                                  <a
+                                    href={item.content}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline"
+                                  >
+                                    {item.content}
+                                  </a>
+                                ) : (
+                                  item.content.length > 50
+                                    ? `${item.content.substring(0, 50)}...`
+                                    : item.content
+                                )}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-1">
+                                {renderContentTypeIcon(item.content_type)}
+                                <span>
+                                  {item.content_type === 'text' ? 'نص' : 
+                                   item.content_type === 'image' ? 'صورة' : 
+                                   item.content_type === 'video' ? 'فيديو' : 'رابط'}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-gray-600 text-sm">
+                              {item.updated_at
+                                ? new Date(item.updated_at).toLocaleDateString('ar-EG')
+                                : '-'}
+                            </td>
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    setSelectedItem(item);
+                                    setIsEditDialogOpen(true);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    setSelectedItem(item);
+                                    setIsDeleteDialogOpen(true);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious href="#" />
+                    </PaginationItem>
+                    <PaginationItem>
+                      <PaginationLink href="#" isActive>1</PaginationLink>
+                    </PaginationItem>
+                    <PaginationItem>
+                      <PaginationNext href="#" />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </TabsContent>
+            </Tabs>
+          </CardContent>
         </Card>
       </div>
-    );
-  };
 
-  // Create form for adding new content
-  const renderNewItemForm = () => {
-    return (
-      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-        <Card className="w-full max-w-lg">
-          <CardHeader>
-            <CardTitle>إضافة محتوى جديد</CardTitle>
-            <CardDescription>
-              أضف عنصر محتوى جديد للموقع
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">القسم</label>
-                  <Input
-                    value={newItem.section}
-                    onChange={(e) => setNewItem({
-                      ...newItem,
-                      section: e.target.value
-                    })}
-                    placeholder="مثال: hero، about"
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">المفتاح</label>
-                  <Input
-                    value={newItem.key}
-                    onChange={(e) => setNewItem({
-                      ...newItem,
-                      key: e.target.value
-                    })}
-                    placeholder="مثال: title، description"
-                    className="mt-1"
-                  />
-                </div>
+      {/* Add Content Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>إضافة محتوى جديد</DialogTitle>
+            <DialogDescription>
+              أضف محتوى جديد إلى الموقع الإلكتروني
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="section">القسم</Label>
+              <Input
+                id="section"
+                placeholder="مثال: home, about, courses"
+                value={newContent.section}
+                onChange={(e) => setNewContent({...newContent, section: e.target.value})}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="key">المفتاح</Label>
+              <Input
+                id="key"
+                placeholder="مثال: title, description, video_url"
+                value={newContent.key}
+                onChange={(e) => setNewContent({...newContent, key: e.target.value})}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="content_type">نوع المحتوى</Label>
+              <Select
+                value={newContent.content_type}
+                onValueChange={(value) => setNewContent({
+                  ...newContent, 
+                  content_type: value as 'text' | 'image' | 'video' | 'link'
+                })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="اختر نوع المحتوى" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="text">نص</SelectItem>
+                  <SelectItem value="image">صورة</SelectItem>
+                  <SelectItem value="video">فيديو</SelectItem>
+                  <SelectItem value="link">رابط</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="content">المحتوى</Label>
+              <Textarea
+                id="content"
+                placeholder="أدخل المحتوى هنا..."
+                value={newContent.content}
+                onChange={(e) => setNewContent({...newContent, content: e.target.value})}
+                rows={5}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">إلغاء</Button>
+            </DialogClose>
+            <Button onClick={handleAddContent}>إضافة</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Content Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>تعديل المحتوى</DialogTitle>
+            <DialogDescription>
+              قم بتعديل المحتوى الحالي
+            </DialogDescription>
+          </DialogHeader>
+          {selectedItem && (
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-section">القسم</Label>
+                <Input
+                  id="edit-section"
+                  value={selectedItem.section}
+                  onChange={(e) => setSelectedItem({
+                    ...selectedItem, 
+                    section: e.target.value
+                  })}
+                />
               </div>
-
-              <div>
-                <label className="text-sm font-medium">نوع المحتوى</label>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-key">المفتاح</Label>
+                <Input
+                  id="edit-key"
+                  value={selectedItem.key}
+                  onChange={(e) => setSelectedItem({
+                    ...selectedItem, 
+                    key: e.target.value
+                  })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="edit-content-type">نوع المحتوى</Label>
                 <Select
-                  value={newItem.content_type}
-                  onValueChange={(value: string) => setNewItem({
-                    ...newItem,
-                    content_type: value as ContentType
+                  value={selectedItem.content_type}
+                  onValueChange={(value) => setSelectedItem({
+                    ...selectedItem, 
+                    content_type: value as 'text' | 'image' | 'video' | 'link'
                   })}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="اختر نوع المحتوى" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="text">نص</SelectItem>
@@ -413,199 +558,48 @@ const ContentManagement = () => {
                   </SelectContent>
                 </Select>
               </div>
-
-              <div>
-                <label className="text-sm font-medium">المحتوى</label>
-                {newItem.content_type === "text" ? (
-                  <Textarea
-                    value={newItem.content}
-                    onChange={(e) => setNewItem({
-                      ...newItem,
-                      content: e.target.value
-                    })}
-                    rows={5}
-                    className="mt-1"
-                  />
-                ) : (
-                  <Input
-                    value={newItem.content}
-                    onChange={(e) => setNewItem({
-                      ...newItem,
-                      content: e.target.value
-                    })}
-                    className="mt-1"
-                    dir={newItem.content_type === "text" ? 'rtl' : 'ltr'}
-                    placeholder={
-                      newItem.content_type === 'image' ? 'رابط الصورة' :
-                      newItem.content_type === 'video' ? 'رابط الفيديو' :
-                      newItem.content_type === 'link' ? 'الرابط' : ''
-                    }
-                  />
-                )}
+              <div className="grid gap-2">
+                <Label htmlFor="edit-content">المحتوى</Label>
+                <Textarea
+                  id="edit-content"
+                  value={selectedItem.content}
+                  onChange={(e) => setSelectedItem({
+                    ...selectedItem, 
+                    content: e.target.value
+                  })}
+                  rows={5}
+                />
               </div>
             </div>
-          </CardContent>
-          <CardFooter className="flex justify-between">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setNewItemFormVisible(false);
-                setNewItem({
-                  section: '',
-                  key: '',
-                  content_type: 'text',
-                  content: ''
-                });
-              }}
-            >
-              <X className="ml-2 h-4 w-4" />
-              إلغاء
+          )}
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">إلغاء</Button>
+            </DialogClose>
+            <Button onClick={handleUpdateContent}>حفظ التغييرات</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Content Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle>حذف المحتوى</DialogTitle>
+            <DialogDescription>
+              هل أنت متأكد من حذف هذا المحتوى؟ هذا الإجراء لا يمكن التراجع عنه.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">إلغاء</Button>
+            </DialogClose>
+            <Button variant="destructive" onClick={handleDeleteContent}>
+              حذف
             </Button>
-            <Button onClick={handleAddContent}>
-              <PlusCircle className="ml-2 h-4 w-4" />
-              إضافة محتوى
-            </Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  };
-
-  return (
-    <div className="min-h-screen bg-[#f0f0f1] rtl">
-      {/* WordPress-like Admin Header */}
-      <header className="bg-[#1d2327] text-white py-2 px-4 flex items-center justify-between">
-        <div className="flex items-center space-x-4 rtl:space-x-reverse">
-          <span className="text-2xl">أ</span>
-          <div className="flex items-center space-x-2 rtl:space-x-reverse">
-            <Button variant="ghost" className="text-white hover:text-gray-200 p-1">
-              <PlusCircle className="h-4 w-4 ml-1" />
-              <span>جديد</span>
-            </Button>
-          </div>
-        </div>
-        <div className="flex items-center space-x-4 rtl:space-x-reverse">
-          <Button variant="ghost" className="text-white hover:text-gray-200 p-1">
-            <Home className="h-4 w-4 ml-1" />
-            <span>زيارة الموقع</span>
-          </Button>
-        </div>
-      </header>
-
-      {/* WordPress-like Admin Body */}
-      <div className="flex h-[calc(100vh-48px)]">
-        {/* Sidebar */}
-        <div className="bg-[#1d2327] text-white w-64 flex-shrink-0">
-          <div className="p-4">
-            <ul className="space-y-1">
-              <li>
-                <Button variant="ghost" className="w-full justify-start text-white hover:bg-[#2c3338]">
-                  <Layout className="h-5 w-5 ml-2" />
-                  <span>لوحة التحكم</span>
-                </Button>
-              </li>
-              <li>
-                <Button variant="ghost" className="w-full justify-start text-white hover:bg-[#2c3338]">
-                  <FileText className="h-5 w-5 ml-2" />
-                  <span>الصفحات</span>
-                </Button>
-              </li>
-              <li>
-                <Button variant="ghost" className="w-full justify-start text-white hover:bg-[#2c3338]">
-                  <Image className="h-5 w-5 ml-2" />
-                  <span>الوسائط</span>
-                </Button>
-              </li>
-              <li>
-                <Button variant="ghost" className="w-full justify-start bg-[#2271b1] hover:bg-[#135e96]">
-                  <Settings className="h-5 w-5 ml-2" />
-                  <span>إدارة المحتوى</span>
-                </Button>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="flex-1 overflow-auto p-6">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-2xl font-bold">إدارة محتوى الموقع</h1>
-              <p className="text-gray-500">تعديل النصوص والصور والروابط في الموقع</p>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={fetchContent}>
-                <RefreshCw className="ml-2 h-4 w-4" />
-                تحديث
-              </Button>
-              <Button onClick={() => setNewItemFormVisible(true)}>
-                <PlusCircle className="ml-2 h-4 w-4" />
-                إضافة محتوى
-              </Button>
-            </div>
-          </div>
-
-          <Card className="shadow-sm border-0">
-            <CardContent className="p-0">
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="mb-6 bg-[#f0f0f1] border-b border-gray-200 p-0 rounded-none w-full justify-start overflow-x-auto">
-                  <TabsTrigger value="homepage" className="py-3 px-4 rounded-none data-[state=active]:bg-white data-[state=active]:border-t-2 data-[state=active]:border-t-[#2271b1] data-[state=active]:shadow-none">
-                    الصفحة الرئيسية
-                  </TabsTrigger>
-                  <TabsTrigger value="courses" className="py-3 px-4 rounded-none data-[state=active]:bg-white data-[state=active]:border-t-2 data-[state=active]:border-t-[#2271b1] data-[state=active]:shadow-none">
-                    الدورات
-                  </TabsTrigger>
-                  <TabsTrigger value="books" className="py-3 px-4 rounded-none data-[state=active]:bg-white data-[state=active]:border-t-2 data-[state=active]:border-t-[#2271b1] data-[state=active]:shadow-none">
-                    الكتب
-                  </TabsTrigger>
-                  <TabsTrigger value="other" className="py-3 px-4 rounded-none data-[state=active]:bg-white data-[state=active]:border-t-2 data-[state=active]:border-t-[#2271b1] data-[state=active]:shadow-none">
-                    محتوى آخر
-                  </TabsTrigger>
-                </TabsList>
-
-                {loading ? (
-                  <div className="text-center py-10">
-                    <RefreshCw className="h-10 w-10 animate-spin mx-auto text-gray-400" />
-                    <p className="mt-4 text-gray-500">جاري تحميل المحتوى...</p>
-                  </div>
-                ) : (
-                  <div className="p-6 bg-white">
-                    {getTabSections().map(section => {
-                      const sectionContent = groupedContent[section] || [];
-                      return sectionContent.length > 0 ? (
-                        <div key={section} className="mb-8">
-                          <h2 className="text-xl font-semibold mb-4 border-b pb-2">{section}</h2>
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {sectionContent.map(item => renderContentItem(item))}
-                          </div>
-                        </div>
-                      ) : null;
-                    })}
-
-                    {getTabSections().every(section => !groupedContent[section] || groupedContent[section].length === 0) && (
-                      <div className="text-center py-10">
-                        <FileText className="h-10 w-10 mx-auto text-gray-400" />
-                        <p className="mt-4 text-gray-500">لا يوجد محتوى في هذا القسم</p>
-                        <Button 
-                          variant="outline" 
-                          className="mt-4"
-                          onClick={() => setNewItemFormVisible(true)}
-                        >
-                          <PlusCircle className="ml-2 h-4 w-4" />
-                          إضافة محتوى
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </Tabs>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {editFormVisible && renderEditForm()}
-      {newItemFormVisible && renderNewItemForm()}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
