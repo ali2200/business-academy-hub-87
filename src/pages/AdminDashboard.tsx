@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -741,4 +742,200 @@ const AdminDashboard = () => {
                     </thead>
                     <tbody>
                       {BOOKS_DATA.map((book) => (
-                        <tr key={book.id} className="border
+                        <tr key={book.id} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="py-3 px-4">
+                            <div className="flex items-center">
+                              <div className="h-14 w-10 rounded overflow-hidden ml-2">
+                                <img 
+                                  src={book.cover} 
+                                  alt={book.title} 
+                                  className="h-full w-full object-cover"
+                                />
+                              </div>
+                              <span className="font-medium">{book.title}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-gray-600">{book.author}</td>
+                          <td className="py-3 px-4 text-gray-600">{book.price} {book.currency}</td>
+                          <td className="py-3 px-4 text-gray-600">{book.purchasesCount}</td>
+                          <td className="py-3 px-4">
+                            <Badge 
+                              variant={book.status === 'published' ? 'secondary' : 'outline'}
+                              className={book.status === 'published' ? 'bg-green-100 text-green-800 hover:bg-green-100' : ''}
+                            >
+                              {book.status === 'published' ? 'منشور' : 'مسودة'}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-4 text-gray-600">{book.lastUpdated}</td>
+                          <td className="py-3 px-4">
+                            <div className="flex space-x-2 rtl:space-x-reverse">
+                              <Button variant="ghost" size="icon">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                <Pagination className="mt-6">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious href="#" />
+                    </PaginationItem>
+                    <PaginationItem>
+                      <PaginationLink href="#" isActive>
+                        1
+                      </PaginationLink>
+                    </PaginationItem>
+                    <PaginationItem>
+                      <PaginationLink href="#">
+                        2
+                      </PaginationLink>
+                    </PaginationItem>
+                    <PaginationItem>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                    <PaginationItem>
+                      <PaginationNext href="#" />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </TabsContent>
+
+              {/* Articles Tab */}
+              <TabsContent value="articles" className="animate-fade-in">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-primary">إدارة المقالات</h2>
+                  <AddContentDialog 
+                    contentType="article" 
+                    onAdd={handleAddArticle}
+                    trigger={
+                      <Button className="flex items-center">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        <span>إضافة مقال جديد</span>
+                      </Button>
+                    }
+                  />
+                </div>
+                
+                <div className="mb-6">
+                  <div className="relative">
+                    <Search className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+                    <Input
+                      placeholder="ابحث عن مقال..."
+                      className="pl-3 pr-10"
+                    />
+                  </div>
+                </div>
+                
+                <div className="overflow-x-auto bg-white rounded-lg border">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="py-3 px-4 text-gray-500 font-medium text-right">المقال</th>
+                        <th className="py-3 px-4 text-gray-500 font-medium text-right">الكاتب</th>
+                        <th className="py-3 px-4 text-gray-500 font-medium text-right">المشاهدات</th>
+                        <th className="py-3 px-4 text-gray-500 font-medium text-right">الحالة</th>
+                        <th className="py-3 px-4 text-gray-500 font-medium text-right">تاريخ النشر</th>
+                        <th className="py-3 px-4 text-gray-500 font-medium text-right">الإجراءات</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {ARTICLES_DATA.map((article) => (
+                        <tr key={article.id} className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="py-3 px-4">
+                            <div className="flex items-center">
+                              <div className="h-10 w-16 rounded overflow-hidden ml-2">
+                                <img 
+                                  src={article.image} 
+                                  alt={article.title} 
+                                  className="h-full w-full object-cover"
+                                />
+                              </div>
+                              <span className="font-medium">{article.title}</span>
+                            </div>
+                          </td>
+                          <td className="py-3 px-4 text-gray-600">{article.author}</td>
+                          <td className="py-3 px-4 text-gray-600">{article.viewsCount}</td>
+                          <td className="py-3 px-4">
+                            <Badge 
+                              variant={article.status === 'published' ? 'secondary' : 'outline'}
+                              className={article.status === 'published' ? 'bg-green-100 text-green-800 hover:bg-green-100' : ''}
+                            >
+                              {article.status === 'published' ? 'منشور' : 'مسودة'}
+                            </Badge>
+                          </td>
+                          <td className="py-3 px-4 text-gray-600">{article.publishDate}</td>
+                          <td className="py-3 px-4">
+                            <div className="flex space-x-2 rtl:space-x-reverse">
+                              <Button variant="ghost" size="icon">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                
+                <Pagination className="mt-6">
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious href="#" />
+                    </PaginationItem>
+                    <PaginationItem>
+                      <PaginationLink href="#" isActive>
+                        1
+                      </PaginationLink>
+                    </PaginationItem>
+                    <PaginationItem>
+                      <PaginationLink href="#">
+                        2
+                      </PaginationLink>
+                    </PaginationItem>
+                    <PaginationItem>
+                      <PaginationEllipsis />
+                    </PaginationItem>
+                    <PaginationItem>
+                      <PaginationNext href="#" />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              </TabsContent>
+              
+              {/* Funnels Tab */}
+              <TabsContent value="funnels" className="animate-fade-in">
+                <div className="flex items-center justify-center h-64">
+                  <div className="text-center">
+                    <h3 className="text-xl font-medium text-gray-500 mb-2">قريبًا</h3>
+                    <p className="text-gray-400">
+                      ميزة قمع المبيعات قيد التطوير وستكون متاحة قريبًا
+                    </p>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default AdminDashboard;
