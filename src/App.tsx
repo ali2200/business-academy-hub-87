@@ -18,6 +18,8 @@ import NotFound from '@/pages/NotFound';
 import Dashboard from '@/pages/Dashboard';
 import AdminDashboard from '@/pages/AdminDashboard';
 import ContentManagement from '@/pages/ContentManagement';
+import PagesManagement from '@/pages/PagesManagement';
+import MediaManagement from '@/pages/MediaManagement';
 
 // Components
 import WhatsAppButton from '@/components/WhatsAppButton';
@@ -41,6 +43,8 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/content-management" element={<ContentManagement />} />
+        <Route path="/pages-management" element={<PagesManagement />} />
+        <Route path="/media-management" element={<MediaManagement />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
       <WhatsAppButton />

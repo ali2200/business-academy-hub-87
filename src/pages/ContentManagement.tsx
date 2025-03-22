@@ -9,7 +9,10 @@ import {
   Video,
   Link as LinkIcon,
   RefreshCw,
-  CheckSquare
+  CheckSquare,
+  Layout,
+  Settings,
+  Home
 } from 'lucide-react';
 import { toast } from "sonner";
 
@@ -470,68 +473,137 @@ const ContentManagement = () => {
   };
 
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">إدارة محتوى الموقع</h1>
-          <p className="text-gray-500">تعديل النصوص والصور والروابط في الموقع</p>
+    <div className="min-h-screen bg-[#f0f0f1] rtl">
+      {/* WordPress-like Admin Header */}
+      <header className="bg-[#1d2327] text-white py-2 px-4 flex items-center justify-between">
+        <div className="flex items-center space-x-4 rtl:space-x-reverse">
+          <span className="text-2xl">أ</span>
+          <div className="flex items-center space-x-2 rtl:space-x-reverse">
+            <Button variant="ghost" className="text-white hover:text-gray-200 p-1">
+              <PlusCircle className="h-4 w-4 ml-1" />
+              <span>جديد</span>
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={fetchContent}>
-            <RefreshCw className="ml-2 h-4 w-4" />
-            تحديث
+        <div className="flex items-center space-x-4 rtl:space-x-reverse">
+          <Button variant="ghost" className="text-white hover:text-gray-200 p-1">
+            <Home className="h-4 w-4 ml-1" />
+            <span>زيارة الموقع</span>
           </Button>
-          <Button onClick={() => setNewItemFormVisible(true)}>
-            <PlusCircle className="ml-2 h-4 w-4" />
-            إضافة محتوى
-          </Button>
+        </div>
+      </header>
+
+      {/* WordPress-like Admin Body */}
+      <div className="flex h-[calc(100vh-48px)]">
+        {/* Sidebar */}
+        <div className="bg-[#1d2327] text-white w-64 flex-shrink-0">
+          <div className="p-4">
+            <ul className="space-y-1">
+              <li>
+                <Button variant="ghost" className="w-full justify-start text-white hover:bg-[#2c3338]">
+                  <Layout className="h-5 w-5 ml-2" />
+                  <span>لوحة التحكم</span>
+                </Button>
+              </li>
+              <li>
+                <Button variant="ghost" className="w-full justify-start text-white hover:bg-[#2c3338]">
+                  <FileText className="h-5 w-5 ml-2" />
+                  <span>الصفحات</span>
+                </Button>
+              </li>
+              <li>
+                <Button variant="ghost" className="w-full justify-start text-white hover:bg-[#2c3338]">
+                  <Image className="h-5 w-5 ml-2" />
+                  <span>الوسائط</span>
+                </Button>
+              </li>
+              <li>
+                <Button variant="ghost" className="w-full justify-start bg-[#2271b1] hover:bg-[#135e96]">
+                  <Settings className="h-5 w-5 ml-2" />
+                  <span>إدارة المحتوى</span>
+                </Button>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="flex-1 overflow-auto p-6">
+          <div className="flex justify-between items-center mb-6">
+            <div>
+              <h1 className="text-2xl font-bold">إدارة محتوى الموقع</h1>
+              <p className="text-gray-500">تعديل النصوص والصور والروابط في الموقع</p>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={fetchContent}>
+                <RefreshCw className="ml-2 h-4 w-4" />
+                تحديث
+              </Button>
+              <Button onClick={() => setNewItemFormVisible(true)}>
+                <PlusCircle className="ml-2 h-4 w-4" />
+                إضافة محتوى
+              </Button>
+            </div>
+          </div>
+
+          <Card className="shadow-sm border-0">
+            <CardContent className="p-0">
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="mb-6 bg-[#f0f0f1] border-b border-gray-200 p-0 rounded-none w-full justify-start overflow-x-auto">
+                  <TabsTrigger value="homepage" className="py-3 px-4 rounded-none data-[state=active]:bg-white data-[state=active]:border-t-2 data-[state=active]:border-t-[#2271b1] data-[state=active]:shadow-none">
+                    الصفحة الرئيسية
+                  </TabsTrigger>
+                  <TabsTrigger value="courses" className="py-3 px-4 rounded-none data-[state=active]:bg-white data-[state=active]:border-t-2 data-[state=active]:border-t-[#2271b1] data-[state=active]:shadow-none">
+                    الدورات
+                  </TabsTrigger>
+                  <TabsTrigger value="books" className="py-3 px-4 rounded-none data-[state=active]:bg-white data-[state=active]:border-t-2 data-[state=active]:border-t-[#2271b1] data-[state=active]:shadow-none">
+                    الكتب
+                  </TabsTrigger>
+                  <TabsTrigger value="other" className="py-3 px-4 rounded-none data-[state=active]:bg-white data-[state=active]:border-t-2 data-[state=active]:border-t-[#2271b1] data-[state=active]:shadow-none">
+                    محتوى آخر
+                  </TabsTrigger>
+                </TabsList>
+
+                {loading ? (
+                  <div className="text-center py-10">
+                    <RefreshCw className="h-10 w-10 animate-spin mx-auto text-gray-400" />
+                    <p className="mt-4 text-gray-500">جاري تحميل المحتوى...</p>
+                  </div>
+                ) : (
+                  <div className="p-6 bg-white">
+                    {getTabSections().map(section => {
+                      const sectionContent = groupedContent[section] || [];
+                      return sectionContent.length > 0 ? (
+                        <div key={section} className="mb-8">
+                          <h2 className="text-xl font-semibold mb-4 border-b pb-2">{section}</h2>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {sectionContent.map(item => renderContentItem(item))}
+                          </div>
+                        </div>
+                      ) : null;
+                    })}
+
+                    {getTabSections().every(section => !groupedContent[section] || groupedContent[section].length === 0) && (
+                      <div className="text-center py-10">
+                        <FileText className="h-10 w-10 mx-auto text-gray-400" />
+                        <p className="mt-4 text-gray-500">لا يوجد محتوى في هذا القسم</p>
+                        <Button 
+                          variant="outline" 
+                          className="mt-4"
+                          onClick={() => setNewItemFormVisible(true)}
+                        >
+                          <PlusCircle className="ml-2 h-4 w-4" />
+                          إضافة محتوى
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </Tabs>
+            </CardContent>
+          </Card>
         </div>
       </div>
-
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-6">
-          <TabsTrigger value="homepage">الصفحة الرئيسية</TabsTrigger>
-          <TabsTrigger value="courses">الدورات</TabsTrigger>
-          <TabsTrigger value="books">الكتب</TabsTrigger>
-          <TabsTrigger value="other">محتوى آخر</TabsTrigger>
-        </TabsList>
-
-        {loading ? (
-          <div className="text-center py-10">
-            <RefreshCw className="h-10 w-10 animate-spin mx-auto text-gray-400" />
-            <p className="mt-4 text-gray-500">جاري تحميل المحتوى...</p>
-          </div>
-        ) : (
-          <>
-            {getTabSections().map(section => {
-              const sectionContent = groupedContent[section] || [];
-              return sectionContent.length > 0 ? (
-                <div key={section} className="mb-8">
-                  <h2 className="text-xl font-semibold mb-4 border-b pb-2">{section}</h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {sectionContent.map(item => renderContentItem(item))}
-                  </div>
-                </div>
-              ) : null;
-            })}
-
-            {getTabSections().every(section => !groupedContent[section] || groupedContent[section].length === 0) && (
-              <div className="text-center py-10">
-                <FileText className="h-10 w-10 mx-auto text-gray-400" />
-                <p className="mt-4 text-gray-500">لا يوجد محتوى في هذا القسم</p>
-                <Button 
-                  variant="outline" 
-                  className="mt-4"
-                  onClick={() => setNewItemFormVisible(true)}
-                >
-                  <PlusCircle className="ml-2 h-4 w-4" />
-                  إضافة محتوى
-                </Button>
-              </div>
-            )}
-          </>
-        )}
-      </Tabs>
 
       {editFormVisible && renderEditForm()}
       {newItemFormVisible && renderNewItemForm()}
