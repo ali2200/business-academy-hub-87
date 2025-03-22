@@ -37,6 +37,7 @@ function App() {
       <Toaster richColors position="top-center" />
       <BrowserRouter>
         <Routes>
+          {/* Public Routes */}
           <Route path="/" element={<Index />} />
           <Route path="/courses" element={<Courses />} />
           <Route path="/courses/:id" element={<CourseDetail />} />
@@ -50,6 +51,8 @@ function App() {
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          
+          {/* Admin Routes */}
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/content-management" element={<ContentManagement />} />
           <Route path="/pages-management" element={<PagesManagement />} />
@@ -58,6 +61,8 @@ function App() {
           <Route path="/courses-management/*" element={<CoursesManagement />} />
           <Route path="/articles-management/*" element={<ArticlesManagement />} />
           <Route path="/admin-course-player/:id" element={<AdminCoursePlayer />} />
+          
+          {/* 404 Page */}
           <Route path="*" element={<NotFound />} />
         </Routes>
         <WhatsAppButton />

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Users, Clock, Award, Filter } from 'lucide-react';
@@ -210,7 +209,7 @@ const Courses = () => {
       <section className="pt-32 pb-16 animated-gradient">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-3xl mx-auto">
-            <Badge className="bg-secondary/10 text-secondary hover:bg-secondary/20 mb-4">الدورات التدريبية</Badge>
+            <Badge className="bg-secondary/10 text-secondary hover:bg-secondary/20 mb-4">الدورات التد��يبية</Badge>
             <h1 className="text-4xl md:text-5xl font-bold mb-6">دورات احترافية في مجالات البيزنس</h1>
             <p className="text-gray-600 mb-8">
               تصفح مجموعة متنوعة من الدورات التدريبية في مجالات البيزنس والمبيعات والتسويق المصممة خصيصًا للسوق المصري
