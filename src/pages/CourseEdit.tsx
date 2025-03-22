@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -86,6 +87,7 @@ interface LessonForm {
 }
 
 interface LessonData {
+  id?: string;
   title: string;
   description: string;
   order_number: number;
@@ -242,9 +244,21 @@ const CourseEdit = () => {
   const saveLesson = useMutation({
     mutationFn: async (lessonData: LessonData) => {
       if (selectedLessonId) {
+        // Create a new object with all properties explicitly
+        const dataToUpdate = {
+          title: lessonData.title,
+          description: lessonData.description,
+          order_number: lessonData.order_number,
+          is_free: lessonData.is_free,
+          video_url: lessonData.video_url,
+          video_file_name: lessonData.video_file_name,
+          duration: lessonData.duration,
+          course_id: lessonData.course_id
+        };
+        
         const { data, error } = await supabase
           .from('lessons')
-          .update(lessonData)
+          .update(dataToUpdate)
           .eq('id', selectedLessonId);
         
         if (error) throw error;
