@@ -1,9 +1,16 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, ShoppingCart, User, LogIn, MessageSquare } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from '@/hooks/use-mobile';
+import {
+  NavigationMenu,
+  NavigationMenuContent,
+  NavigationMenuItem,
+  NavigationMenuLink,
+  NavigationMenuList,
+  NavigationMenuTrigger,
+} from "@/components/ui/navigation-menu";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -56,7 +63,6 @@ const Navbar = () => {
     navigate('/');
   };
 
-  // Close mobile menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
@@ -69,7 +75,6 @@ const Navbar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMobileMenuOpen]);
 
-  // Close mobile menu when clicking on ESC
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -81,7 +86,6 @@ const Navbar = () => {
     return () => window.removeEventListener('keydown', handleEsc);
   }, []);
 
-  // Prevent body scroll when mobile menu is open
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = 'hidden';
@@ -97,8 +101,8 @@ const Navbar = () => {
     <header 
       className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
         isScrolled 
-          ? 'py-2 bg-white/90 backdrop-blur-md shadow-md' 
-          : 'py-3 lg:py-5 bg-transparent'
+          ? 'py-2 bg-black/90 backdrop-blur-md shadow-md' 
+          : 'py-3 lg:py-5 bg-black'
       }`}
     >
       <div className="container mx-auto px-4 flex justify-between items-center">
@@ -107,10 +111,41 @@ const Navbar = () => {
           <img src="/lovable-uploads/4307c383-57c5-4d42-abdc-1344087ec7a6.png" alt="عـــلى بتاع الـبيزنس" className="h-10 md:h-12" />
         </Link>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden md:flex space-x-1 rtl:space-x-reverse items-center">
-          <NavLinks isActive={isActive} />
-        </nav>
+        {/* Desktop Navigation - Centered */}
+        <div className="hidden md:flex justify-center flex-1">
+          <NavigationMenu className="mx-auto">
+            <NavigationMenuList className="font-hacen">
+              <NavLinks isActive={isActive} />
+            </NavigationMenuList>
+          </NavigationMenu>
+        </div>
+
+        {/* Right Side Actions */}
+        <div className="hidden md:flex items-center space-x-3 rtl:space-x-reverse">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="text-white hover:text-secondary"
+            aria-label="سلة التسوق"
+          >
+            <ShoppingCart size={20} />
+          </Button>
+          
+          {isAuthenticated ? (
+            <Link to="/dashboard">
+              <Button variant="outline" className="flex items-center gap-2 text-white border-white hover:bg-white/10 hover:text-white">
+                <User size={18} />
+                <span>حسابي</span>
+              </Button>
+            </Link>
+          ) : (
+            <Link to="/signin">
+              <Button variant="outline" className="flex items-center gap-2 text-white border-white hover:bg-white/10 hover:text-white rounded-full px-6">
+                <span className="font-hacen">تسجيل الدخول</span>
+              </Button>
+            </Link>
+          )}
+        </div>
 
         {/* Mobile Menu Button */}
         <div className="flex md:hidden items-center mobile-menu-button">
@@ -118,7 +153,7 @@ const Navbar = () => {
             variant="ghost" 
             size="icon" 
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="text-primary"
+            className="text-white"
             aria-label={isMobileMenuOpen ? "إغلاق القائمة" : "فتح القائمة"}
           >
             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -128,7 +163,7 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       <div 
-        className={`md:hidden fixed inset-0 bg-white/95 backdrop-blur-sm z-50 transition-transform duration-300 ease-in-out mobile-menu-container overflow-y-auto pt-20 ${
+        className={`md:hidden fixed inset-0 bg-black/95 backdrop-blur-sm z-50 transition-transform duration-300 ease-in-out mobile-menu-container overflow-y-auto pt-20 ${
           isMobileMenuOpen ? 'translate-y-0' : '-translate-y-full'
         }`}
       >
@@ -173,77 +208,86 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
 
   return (
     <>
-      <div className={`${isMobile ? 'flex flex-col space-y-5 w-full' : 'flex flex-row space-x-2 rtl:space-x-reverse items-center'}`}>
+      <div className={`${isMobile ? 'flex flex-col space-y-5 w-full' : 'flex flex-row space-x-6 rtl:space-x-reverse items-center'}`}>
         {links.map((link, index) => (
-          <Link
-            key={link.path}
-            to={link.path}
-            className={`${
-              isActive(link.path) 
-                ? 'text-primary font-bold after:w-full' 
-                : 'text-gray-800 hover:text-primary'
-            } ${isMobile 
-                ? 'text-xl py-3 block w-full text-center border-b border-gray-100' 
-                : 'text-base mx-3 py-2 relative after:absolute after:bottom-0 after:right-0 after:h-0.5 after:bg-primary after:transition-all'
-              } transition-all duration-300 animate-fade-in`}
-            style={{ animationDelay: `${index * 0.1}s` }}
-            onClick={onClick}
-          >
-            {link.label}
-          </Link>
+          isMobile ? (
+            <Link
+              key={link.path}
+              to={link.path}
+              className={`${
+                isActive(link.path) 
+                  ? 'text-secondary font-bold' 
+                  : 'text-white hover:text-secondary'
+              } text-xl py-3 block w-full text-center border-b border-gray-800 font-hacen transition-all duration-300 animate-fade-in`}
+              style={{ animationDelay: `${index * 0.1}s` }}
+              onClick={onClick}
+            >
+              {link.label}
+            </Link>
+          ) : (
+            <NavigationMenuItem key={link.path}>
+              <Link
+                to={link.path}
+                className={`${
+                  isActive(link.path) 
+                    ? 'text-secondary' 
+                    : 'text-white'
+                } font-hacen px-4 py-2 transition-all duration-300 hover:text-secondary text-base`}
+                onClick={onClick}
+              >
+                {link.label}
+              </Link>
+            </NavigationMenuItem>
+          )
         ))}
       </div>
 
-      <div className={`flex ${isMobile ? 'flex-col mt-6 space-y-4' : 'items-center space-x-3 rtl:space-x-reverse'}`}>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className={`animate-fade-in ${isMobile ? 'mx-auto' : ''} text-primary hover:text-primary-light`}
-          style={{ animationDelay: `${links.length * 0.1}s` }}
-          aria-label="سلة التسوق"
-        >
-          <ShoppingCart size={20} />
-        </Button>
-        
-        {isAuthenticated ? (
-          <Link 
-            to="/dashboard" 
-            className={`animate-fade-in ${isMobile ? 'w-full' : ''}`}
-            style={{ animationDelay: `${(links.length + 1) * 0.1}s` }}
-            onClick={onClick}
+      {isMobile && (
+        <div className="flex flex-col mt-6 space-y-4">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="mx-auto text-white hover:text-secondary"
+            aria-label="سلة التسوق"
           >
-            <Button variant="outline" className={`flex items-center ${isMobile ? 'w-full justify-center' : ''} gap-2`}>
-              <User size={18} />
-              <span>حسابي</span>
-            </Button>
-          </Link>
-        ) : (
-          <Link 
-            to="/signin" 
-            className={`animate-fade-in ${isMobile ? 'w-full' : ''}`}
-            style={{ animationDelay: `${(links.length + 1) * 0.1}s` }}
-            onClick={onClick}
-          >
-            <Button variant="outline" className={`flex items-center ${isMobile ? 'w-full justify-center' : ''} gap-2`}>
-              <LogIn size={18} />
-              <span>تسجيل الدخول</span>
-            </Button>
-          </Link>
-        )}
-        
-        {isMobile && (
+            <ShoppingCart size={20} />
+          </Button>
+          
+          {isAuthenticated ? (
+            <Link 
+              to="/dashboard" 
+              className="w-full"
+              onClick={onClick}
+            >
+              <Button variant="outline" className="flex items-center w-full justify-center gap-2 text-white border-white hover:bg-white/10 hover:text-white">
+                <User size={18} />
+                <span className="font-hacen">حسابي</span>
+              </Button>
+            </Link>
+          ) : (
+            <Link 
+              to="/signin" 
+              className="w-full"
+              onClick={onClick}
+            >
+              <Button variant="outline" className="flex items-center w-full justify-center gap-2 text-white border-white hover:bg-white/10 hover:text-white rounded-full">
+                <span className="font-hacen">تسجيل الدخول</span>
+              </Button>
+            </Link>
+          )}
+          
           <Link 
             to="https://wa.me/201000820752" 
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 text-primary font-medium py-3 w-full border rounded-md mt-4"
+            className="flex items-center justify-center gap-2 text-white font-hacen py-3 w-full border border-gray-800 rounded-md mt-4"
             onClick={onClick}
           >
             <MessageSquare size={18} strokeWidth={1.5} className="fill-primary" />
             <span>تواصل معنا على واتساب</span>
           </Link>
-        )}
-      </div>
+        </div>
+      )}
     </>
   );
 };
