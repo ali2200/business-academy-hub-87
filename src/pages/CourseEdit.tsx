@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -244,7 +243,6 @@ const CourseEdit = () => {
   const saveLesson = useMutation({
     mutationFn: async (lessonData: LessonData) => {
       if (selectedLessonId) {
-        // Create a new object with all properties explicitly
         const dataToUpdate = {
           title: lessonData.title,
           description: lessonData.description,
@@ -264,7 +262,6 @@ const CourseEdit = () => {
         if (error) throw error;
         return data;
       } else {
-        // Create a new object with all properties explicitly
         const dataToInsert = {
           title: lessonData.title,
           description: lessonData.description,
@@ -1220,3 +1217,4 @@ const CourseEdit = () => {
 };
 
 export default CourseEdit;
+
