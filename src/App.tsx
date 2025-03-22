@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from "sonner";
@@ -38,6 +39,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/courses" element={<Courses />} />
+          <Route path="/courses/:id" element={<CourseDetail />} />
           <Route path="/course/:id" element={<CourseDetail />} />
           <Route path="/course-player/:id" element={<CoursePlayer />} />
           <Route path="/books" element={<Books />} />
