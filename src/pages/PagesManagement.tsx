@@ -28,6 +28,15 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { 
+  Table,
+  TableBody, 
+  TableCaption, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow
+} from "@/components/ui/table";
 import { supabase } from "@/integrations/supabase/client";
 import { ContentItem } from '@/hooks/use-content';
 
@@ -127,6 +136,8 @@ const PagesManagement = () => {
   const [selectedPages, setSelectedPages] = useState<string[]>([]);
   const [isSelectAll, setIsSelectAll] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [filterDate, setFilterDate] = useState<string>("all");
 
   // Handle edit page
   const handleEditPage = (page: PageItem) => {
@@ -185,7 +196,7 @@ const PagesManagement = () => {
     if (isSelectAll) {
       setSelectedPages([]);
     } else {
-      setSelectedPages(pages.map(page => page.id));
+      setSelectedPages(filteredPages.map(page => page.id));
     }
     setIsSelectAll(!isSelectAll);
   };
@@ -208,14 +219,54 @@ const PagesManagement = () => {
     const updatedPages = pages.filter(page => !selectedPages.includes(page.id));
     setPages(updatedPages);
     setSelectedPages([]);
+    setIsSelectAll(false);
     toast.success('تم حذف الصفحات المحددة بنجاح');
   };
 
-  // Filter pages by search query
-  const filteredPages = pages.filter(page => 
-    page.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    page.slug.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Handle bulk status change
+  const handleBulkStatusChange = (status: "published" | "draft") => {
+    if (selectedPages.length === 0) return;
+    
+    const updatedPages = pages.map(page => 
+      selectedPages.includes(page.id) 
+        ? { ...page, status: status } 
+        : page
+    );
+    
+    setPages(updatedPages);
+    toast.success(`تم تغيير حالة ${selectedPages.length} صفحة إلى ${status === 'published' ? 'منشور' : 'مسودة'} بنجاح`);
+  };
+
+  // Handle clear filters
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setFilterStatus('all');
+    setFilterDate('all');
+  };
+
+  // Apply filters to pages
+  const filteredPages = pages.filter(page => {
+    // Search filter
+    const matchesSearch = page.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      page.slug.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    // Status filter
+    const matchesStatus = filterStatus === 'all' || page.status === filterStatus;
+    
+    // Date filter - simplified for mock data
+    const matchesDate = filterDate === 'all';
+    
+    return matchesSearch && matchesStatus && matchesDate;
+  });
+
+  // Effect to update isSelectAll when filtered pages change
+  useEffect(() => {
+    if (filteredPages.length > 0 && selectedPages.length === filteredPages.length) {
+      setIsSelectAll(true);
+    } else {
+      setIsSelectAll(false);
+    }
+  }, [selectedPages, filteredPages]);
 
   // Simulate loading effect
   const refreshPages = () => {
@@ -226,6 +277,27 @@ const PagesManagement = () => {
     }, 1000);
   };
 
+  // Handle publish/unpublish page
+  const handleToggleStatus = (page: PageItem) => {
+    const newStatus = page.status === "published" ? "draft" : "published";
+    const updatedPages = pages.map(p => 
+      p.id === page.id ? { ...p, status: newStatus } : p
+    );
+    setPages(updatedPages);
+    toast.success(`تم ${newStatus === "published" ? "نشر" : "إلغاء نشر"} الصفحة بنجاح`);
+  };
+
+  // Get filtered pages with applied sorting
+  const getSortedPages = () => {
+    return [...filteredPages].sort((a, b) => {
+      // Sort by status first, then by title
+      if (a.status !== b.status) {
+        return a.status === "published" ? -1 : 1;
+      }
+      return a.title.localeCompare(b.title);
+    });
+  };
+
   return (
     <div className="min-h-screen bg-[#f0f0f1] rtl">
       {/* WordPress-like Admin Header */}
@@ -233,14 +305,18 @@ const PagesManagement = () => {
         <div className="flex items-center space-x-4 rtl:space-x-reverse">
           <span className="text-2xl">أ</span>
           <div className="flex items-center space-x-2 rtl:space-x-reverse">
-            <Button variant="ghost" className="text-white hover:text-gray-200 p-1">
+            <Button variant="ghost" className="text-white hover:text-gray-200 p-1" onClick={handleCreatePage}>
               <PlusCircle className="h-4 w-4 ml-1" />
               <span>جديد</span>
             </Button>
           </div>
         </div>
         <div className="flex items-center space-x-4 rtl:space-x-reverse">
-          <Button variant="ghost" className="text-white hover:text-gray-200 p-1">
+          <Button 
+            variant="ghost" 
+            className="text-white hover:text-gray-200 p-1"
+            onClick={() => window.open('/', '_blank')}
+          >
             <Home className="h-4 w-4 ml-1" />
             <span>زيارة الموقع</span>
           </Button>
@@ -254,10 +330,12 @@ const PagesManagement = () => {
           <div className="p-4">
             <ul className="space-y-1">
               <li>
-                <Button variant="ghost" className="w-full justify-start text-white hover:bg-[#2c3338]">
-                  <Layout className="h-5 w-5 ml-2" />
-                  <span>لوحة التحكم</span>
-                </Button>
+                <Link to="/dashboard">
+                  <Button variant="ghost" className="w-full justify-start text-white hover:bg-[#2c3338]">
+                    <Layout className="h-5 w-5 ml-2" />
+                    <span>لوحة التحكم</span>
+                  </Button>
+                </Link>
               </li>
               <li>
                 <Button variant="ghost" className="w-full justify-start bg-[#2271b1] hover:bg-[#135e96]">
@@ -266,10 +344,12 @@ const PagesManagement = () => {
                 </Button>
               </li>
               <li>
-                <Button variant="ghost" className="w-full justify-start text-white hover:bg-[#2c3338]">
-                  <Image className="h-5 w-5 ml-2" />
-                  <span>الوسائط</span>
-                </Button>
+                <Link to="/media-management">
+                  <Button variant="ghost" className="w-full justify-start text-white hover:bg-[#2c3338]">
+                    <Image className="h-5 w-5 ml-2" />
+                    <span>الوسائط</span>
+                  </Button>
+                </Link>
               </li>
               <li>
                 <Link to="/content-management">
@@ -291,7 +371,7 @@ const PagesManagement = () => {
               <p className="text-gray-500">عرض وتعديل وإضافة صفحات جديدة</p>
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={refreshPages}>
+              <Button variant="outline" onClick={refreshPages} disabled={isLoading}>
                 <RefreshCw className={`ml-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                 تحديث
               </Button>
@@ -378,88 +458,173 @@ const PagesManagement = () => {
                         onChange={(e) => setSearchQuery(e.target.value)}
                       />
                     </div>
+                    {(searchQuery || filterStatus !== 'all' || filterDate !== 'all') && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={handleClearFilters} 
+                        className="text-gray-500"
+                      >
+                        <FilterX className="h-4 w-4 ml-1" />
+                        مسح التصفية
+                      </Button>
+                    )}
                   </div>
                   {selectedPages.length > 0 && (
-                    <Button variant="destructive" size="sm" onClick={handleDeleteSelected}>
-                      <Trash2 className="h-4 w-4 ml-2" />
-                      حذف المحدد ({selectedPages.length})
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleBulkStatusChange("published")}
+                      >
+                        <Globe className="h-4 w-4 ml-1" />
+                        نشر المحدد
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleBulkStatusChange("draft")}
+                      >
+                        <FileText className="h-4 w-4 ml-1" />
+                        تحويل إلى مسودة
+                      </Button>
+                      <Button 
+                        variant="destructive" 
+                        size="sm" 
+                        onClick={handleDeleteSelected}
+                      >
+                        <Trash2 className="h-4 w-4 ml-2" />
+                        حذف المحدد ({selectedPages.length})
+                      </Button>
+                    </div>
                   )}
                 </div>
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b">
-                    <tr>
-                      <th className="w-10 px-4 py-3"></th>
-                      <th className="text-right py-3 px-4 font-medium">العنوان</th>
-                      <th className="text-right py-3 px-4 font-medium">الرابط</th>
-                      <th className="text-right py-3 px-4 font-medium">الحالة</th>
-                      <th className="text-right py-3 px-4 font-medium">آخر تحديث</th>
-                      <th className="text-right py-3 px-4 font-medium">المؤلف</th>
-                      <th className="text-right py-3 px-4 font-medium">الإجراءات</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredPages.map((page) => (
-                      <tr key={page.id} className="border-b hover:bg-gray-50">
-                        <td className="px-4 py-3">
+
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-10"></TableHead>
+                      <TableHead>العنوان</TableHead>
+                      <TableHead>الرابط</TableHead>
+                      <TableHead>الحالة</TableHead>
+                      <TableHead>آخر تحديث</TableHead>
+                      <TableHead>المؤلف</TableHead>
+                      <TableHead>الإجراءات</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {getSortedPages().map((page) => (
+                      <TableRow key={page.id}>
+                        <TableCell>
                           <Checkbox
                             checked={selectedPages.includes(page.id)}
                             onCheckedChange={() => handleToggleSelectPage(page.id)}
                             aria-label={`تحديد ${page.title}`}
                           />
-                        </td>
-                        <td className="py-3 px-4">
-                          <div className="font-medium hover:text-blue-600 cursor-pointer" onClick={() => handleEditPage(page)}>
+                        </TableCell>
+                        <TableCell>
+                          <div 
+                            className="font-medium hover:text-blue-600 cursor-pointer" 
+                            onClick={() => handleEditPage(page)}
+                          >
                             {page.title}
                           </div>
-                        </td>
-                        <td className="py-3 px-4 text-gray-600 font-mono text-sm">/{page.slug}</td>
-                        <td className="py-3 px-4">
-                          <span className={`inline-block px-2 py-1 rounded-full text-xs ${
-                            page.status === 'published' 
-                              ? 'bg-green-100 text-green-800' 
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
+                        </TableCell>
+                        <TableCell className="text-gray-600 font-mono text-sm">/{page.slug}</TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleToggleStatus(page)}
+                            className={`rounded-full text-xs ${
+                              page.status === 'published' 
+                                ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                            }`}
+                          >
                             {page.status === 'published' ? 'منشور' : 'مسودة'}
-                          </span>
-                        </td>
-                        <td className="py-3 px-4 text-gray-600">{page.lastUpdated}</td>
-                        <td className="py-3 px-4 text-gray-600">{page.author}</td>
-                        <td className="py-3 px-4">
+                          </Button>
+                        </TableCell>
+                        <TableCell className="text-gray-600">{page.lastUpdated}</TableCell>
+                        <TableCell className="text-gray-600">{page.author}</TableCell>
+                        <TableCell>
                           <div className="flex space-x-2 rtl:space-x-reverse">
-                            <Button variant="ghost" size="sm" onClick={() => handleEditPage(page)}>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleEditPage(page)}
+                              title="تعديل"
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleViewPage(page.slug)}>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleViewPage(page.slug)}
+                              title="معاينة"
+                            >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" onClick={() => handleDeletePage(page.id)}>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleDeletePage(page.id)}
+                              title="حذف"
+                            >
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
-                        </td>
-                      </tr>
+                        </TableCell>
+                      </TableRow>
                     ))}
+                    
                     {filteredPages.length === 0 && (
-                      <tr>
-                        <td colSpan={7} className="py-8 text-center text-gray-500">
-                          {searchQuery 
-                            ? 'لا توجد نتائج مطابقة للبحث' 
-                            : 'لا توجد صفحات، قم بإضافة صفحة جديدة'}
-                        </td>
-                      </tr>
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-10">
+                          <div className="text-gray-500">
+                            {searchQuery 
+                              ? 'لا توجد نتائج مطابقة للبحث' 
+                              : 'لا توجد صفحات، قم بإضافة صفحة جديدة'}
+                          </div>
+                          {!searchQuery && (
+                            <Button 
+                              variant="outline" 
+                              className="mt-4"
+                              onClick={handleCreatePage}
+                            >
+                              <PlusCircle className="ml-2 h-4 w-4" />
+                              إضافة صفحة جديدة
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
                     )}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
+                
                 <div className="p-4 border-t flex justify-between items-center">
                   <div className="text-sm text-gray-500">
-                    إجمالي {pages.length} صفحة
+                    إجمالي {filteredPages.length} صفحة {filteredPages.length !== pages.length && `(من ${pages.length})`}
                   </div>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
-                      تطبيق
-                    </Button>
-                    <Select defaultValue="all">
+                    <Select 
+                      value={filterStatus} 
+                      onValueChange={setFilterStatus}
+                    >
+                      <SelectTrigger className="w-36 h-9">
+                        <SelectValue placeholder="كل الحالات" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">كل الحالات</SelectItem>
+                        <SelectItem value="published">منشور</SelectItem>
+                        <SelectItem value="draft">مسودة</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    <Select 
+                      value={filterDate}
+                      onValueChange={setFilterDate}
+                    >
                       <SelectTrigger className="w-36 h-9">
                         <SelectValue placeholder="كل التواريخ" />
                       </SelectTrigger>
@@ -470,6 +635,10 @@ const PagesManagement = () => {
                         <SelectItem value="month">هذا الشهر</SelectItem>
                       </SelectContent>
                     </Select>
+                    
+                    <Button variant="outline" size="sm">
+                      تطبيق
+                    </Button>
                   </div>
                 </div>
               </CardContent>
