@@ -12,7 +12,7 @@ import {
   Video,
   Clock,
   Info,
-  Edit // Add the missing Edit import
+  Edit
 } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
@@ -133,10 +133,11 @@ const CourseEdit = () => {
       
       if (lessonsError) throw lessonsError;
       
-      // Fix the type issue by properly casting the level field to CourseLevel
+      // Fix the type issues by properly casting both level and status fields
       setCourse({
         ...courseData,
-        level: (courseData.level as CourseLevel) || 'beginner'
+        level: (courseData.level as CourseLevel) || 'beginner',
+        status: (courseData.status as CourseStatus) || 'draft'
       });
       
       setLessons(lessonsData || []);
