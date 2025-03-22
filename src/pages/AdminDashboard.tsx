@@ -222,6 +222,29 @@ const RECENT_USERS = [
   },
 ];
 
+const AdminNavItem = ({ icon: Icon, label, active, onClick }: { 
+  icon: React.ElementType; 
+  label: string; 
+  active: boolean; 
+  onClick: () => void 
+}) => {
+  return (
+    <li>
+      <button
+        onClick={onClick}
+        className={`w-full flex items-center px-4 py-3 rounded-lg text-right transition-colors ${
+          active 
+            ? 'bg-primary/10 text-primary font-medium' 
+            : 'text-gray-600 hover:bg-gray-100'
+        }`}
+      >
+        <Icon className="ml-3 h-5 w-5" />
+        <span>{label}</span>
+      </button>
+    </li>
+  );
+};
+
 const AdminDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
@@ -718,18 +741,4 @@ const AdminDashboard = () => {
                     </thead>
                     <tbody>
                       {BOOKS_DATA.map((book) => (
-                        <tr key={book.id} className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="py-3 px-4">
-                            <div className="flex items-center">
-                              <div className="h-14 w-10 rounded overflow-hidden ml-2">
-                                <img 
-                                  src={book.cover} 
-                                  alt={book.title} 
-                                  className="h-full w-full object-cover"
-                                />
-                              </div>
-                              <span className="font-medium">{book.title}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-gray-600">{book.author}</td>
-                          <td className="py-3 px-4 text-gray-600">{book.price}
+                        <tr key={book.id} className="border
