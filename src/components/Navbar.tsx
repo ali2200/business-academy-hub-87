@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, ShoppingCart, User, LogIn, MessageSquare } from 'lucide-react';
@@ -111,13 +112,15 @@ const Navbar = () => {
           <img src="/lovable-uploads/4307c383-57c5-4d42-abdc-1344087ec7a6.png" alt="عـــلى بتاع الـبيزنس" className="h-10 md:h-12" />
         </Link>
 
-        {/* Desktop Navigation - Centered */}
+        {/* Desktop Navigation - Centered with Border Frame */}
         <div className="hidden md:flex justify-center flex-1">
-          <NavigationMenu className="mx-auto">
-            <NavigationMenuList className="font-hacen">
-              <NavLinks isActive={isActive} />
-            </NavigationMenuList>
-          </NavigationMenu>
+          <div className="border-2 border-white/30 rounded-full px-6 py-1">
+            <NavigationMenu className="mx-auto">
+              <NavigationMenuList className="font-hacen flex-row-reverse"> {/* RTL order */}
+                <NavLinks isActive={isActive} />
+              </NavigationMenuList>
+            </NavigationMenu>
+          </div>
         </div>
 
         {/* Right Side Actions */}
@@ -125,7 +128,7 @@ const Navbar = () => {
           <Button 
             variant="ghost" 
             size="icon" 
-            className="text-white hover:text-secondary"
+            className="text-white hover:text-primary"
             aria-label="سلة التسوق"
           >
             <ShoppingCart size={20} />
@@ -133,14 +136,14 @@ const Navbar = () => {
           
           {isAuthenticated ? (
             <Link to="/dashboard">
-              <Button variant="outline" className="flex items-center gap-2 text-white border-white hover:bg-white/10 hover:text-white">
+              <Button variant="outline" className="flex items-center gap-2 text-white border-white hover:bg-primary hover:text-white hover:border-primary">
                 <User size={18} />
                 <span>حسابي</span>
               </Button>
             </Link>
           ) : (
             <Link to="/signin">
-              <Button variant="outline" className="flex items-center gap-2 text-white border-white hover:bg-white/10 hover:text-white rounded-full px-6">
+              <Button variant="outline" className="flex items-center gap-2 text-white border-white hover:bg-primary hover:text-white hover:border-primary rounded-full px-6">
                 <span className="font-hacen">تسجيل الدخول</span>
               </Button>
             </Link>
@@ -216,8 +219,8 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
               to={link.path}
               className={`${
                 isActive(link.path) 
-                  ? 'text-secondary font-bold' 
-                  : 'text-white hover:text-secondary'
+                  ? 'text-primary font-bold' 
+                  : 'text-white hover:text-primary'
               } text-xl py-3 block w-full text-center border-b border-gray-800 font-hacen transition-all duration-300 animate-fade-in`}
               style={{ animationDelay: `${index * 0.1}s` }}
               onClick={onClick}
@@ -230,9 +233,9 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
                 to={link.path}
                 className={`${
                   isActive(link.path) 
-                    ? 'text-secondary' 
+                    ? 'text-primary' 
                     : 'text-white'
-                } font-hacen px-4 py-2 transition-all duration-300 hover:text-secondary text-base`}
+                } font-hacen px-4 py-2 transition-all duration-300 hover:text-primary text-base`}
                 onClick={onClick}
               >
                 {link.label}
@@ -247,7 +250,7 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
           <Button 
             variant="ghost" 
             size="icon" 
-            className="mx-auto text-white hover:text-secondary"
+            className="mx-auto text-white hover:text-primary"
             aria-label="سلة التسوق"
           >
             <ShoppingCart size={20} />
@@ -259,7 +262,7 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
               className="w-full"
               onClick={onClick}
             >
-              <Button variant="outline" className="flex items-center w-full justify-center gap-2 text-white border-white hover:bg-white/10 hover:text-white">
+              <Button variant="outline" className="flex items-center w-full justify-center gap-2 text-white border-white hover:bg-primary hover:text-white hover:border-primary">
                 <User size={18} />
                 <span className="font-hacen">حسابي</span>
               </Button>
@@ -270,7 +273,7 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
               className="w-full"
               onClick={onClick}
             >
-              <Button variant="outline" className="flex items-center w-full justify-center gap-2 text-white border-white hover:bg-white/10 hover:text-white rounded-full">
+              <Button variant="outline" className="flex items-center w-full justify-center gap-2 text-white border-white hover:bg-primary hover:text-white hover:border-primary rounded-full">
                 <span className="font-hacen">تسجيل الدخول</span>
               </Button>
             </Link>
@@ -280,7 +283,7 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
             to="https://wa.me/201000820752" 
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 text-white font-hacen py-3 w-full border border-gray-800 rounded-md mt-4"
+            className="flex items-center justify-center gap-2 text-white font-hacen py-3 w-full border border-gray-800 rounded-md mt-4 hover:bg-primary/20 hover:border-primary/40 transition-all"
             onClick={onClick}
           >
             <MessageSquare size={18} strokeWidth={1.5} className="fill-primary" />
