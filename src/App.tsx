@@ -18,6 +18,7 @@ import CoursePlayer from "./pages/CoursePlayer";
 import BookReader from "./pages/BookReader";
 import AdminDashboard from "./pages/AdminDashboard";
 import Articles from "./pages/Articles";
+import WhatsAppButton from "./components/WhatsAppButton";
 
 const queryClient = new QueryClient();
 
@@ -27,6 +28,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <WhatsAppButton />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/courses" element={<Courses />} />

@@ -8,6 +8,7 @@ import BooksSection from '@/components/BooksSection';
 import FeaturesSection from '@/components/FeaturesSection';
 import TestimonialsSection from '@/components/TestimonialsSection';
 import CtaSection from '@/components/CtaSection';
+import AboutMeSection from '@/components/AboutMeSection';
 
 const Index = () => {
   useEffect(() => {
@@ -20,6 +21,7 @@ const Index = () => {
       <main>
         <HeroSection />
         <FeaturesSection />
+        <AboutMeSection />
         <CoursesSection />
         <BooksSection />
         <TestimonialsSection />
