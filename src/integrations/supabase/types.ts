@@ -248,6 +248,7 @@ export type Database = {
           order_number: number
           title: string
           updated_at: string
+          video_file_name: string | null
           video_url: string | null
         }
         Insert: {
@@ -260,6 +261,7 @@ export type Database = {
           order_number: number
           title: string
           updated_at?: string
+          video_file_name?: string | null
           video_url?: string | null
         }
         Update: {
@@ -272,6 +274,7 @@ export type Database = {
           order_number?: number
           title?: string
           updated_at?: string
+          video_file_name?: string | null
           video_url?: string | null
         }
         Relationships: [

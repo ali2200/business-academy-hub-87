@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -12,7 +11,9 @@ import {
   Video,
   Clock,
   Info,
-  Edit
+  Edit,
+  Upload,
+  Play
 } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
@@ -51,6 +52,7 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from '@/integrations/supabase/client';
+import { Progress } from "@/components/ui/progress";
 
 type CourseStatus = "published" | "draft";
 type CourseLevel = "beginner" | "intermediate" | "advanced";
@@ -61,6 +63,7 @@ interface Lesson {
   description?: string;
   duration?: string;
   video_url?: string;
+  video_file_name?: string;
   order_number: number;
   is_free: boolean;
 }
@@ -93,7 +96,11 @@ const CourseEdit = () => {
   const [isAddLessonDialogOpen, setIsAddLessonDialogOpen] = useState(false);
   const [isEditLessonDialogOpen, setIsEditLessonDialogOpen] = useState(false);
   const [isDeleteLessonDialogOpen, setIsDeleteLessonDialogOpen] = useState(false);
+  const [isVideoUploadDialogOpen, setIsVideoUploadDialogOpen] = useState(false);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   
   // New lesson form state
   const [newLesson, setNewLesson] = useState<Omit<Lesson, 'id'>>({
@@ -365,6 +372,86 @@ const CourseEdit = () => {
     } catch (error) {
       console.error('Error deleting lesson:', error);
       toast.error('حدث خطأ أثناء حذف الدرس');
+    }
+  };
+  
+  const openVideoUploadDialog = (lesson: Lesson) => {
+    setSelectedLesson(lesson);
+    // إذا كان هناك فيديو مرفوع مسبقًا، قم بتعيين عنوان URL للمعاينة
+    if (lesson.video_file_name) {
+      getVideoUrl(lesson.video_file_name);
+    } else {
+      setVideoPreviewUrl(null);
+    }
+    setIsVideoUploadDialogOpen(true);
+  };
+  
+  const getVideoUrl = async (fileName: string) => {
+    try {
+      const { data, error } = await supabase.storage
+        .from('course_videos')
+        .createSignedUrl(fileName, 3600); // ينتهي بعد ساعة
+      
+      if (error) throw error;
+      setVideoPreviewUrl(data.signedUrl);
+    } catch (error) {
+      console.error('Error getting video URL:', error);
+      setVideoPreviewUrl(null);
+    }
+  };
+  
+  const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || !e.target.files[0] || !selectedLesson) return;
+    
+    const file = e.target.files[0];
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${selectedLesson.id}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+    
+    setUploading(true);
+    setUploadProgress(0);
+    
+    try {
+      // رفع الملف إلى التخزين
+      const { error: uploadError, data } = await supabase.storage
+        .from('course_videos')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: true,
+          onUploadProgress: (progress) => {
+            const percent = (progress.loaded / progress.total) * 100;
+            setUploadProgress(percent);
+          }
+        });
+      
+      if (uploadError) throw uploadError;
+      
+      // تحديث الدرس بمعلومات الفيديو الجديد
+      const { error: updateError } = await supabase
+        .from('lessons')
+        .update({
+          video_file_name: fileName
+        })
+        .eq('id', selectedLesson.id);
+      
+      if (updateError) throw updateError;
+      
+      // تحديث الحالة المحلية
+      const updatedLesson = { ...selectedLesson, video_file_name: fileName };
+      setLessons(lessons.map(lesson => 
+        lesson.id === selectedLesson.id ? updatedLesson : lesson
+      ));
+      setSelectedLesson(updatedLesson);
+      
+      // الحصول على رابط المعاينة
+      getVideoUrl(fileName);
+      
+      toast.success('تم رفع الفيديو بنجاح');
+    } catch (error) {
+      console.error('Error uploading video:', error);
+      toast.error('حدث خطأ أثناء رفع الفيديو');
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -671,7 +758,7 @@ const CourseEdit = () => {
                                 {lesson.duration}
                               </div>
                             )}
-                            {lesson.video_url && (
+                            {(lesson.video_url || lesson.video_file_name) && (
                               <div className="flex items-center">
                                 <Video className="h-3 w-3 ml-1" />
                                 فيديو متاح
@@ -680,6 +767,15 @@ const CourseEdit = () => {
                           </div>
                         </div>
                         <div className="flex">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openVideoUploadDialog(lesson)}
+                            className="ml-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50"
+                            title="تحديث فيديو الدرس"
+                          >
+                            <Upload className="h-4 w-4" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -1015,6 +1111,67 @@ const CourseEdit = () => {
             <Button variant="destructive" onClick={deleteLesson}>
               حذف
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Video Upload Dialog */}
+      <Dialog open={isVideoUploadDialogOpen} onOpenChange={setIsVideoUploadDialogOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>رفع فيديو الدرس</DialogTitle>
+            <DialogDescription>
+              {selectedLesson && (
+                <>
+                قم برفع فيديو للدرس: <strong>{selectedLesson.title}</strong>
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            {videoPreviewUrl && (
+              <div className="mb-4">
+                <Label className="mb-2 block">معاينة الفيديو الحالي</Label>
+                <div className="relative rounded-md overflow-hidden aspect-video bg-black">
+                  <video 
+                    src={videoPreviewUrl} 
+                    className="w-full h-full" 
+                    controls
+                  />
+                </div>
+              </div>
+            )}
+            
+            <div className="space-y-3">
+              <Label htmlFor="video_file">ملف الفيديو</Label>
+              <Input 
+                id="video_file" 
+                type="file" 
+                accept="video/*"
+                onChange={handleVideoUpload}
+                disabled={uploading}
+              />
+              <p className="text-xs text-gray-500">
+                الصيغ المدعومة: MP4, MKV, WEBM. الحد الأقصى: 200 ميجابايت.
+              </p>
+            </div>
+            
+            {uploading && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm">جاري الرفع...</span>
+                  <span className="text-sm">{uploadProgress.toFixed(0)}%</span>
+                </div>
+                <Progress value={uploadProgress} />
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">إغلاق</Button>
+            </DialogClose>
           </DialogFooter>
         </DialogContent>
       </Dialog>
