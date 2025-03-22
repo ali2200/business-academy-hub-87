@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Menu, X, Home, BookOpen, ShoppingCart, Settings, LogOut, Play, Award, Book, Clock, Check, Info } from 'lucide-react';
+import { Menu, X, Home, BookOpen, ShoppingCart, Settings, LogOut, Play, Award, Book, Clock, Check, Info, Edit, FileText, Video, Save, Plus, Trash2 } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -9,8 +8,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 
-// Mock user data
 const USER = {
   name: 'محمد أحمد',
   email: 'mohammed.ahmed@example.com',
@@ -18,7 +19,6 @@ const USER = {
   joinDate: '12 أكتوبر 2023'
 };
 
-// Mock enrolled courses
 const ENROLLED_COURSES = [
   {
     id: 1,
@@ -55,7 +55,6 @@ const ENROLLED_COURSES = [
   }
 ];
 
-// Mock purchased books
 const PURCHASED_BOOKS = [
   {
     id: 1,
@@ -77,7 +76,6 @@ const PURCHASED_BOOKS = [
   }
 ];
 
-// Mock certificates
 const CERTIFICATES = [
   {
     id: 1,
@@ -87,28 +85,52 @@ const CERTIFICATES = [
   }
 ];
 
+const ABOUT_ME_CONTENT = {
+  title: "تعرف على بيزنس أكاديمي",
+  videoUrl: "https://static.videezy.com/system/resources/previews/000/005/529/original/Reaviling_Sjusj%C3%B8en_Ski_Senter.mp4",
+  description: "أنا أحمد، خبير في مجال البيزنس والمبيعات مع خبرة تمتد لأكثر من 10 سنوات في السوق المصري. أسست بيزنس أكاديمي لمساعدة رواد الأعمال والمهنيين المصريين على تطوير مهاراتهم وتحقيق النجاح في عالم الأعمال.",
+  features: [
+    {
+      id: 1,
+      title: "دورات تدريبية احترافية",
+      description: "دورات متخصصة في مجالات البيع والتسويق وإدارة الأعمال مقدمة باللهجة المصرية لتناسب احتياجات السوق المحلي.",
+      icon: "graduation-cap"
+    },
+    {
+      id: 2,
+      title: "كتب ومراجع تعليمية",
+      description: "مجموعة من الكتب الإلكترونية ال��تخصصة التي تشرح أساسيات ومفاهيم البيزنس بطريقة سهلة وعملية.",
+      icon: "book-open"
+    },
+    {
+      id: 3,
+      title: "خبرة عملية حقيقية",
+      description: "محتوى مبني على تجارب حقيقية وخبرات عملية في السوق المصري، وليس مجرد نظريات.",
+      icon: "award"
+    }
+  ]
+};
+
 const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
+  const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('courses');
+  
+  const [aboutContent, setAboutContent] = useState(ABOUT_ME_CONTENT);
+  const [editMode, setEditMode] = useState(false);
+  const [editedFeature, setEditedFeature] = useState<null | number>(null);
+  
+  const [tempContent, setTempContent] = useState(ABOUT_ME_CONTENT);
 
   useEffect(() => {
     window.scrollTo(0, 0);
 
-    const checkWidth = () => {
-      const mobile = window.innerWidth < 1024;
-      setIsMobile(mobile);
-      if (mobile) {
-        setSidebarOpen(false);
-      } else {
-        setSidebarOpen(true);
-      }
-    };
-
-    checkWidth();
-    window.addEventListener('resize', checkWidth);
-    return () => window.removeEventListener('resize', checkWidth);
-  }, []);
+    if (isMobile) {
+      setSidebarOpen(false);
+    } else {
+      setSidebarOpen(true);
+    }
+  }, [isMobile]);
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -119,10 +141,54 @@ const Dashboard = () => {
       description: "يمكنك الآن طباعة الشهادة أو مشاركتها",
     });
   };
+  
+  const handleContentSave = () => {
+    setAboutContent(tempContent);
+    setEditMode(false);
+    toast.success("تم حفظ التغييرات بنجاح", {
+      description: "تم تحديث المحتوى على الموقع"
+    });
+  };
+  
+  const handleCancelEdit = () => {
+    setTempContent(aboutContent);
+    setEditMode(false);
+    setEditedFeature(null);
+  };
+  
+  const addNewFeature = () => {
+    if (tempContent.features.length >= 6) {
+      toast.error("الحد الأقصى للميزات هو 6 ميزات");
+      return;
+    }
+    
+    const newFeature = {
+      id: Date.now(),
+      title: "ميزة جديدة",
+      description: "وصف الميزة الجديدة",
+      icon: "info"
+    };
+    
+    setTempContent({
+      ...tempContent,
+      features: [...tempContent.features, newFeature]
+    });
+  };
+  
+  const removeFeature = (id: number) => {
+    if (tempContent.features.length <= 1) {
+      toast.error("يجب أن يكون هناك ميزة واحدة على الأقل");
+      return;
+    }
+    
+    setTempContent({
+      ...tempContent,
+      features: tempContent.features.filter(feature => feature.id !== id)
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Toggle sidebar button (mobile only) */}
       <div className="lg:hidden fixed top-4 right-4 z-50">
         <Button 
           variant="outline" 
@@ -134,14 +200,12 @@ const Dashboard = () => {
         </Button>
       </div>
       
-      {/* Sidebar */}
       <aside 
         className={`bg-white fixed top-0 right-0 h-full shadow-lg transform transition-all duration-300 z-40 ${
           sidebarOpen ? 'translate-x-0' : 'translate-x-full'
         } lg:translate-x-0 w-64 lg:w-80`}
       >
         <div className="p-6 flex flex-col h-full">
-          {/* User info */}
           <div className="flex items-center gap-3 border-b border-gray-100 pb-6 mb-6">
             <Avatar className="h-14 w-14 border-2 border-secondary">
               <AvatarImage src={USER.avatar} alt={USER.name} />
@@ -153,7 +217,6 @@ const Dashboard = () => {
             </div>
           </div>
           
-          {/* Navigation */}
           <nav className="flex-grow">
             <ul className="space-y-1">
               <NavItem 
@@ -194,6 +257,16 @@ const Dashboard = () => {
                 }} 
               />
               <NavItem 
+                icon={FileText} 
+                label="إدارة المحتوى" 
+                href="/dashboard" 
+                active={activeTab === 'content'} 
+                onClick={() => {
+                  setActiveTab('content');
+                  isMobile && setSidebarOpen(false);
+                }} 
+              />
+              <NavItem 
                 icon={ShoppingCart} 
                 label="مشترياتي" 
                 href="/dashboard" 
@@ -216,7 +289,6 @@ const Dashboard = () => {
             </ul>
           </nav>
           
-          {/* Footer */}
           <div className="pt-6 border-t border-gray-100">
             <Button 
               variant="outline" 
@@ -229,20 +301,17 @@ const Dashboard = () => {
         </div>
       </aside>
       
-      {/* Main content */}
       <main 
         className={`transition-all duration-300 ${
           sidebarOpen ? 'lg:mr-80' : 'mr-0'
         } min-h-screen pt-8 pb-16`}
       >
         <div className="container mx-auto px-4">
-          {/* Page header */}
           <header className="mb-8 pt-4">
             <h1 className="text-3xl font-bold text-primary mb-2">لوحة التحكم</h1>
-            <p className="text-gray-600">اهلا بك {USER.name}، هنا يمكنك متابعة تعلمك ومشترياتك</p>
+            <p className="text-gray-600">اهلا بك {USER.name}، هنا يمك��ك متابعة تعلمك ومشترياتك</p>
           </header>
           
-          {/* Dashboard content */}
           <div className="bg-white rounded-xl shadow-sm p-6">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="mb-8 bg-gray-100 p-1 rounded-xl w-full justify-start overflow-x-auto">
@@ -258,9 +327,12 @@ const Dashboard = () => {
                   <Award size={18} className="ml-2" />
                   شهاداتي
                 </TabsTrigger>
+                <TabsTrigger value="content" className="py-3 px-6 rounded-lg data-[state=active]:bg-primary data-[state=active]:text-white">
+                  <FileText size={18} className="ml-2" />
+                  إدارة المحتوى
+                </TabsTrigger>
               </TabsList>
               
-              {/* Courses Tab */}
               <TabsContent value="courses" className="animate-fade-in">
                 <h2 className="text-2xl font-bold mb-6 text-primary">دوراتي</h2>
                 
@@ -280,7 +352,6 @@ const Dashboard = () => {
                 )}
               </TabsContent>
               
-              {/* Books Tab */}
               <TabsContent value="books" className="animate-fade-in">
                 <h2 className="text-2xl font-bold mb-6 text-primary">كتبي</h2>
                 
@@ -300,7 +371,6 @@ const Dashboard = () => {
                 )}
               </TabsContent>
               
-              {/* Certificates Tab */}
               <TabsContent value="certificates" className="animate-fade-in">
                 <h2 className="text-2xl font-bold mb-6 text-primary">شهاداتي</h2>
                 
@@ -352,6 +422,220 @@ const Dashboard = () => {
                     buttonHref="/courses"
                   />
                 )}
+              </TabsContent>
+              
+              <TabsContent value="content" className="animate-fade-in">
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-2xl font-bold text-primary">إدارة المحتوى</h2>
+                  {!editMode ? (
+                    <Button 
+                      onClick={() => setEditMode(true)}
+                      className="bg-primary hover:bg-primary-light"
+                    >
+                      <Edit size={18} className="ml-2" />
+                      تعديل المحتوى
+                    </Button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        onClick={handleCancelEdit}
+                      >
+                        <X size={18} className="ml-2" />
+                        إلغاء
+                      </Button>
+                      <Button 
+                        onClick={handleContentSave}
+                        className="bg-primary hover:bg-primary-light"
+                      >
+                        <Save size={18} className="ml-2" />
+                        حفظ التغييرات
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                
+                <Card className="mb-6">
+                  <CardHeader>
+                    <h3 className="text-xl font-bold text-primary">معلومات القسم التعريفي</h3>
+                  </CardHeader>
+                  
+                  <CardContent className="space-y-4">
+                    <div>
+                      <h4 className="text-lg font-medium mb-2">عنوان القسم</h4>
+                      {editMode ? (
+                        <Input 
+                          value={tempContent.title}
+                          onChange={(e) => setTempContent({...tempContent, title: e.target.value})}
+                          className="w-full"
+                        />
+                      ) : (
+                        <p className="p-2 bg-gray-50 rounded">{aboutContent.title}</p>
+                      )}
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-lg font-medium mb-2">رابط الفيديو</h4>
+                      {editMode ? (
+                        <Input 
+                          value={tempContent.videoUrl}
+                          onChange={(e) => setTempContent({...tempContent, videoUrl: e.target.value})}
+                          className="w-full"
+                          dir="ltr"
+                        />
+                      ) : (
+                        <div className="p-2 bg-gray-50 rounded dir-ltr text-left">
+                          {aboutContent.videoUrl}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div>
+                      <h4 className="text-lg font-medium mb-2">الوصف</h4>
+                      {editMode ? (
+                        <Textarea 
+                          value={tempContent.description}
+                          onChange={(e) => setTempContent({...tempContent, description: e.target.value})}
+                          className="w-full min-h-32"
+                        />
+                      ) : (
+                        <p className="p-2 bg-gray-50 rounded">{aboutContent.description}</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="flex flex-row justify-between items-center">
+                    <h3 className="text-xl font-bold text-primary">الميزات والمزايا</h3>
+                    {editMode && (
+                      <Button 
+                        size="sm" 
+                        onClick={addNewFeature}
+                        className="bg-secondary hover:bg-secondary-light"
+                      >
+                        <Plus size={16} className="ml-1" />
+                        إضافة ميزة
+                      </Button>
+                    )}
+                  </CardHeader>
+                  
+                  <CardContent>
+                    <div className="space-y-6">
+                      {(editMode ? tempContent.features : aboutContent.features).map((feature, index) => (
+                        <div key={feature.id} className="p-4 border border-gray-100 rounded-lg">
+                          <div className="flex justify-between items-center mb-3">
+                            <div className="flex items-center gap-2">
+                              <div className="bg-primary/10 p-2 rounded">
+                                {feature.icon === "graduation-cap" && <GraduationCap className="w-5 h-5 text-primary" />}
+                                {feature.icon === "book-open" && <BookOpen className="w-5 h-5 text-primary" />}
+                                {feature.icon === "award" && <Award className="w-5 h-5 text-primary" />}
+                                {feature.icon === "info" && <Info className="w-5 h-5 text-primary" />}
+                              </div>
+                              {editMode ? (
+                                <Input 
+                                  value={feature.title}
+                                  onChange={(e) => {
+                                    const updatedFeatures = [...tempContent.features];
+                                    updatedFeatures[index].title = e.target.value;
+                                    setTempContent({...tempContent, features: updatedFeatures});
+                                  }}
+                                  className="font-bold text-primary"
+                                />
+                              ) : (
+                                <h4 className="font-bold text-primary">{feature.title}</h4>
+                              )}
+                            </div>
+                            
+                            {editMode && (
+                              <Button 
+                                size="sm"
+                                variant="ghost"
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                onClick={() => removeFeature(feature.id)}
+                              >
+                                <Trash2 size={16} />
+                              </Button>
+                            )}
+                          </div>
+                          
+                          {editMode ? (
+                            <Textarea 
+                              value={feature.description}
+                              onChange={(e) => {
+                                const updatedFeatures = [...tempContent.features];
+                                updatedFeatures[index].description = e.target.value;
+                                setTempContent({...tempContent, features: updatedFeatures});
+                              }}
+                              className="w-full"
+                            />
+                          ) : (
+                            <p className="text-gray-600">{feature.description}</p>
+                          )}
+                          
+                          {editMode && (
+                            <div className="mt-3">
+                              <label className="block text-sm font-medium mb-1">الأيقونة</label>
+                              <select 
+                                value={feature.icon}
+                                onChange={(e) => {
+                                  const updatedFeatures = [...tempContent.features];
+                                  updatedFeatures[index].icon = e.target.value;
+                                  setTempContent({...tempContent, features: updatedFeatures});
+                                }}
+                                className="w-full p-2 border border-gray-300 rounded-md"
+                              >
+                                <option value="graduation-cap">دورات تدريبية</option>
+                                <option value="book-open">كتب ومراجع</option>
+                                <option value="award">خبرة عملية</option>
+                                <option value="info">معلومات</option>
+                              </select>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                <div className="mt-8">
+                  <h3 className="text-xl font-bold text-primary mb-4">معاينة القسم</h3>
+                  <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                    <h2 className="text-2xl font-bold mb-4 text-primary">{editMode ? tempContent.title : aboutContent.title}</h2>
+                    
+                    <div className="mb-4 rounded overflow-hidden max-w-lg mx-auto">
+                      <video 
+                        controls
+                        className="w-full h-auto"
+                        poster="https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=2574&auto=format&fit=crop"
+                      >
+                        <source src={editMode ? tempContent.videoUrl : aboutContent.videoUrl} type="video/mp4" />
+                        عذراً، متصفحك لا يدعم تشغيل الفيديو
+                      </video>
+                    </div>
+                    
+                    <p className="text-gray-600 mb-6">
+                      {editMode ? tempContent.description : aboutContent.description}
+                    </p>
+                    
+                    <div className="space-y-4">
+                      {(editMode ? tempContent.features : aboutContent.features).map((feature) => (
+                        <div key={feature.id} className="flex items-start space-x-3 rtl:space-x-reverse">
+                          <div className="bg-primary/10 p-2 rounded-lg">
+                            {feature.icon === "graduation-cap" && <GraduationCap className="w-5 h-5 text-primary" />}
+                            {feature.icon === "book-open" && <BookOpen className="w-5 h-5 text-primary" />}
+                            {feature.icon === "award" && <Award className="w-5 h-5 text-primary" />}
+                            {feature.icon === "info" && <Info className="w-5 h-5 text-primary" />}
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-medium text-primary mb-1">{feature.title}</h3>
+                            <p className="text-gray-600">{feature.description}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </TabsContent>
             </Tabs>
           </div>

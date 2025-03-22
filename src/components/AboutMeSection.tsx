@@ -8,19 +8,21 @@ const AboutMeSection = () => {
     <section className="section-padding py-24 bg-gradient-to-b from-white to-gray-50">
       <div className="container mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-          {/* Image */}
+          {/* Video */}
           <div className="order-2 lg:order-1 relative">
             <div className="absolute -top-10 -left-10 w-64 h-64 bg-primary/5 rounded-full blur-3xl"></div>
             <div className="relative z-10 rounded-2xl overflow-hidden border border-gray-100 shadow-xl">
-              <img 
-                src="/images/instructor.jpg" 
-                alt="أحمد المدرس" 
-                className="w-full h-auto object-cover"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.src = "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=2574&auto=format&fit=crop";
-                }}
-              />
+              <video 
+                className="w-full h-auto"
+                controls
+                autoPlay
+                muted
+                loop
+                poster="https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=2574&auto=format&fit=crop"
+              >
+                <source src="https://static.videezy.com/system/resources/previews/000/005/529/original/Reaviling_Sjusj%C3%B8en_Ski_Senter.mp4" type="video/mp4" />
+                عذراً، متصفحك لا يدعم تشغيل الفيديو
+              </video>
             </div>
             <div className="absolute bottom-4 right-4 bg-white p-6 rounded-xl shadow-lg z-20 max-w-xs">
               <p className="text-primary font-bold text-lg mb-2">مرحبًا بك في بيزنس أكاديمي!</p>
