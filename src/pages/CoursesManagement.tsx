@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Routes, Route, useNavigate } from 'react-router-dom';
+import { Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import AdminCoursesList from '@/components/AdminCoursesList';
 import CourseEdit from '@/pages/CourseEdit';
@@ -14,6 +14,13 @@ import { FileText, Video } from 'lucide-react';
 
 const CoursesManagement = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const params = useParams();
+  
+  // Check if we should activate the lessons tab from URL parameters
+  const searchParams = new URLSearchParams(location.search);
+  const tabFromURL = searchParams.get('tab');
+  const defaultTab = tabFromURL === 'lessons' ? 'lessons' : 'details';
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
@@ -40,7 +47,7 @@ const CoursesManagement = () => {
               <AdminCoursesList />
             </>
           } />
-          <Route path="/:id" element={<CourseEdit />} />
+          <Route path="/:id" element={<CourseEdit defaultTab={defaultTab} />} />
           <Route path="/create" element={<CourseEdit />} />
         </Routes>
       </div>

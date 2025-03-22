@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { PlusCircle, Edit, Trash2, Eye, MoreHorizontal } from "lucide-react";
+import { PlusCircle, Edit, Trash2, Eye, MoreHorizontal, VideoIcon } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +31,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const AdminCoursesList = () => {
   const navigate = useNavigate();
+  const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
 
   const { data: courses, isLoading, error, refetch } = useQuery({
     queryKey: ['admin-courses'],
@@ -58,6 +59,10 @@ const AdminCoursesList = () => {
 
   const handleEditCourse = (courseId: string) => {
     navigate(`/courses-management/${courseId}`);
+  };
+
+  const handleEditLessons = (courseId: string) => {
+    navigate(`/courses-management/${courseId}?tab=lessons`);
   };
 
   const handleViewCourse = (courseId: string) => {
@@ -143,24 +148,28 @@ const AdminCoursesList = () => {
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>خيارات</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => handleEditCourse(course.id)}
-                              className="cursor-pointer"
-                            >
-                              <Edit className="h-4 w-4 mr-2" />
-                              تعديل الدروس
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        
+                        <div className="relative">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuLabel>خيارات</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => handleEditLessons(course.id)}
+                                className="cursor-pointer"
+                              >
+                                <VideoIcon className="h-4 w-4 mr-2" />
+                                تعديل الدروس
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                        
                       </div>
                     </TableCell>
                   </TableRow>
