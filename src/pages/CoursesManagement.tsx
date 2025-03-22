@@ -4,6 +4,13 @@ import { Routes, Route, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import AdminCoursesList from '@/components/AdminCoursesList';
 import CourseEdit from '@/pages/CourseEdit';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import { FileText, Video } from 'lucide-react';
 
 const CoursesManagement = () => {
   const navigate = useNavigate();

@@ -54,6 +54,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { supabase } from '@/integrations/supabase/client';
 import { Progress } from "@/components/ui/progress";
+import { useQuery } from '@tanstack/react-query';
 
 type CourseStatus = "published" | "draft";
 type CourseLevel = "beginner" | "intermediate" | "advanced";
@@ -112,52 +113,63 @@ const CourseEdit = () => {
     is_free: false
   });
 
-  useEffect(() => {
-    if (id) {
-      fetchCourseDetails();
-    }
-  }, [id]);
-
-  const fetchCourseDetails = async () => {
-    try {
-      setLoading(true);
+  // استخدام React Query لجلب بيانات الدورة
+  const { data: courseData, isLoading: isCourseLoading, refetch: refetchCourse } = useQuery({
+    queryKey: ['course', id],
+    queryFn: async () => {
+      if (!id) return null;
       
-      const { data: courseData, error: courseError } = await supabase
+      const { data, error } = await supabase
         .from('courses')
         .select('*')
         .eq('id', id)
         .single();
       
-      if (courseError) throw courseError;
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
+  });
+
+  // استخدام React Query لجلب دروس الدورة
+  const { data: lessonsData, isLoading: isLessonsLoading, refetch: refetchLessons } = useQuery({
+    queryKey: ['lessons', id],
+    queryFn: async () => {
+      if (!id) return [];
       
-      const { data: lessonsData, error: lessonsError } = await supabase
+      const { data, error } = await supabase
         .from('lessons')
         .select('*')
         .eq('course_id', id)
         .order('order_number', { ascending: true });
       
-      if (lessonsError) throw lessonsError;
-      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!id,
+  });
+
+  useEffect(() => {
+    if (courseData) {
       setCourse({
         ...courseData,
         level: (courseData.level as CourseLevel) || 'beginner',
         status: (courseData.status as CourseStatus) || 'draft'
       });
+      setLoading(false);
+    }
+  }, [courseData]);
+
+  useEffect(() => {
+    if (lessonsData) {
+      setLessons(lessonsData);
       
-      setLessons(lessonsData || []);
-      
-      if (lessonsData && lessonsData.length > 0) {
+      if (lessonsData.length > 0) {
         const maxOrderNumber = Math.max(...lessonsData.map(lesson => lesson.order_number));
         setNewLesson(prev => ({ ...prev, order_number: maxOrderNumber + 1 }));
       }
-      
-    } catch (error) {
-      console.error('Error fetching course details:', error);
-      toast.error('فشل في تحميل تفاصيل الدورة');
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [lessonsData]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -261,6 +273,7 @@ const CourseEdit = () => {
       if (error) throw error;
       
       toast.success('تم حفظ تفاصيل الدورة بنجاح');
+      refetchCourse();
     } catch (error) {
       console.error('Error saving course details:', error);
       toast.error('حدث خطأ أثناء حفظ تفاصيل الدورة');
@@ -288,7 +301,6 @@ const CourseEdit = () => {
       
       if (error) throw error;
       
-      setLessons([...lessons, data[0]]);
       setNewLesson({
         title: '',
         description: '',
@@ -298,6 +310,7 @@ const CourseEdit = () => {
         is_free: false
       });
       setIsAddLessonDialogOpen(false);
+      refetchLessons();
       
       toast.success('تمت إضافة الدرس بنجاح');
     } catch (error) {
@@ -324,11 +337,9 @@ const CourseEdit = () => {
       
       if (error) throw error;
       
-      setLessons(lessons.map(lesson => 
-        lesson.id === selectedLesson.id ? selectedLesson : lesson
-      ));
       setSelectedLesson(null);
       setIsEditLessonDialogOpen(false);
+      refetchLessons();
       
       toast.success('تم تحديث الدرس بنجاح');
     } catch (error) {
@@ -348,9 +359,9 @@ const CourseEdit = () => {
       
       if (error) throw error;
       
-      setLessons(lessons.filter(lesson => lesson.id !== selectedLesson.id));
       setSelectedLesson(null);
       setIsDeleteLessonDialogOpen(false);
+      refetchLessons();
       
       toast.success('تم حذف الدرس بنجاح');
     } catch (error) {
@@ -394,7 +405,7 @@ const CourseEdit = () => {
     setUploadProgress(0);
     
     try {
-      // Start the simulated progress to give user feedback
+      // بدء التقدم المحاكى لإعطاء تفاعل للمستخدم
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
           if (prev < 90) return prev + 5;
@@ -423,15 +434,15 @@ const CourseEdit = () => {
       
       if (updateError) throw updateError;
       
-      const updatedLesson = { ...selectedLesson, video_file_name: fileName };
-      setLessons(lessons.map(lesson => 
-        lesson.id === selectedLesson.id ? updatedLesson : lesson
-      ));
-      setSelectedLesson(updatedLesson);
-      
-      getVideoUrl(fileName);
-      
+      setIsVideoUploadDialogOpen(false);
+      refetchLessons();
       toast.success('تم رفع الفيديو بنجاح');
+      
+      // إعادة فتح النافذة مع تحديث البيانات
+      setTimeout(() => {
+        const updatedLesson = { ...selectedLesson, video_file_name: fileName };
+        openVideoUploadDialog(updatedLesson);
+      }, 500);
     } catch (error) {
       console.error('Error uploading video:', error);
       toast.error('حدث خطأ أثناء رفع الفيديو');
@@ -486,7 +497,7 @@ const CourseEdit = () => {
     }
   };
 
-  if (loading) {
+  if (isCourseLoading || isLessonsLoading) {
     return (
       <div className="min-h-screen flex justify-center items-center">
         <p>جاري التحميل...</p>
