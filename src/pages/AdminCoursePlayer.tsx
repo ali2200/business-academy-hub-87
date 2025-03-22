@@ -13,6 +13,37 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 
+// Define an interface for lesson data from the database
+interface Lesson {
+  id: string;
+  title: string;
+  description?: string;
+  duration?: string;
+  video_url?: string;
+  course_id: string;
+  order_number: number;
+  // Add other properties as needed
+}
+
+// Define an interface for lessons with chapter information
+interface LessonWithChapter extends Lesson {
+  chapter: string; // This will be added manually since it's not in the database
+}
+
+// Define an interface for chapters with lessons
+interface Chapter {
+  id: string;
+  title: string;
+  lessons: {
+    id: string;
+    title: string;
+    duration: string;
+    completed: boolean;
+    videoUrl: string;
+    order: number;
+  }[];
+}
+
 // This component is very similar to CoursePlayer but adapted for admin use
 const AdminCoursePlayer = () => {
   const { id } = useParams();
@@ -46,15 +77,27 @@ const AdminCoursePlayer = () => {
         .from('lessons')
         .select('*')
         .eq('course_id', id)
-        .order('order', { ascending: true });
+        .order('order_number', { ascending: true });
 
       if (error) throw error;
-      return data;
+      
+      // Group lessons by order_number to create artificial chapters
+      // This is a workaround since there's no 'chapter' field in the database
+      const lessonsWithChapter = data.map((lesson: Lesson) => {
+        // Create chapter names based on lesson order numbers (e.g., first 3 lessons in chapter 1, etc.)
+        const chapterNumber = Math.ceil(lesson.order_number / 3); // Group every 3 lessons into a chapter
+        return {
+          ...lesson,
+          chapter: `الفصل ${chapterNumber}` // "Chapter X" in Arabic
+        };
+      });
+      
+      return lessonsWithChapter;
     }
   });
 
   // Organize lessons into chapters
-  const chaptersMap = lessons ? lessons.reduce((acc: any, lesson: any) => {
+  const chaptersMap = lessons ? lessons.reduce((acc: any, lesson: LessonWithChapter) => {
     if (!acc[lesson.chapter]) {
       acc[lesson.chapter] = {
         id: lesson.chapter,
@@ -68,7 +111,7 @@ const AdminCoursePlayer = () => {
       duration: lesson.duration || '10:00',
       completed: false,
       videoUrl: lesson.video_url || 'https://www.youtube.com/embed/dQw4w9WgXcQ',
-      order: lesson.order
+      order: lesson.order_number
     });
     return acc;
   }, {}) : {};
