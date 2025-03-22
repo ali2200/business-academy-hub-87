@@ -1,0 +1,24 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 400">
+  <style>
+    .primary { fill: #37124f; }
+    .secondary { fill: #ff6600; }
+    .accent { fill: #eeeeee; }
+    .light { fill: #ffffff; }
+  </style>
+  <g>
+    <rect class="accent" x="50" y="50" width="400" height="300" rx="10" />
+    <rect class="primary" x="70" y="70" width="100" height="260" rx="5" />
+    <rect class="light" x="190" y="70" width="240" height="260" rx="5" />
+    
+    <rect class="secondary" x="80" y="90" width="80" height="20" rx="3" />
+    <rect class="accent" x="80" y="130" width="80" height="20" rx="3" />
+    <rect class="accent" x="80" y="170" width="80" height="20" rx="3" />
+    <rect class="accent" x="80" y="210" width="80" height="20" rx="3" />
+    
+    <rect class="primary" x="210" y="90" width="100" height="20" rx="3" />
+    <rect class="accent" x="210" y="130" width="200" height="40" rx="3" />
+    <rect class="accent" x="210" y="190" width="200" height="40" rx="3" />
+    <rect class="accent" x="210" y="250" width="200" height="40" rx="3" />
+  </g>
+</svg>

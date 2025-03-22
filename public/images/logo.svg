@@ -1,0 +1,10 @@
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 60">
+  <g fill="none" fill-rule="evenodd">
+    <path fill="#37124F" d="M40 10h120v40H40z"/>
+    <path fill="#FF6600" d="M35 15h10v30H35z"/>
+    <text font-family="Hacen Maghreb Bd, Arial" font-size="20" fill="#FFFFFF" x="55" y="37">
+      بيزنس أكاديمي
+    </text>
+  </g>
+</svg>

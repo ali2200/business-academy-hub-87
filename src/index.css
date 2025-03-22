@@ -1,6 +1,17 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800&display=swap');
+
+@font-face {
+  font-family: 'Hacen Maghreb Bd';
+  src: url('/fonts/hacen-maghreb-bd.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+  font-display: swap;
+}
 
 @layer base {
   :root {
@@ -32,60 +43,15 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
 
     --sidebar-background: 0 0% 98%;
-
     --sidebar-foreground: 240 5.3% 26.1%;
-
     --sidebar-primary: 240 5.9% 10%;
-
     --sidebar-primary-foreground: 0 0% 98%;
-
     --sidebar-accent: 240 4.8% 95.9%;
-
     --sidebar-accent-foreground: 240 5.9% 10%;
-
     --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
 }
@@ -95,7 +61,80 @@
     @apply border-border;
   }
 
-  body {
-    @apply bg-background text-foreground;
+  html {
+    direction: rtl;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    scroll-behavior: smooth;
   }
+
+  body {
+    @apply bg-background text-foreground font-cairo overflow-x-hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-hacen text-primary;
+  }
+}
+
+@layer components {
+  .glassmorphism {
+    @apply bg-white/70 backdrop-blur-md border border-white/20 shadow-glass;
+  }
+  
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-hover hover:-translate-y-1;
+  }
+  
+  .btn-primary {
+    @apply bg-primary hover:bg-primary-light text-white py-3 px-6 rounded-lg transition-all duration-300 font-medium;
+  }
+  
+  .btn-secondary {
+    @apply bg-secondary hover:bg-secondary-light text-white py-3 px-6 rounded-lg transition-all duration-300 font-medium;
+  }
+  
+  .btn-outline {
+    @apply border-2 border-primary hover:bg-primary text-primary hover:text-white py-3 px-6 rounded-lg transition-all duration-300 font-medium;
+  }
+  
+  .section-padding {
+    @apply py-20 px-4 sm:px-6 lg:px-8;
+  }
+  
+  .nav-link {
+    @apply text-gray-700 hover:text-primary transition-colors duration-300 relative after:absolute after:bottom-0 after:right-0 after:w-0 after:h-0.5 after:bg-secondary after:transition-all after:duration-300 hover:after:w-full;
+  }
+  
+  .nav-link-active {
+    @apply text-primary font-semibold after:w-full;
+  }
+}
+
+/* Animated background gradient */
+.animated-gradient {
+  background: linear-gradient(130deg, rgba(55, 18, 79, 0.05) 0%, rgba(255, 102, 0, 0.05) 100%);
+  background-size: 200% 200%;
+  animation: gradient-shift 15s ease infinite;
+}
+
+@keyframes gradient-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Scroll reveal animations */
+.reveal-on-scroll {
+  visibility: hidden;
+}
+
+.reveal-visible {
+  visibility: visible;
+  animation: fade-in 0.6s ease-out forwards;
 }
