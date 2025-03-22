@@ -7,6 +7,7 @@ import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery } from '@tanstack/react-query';
 
 interface CourseData {
   id: string;
@@ -33,27 +34,12 @@ const CATEGORIES = ['الكل', 'مبيعات', 'تسويق', 'إدارة', 'ر�
 
 const CoursesSection = () => {
   const [activeCategory, setActiveCategory] = useState('الكل');
-  const [courses, setCourses] = useState<CourseData[]>([]);
   const [filteredCourses, setFilteredCourses] = useState<CourseData[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchCourses();
-  }, []);
-
-  useEffect(() => {
-    if (activeCategory === 'الكل') {
-      setFilteredCourses(courses);
-    } else {
-      setFilteredCourses(courses.filter(course => course.category === activeCategory));
-    }
-  }, [activeCategory, courses]);
-
-  const fetchCourses = async () => {
-    try {
-      setLoading(true);
-      
-      // Fetch published courses from Supabase
+  // Fetch courses using React Query
+  const { data: courses = [], isLoading, error } = useQuery({
+    queryKey: ['publishedCourses'],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('courses')
         .select('*')
@@ -63,25 +49,33 @@ const CoursesSection = () => {
       
       if (data && data.length > 0) {
         // Format and enhance data with UI-specific properties
-        const enhancedData = data.map((course, index) => ({
+        return data.map((course, index) => ({
           ...course,
           isFeatured: index < 3, // First 3 courses are featured
           isHot: index % 3 === 0, // Every 3rd course is hot
           isNew: new Date(course.created_at).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000 // New if created in the last 7 days
         }));
-        
-        setCourses(enhancedData);
-      } else {
-        // Fallback to mock data if no courses are available
-        setCourses(MOCK_COURSES);
       }
-    } catch (error) {
-      console.error('Error fetching courses:', error);
-      setCourses(MOCK_COURSES);
-    } finally {
-      setLoading(false);
+      
+      // Fallback to empty array if no courses
+      return [];
+    },
+    refetchInterval: 60000, // Refetch every minute to keep data fresh
+  });
+
+  // Filter courses when active category or courses change
+  useEffect(() => {
+    if (!courses || courses.length === 0) {
+      setFilteredCourses([]);
+      return;
     }
-  };
+    
+    if (activeCategory === 'الكل') {
+      setFilteredCourses(courses);
+    } else {
+      setFilteredCourses(courses.filter(course => course.category === activeCategory));
+    }
+  }, [activeCategory, courses]);
 
   // Observer for scroll animations
   useEffect(() => {
@@ -161,15 +155,23 @@ const CoursesSection = () => {
         </div>
 
         {/* Courses grid */}
-        {loading ? (
+        {isLoading ? (
           <div className="text-center py-12">
             <p>جاري تحميل الدورات...</p>
           </div>
-        ) : (
+        ) : error ? (
+          <div className="text-center py-12 text-red-500">
+            <p>حدث خطأ أثناء تحميل الدورات</p>
+          </div>
+        ) : filteredCourses.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-8">
             {filteredCourses.map((course, index) => (
               <CourseCard key={course.id} course={course} index={index} />
             ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p>لا توجد دورات متاحة حاليًا</p>
           </div>
         )}
 
@@ -266,79 +268,5 @@ const CourseCard = ({ course, index }: CourseCardProps) => {
     </Card>
   );
 };
-
-// Mock data as fallback if API fails
-const MOCK_COURSES: CourseData[] = [
-  {
-    id: '1',
-    title: 'أساسيات البيع الاحترافي',
-    description: 'تعلم أساسيات البيع وتقنيات الإقناع والتفاوض لتحسين أدائك كمندوب مبيعات',
-    image_url: 'https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=2070&auto=format&fit=crop',
-    instructor: 'أحمد محمد',
-    price: 599,
-    currency: 'EGP',
-    category: 'مبيعات',
-    level: 'beginner',
-    students_count: 125,
-    duration: '5 ساعات',
-    status: 'published',
-    created_at: '2023-01-01T00:00:00Z',
-    updated_at: '2023-01-01T00:00:00Z',
-    isFeatured: true,
-    isHot: true
-  },
-  {
-    id: '2',
-    title: 'التسويق الرقمي للمبتدئين',
-    description: 'دورة شاملة في التسويق الرقمي وكيفية استخدام وسائل التواصل الاجتماعي لتنمية مشروعك',
-    image_url: 'https://images.unsplash.com/photo-1557838923-2985c318be48?q=80&w=2069&auto=format&fit=crop',
-    instructor: 'سارة أحمد',
-    price: 799,
-    currency: 'EGP',
-    category: 'تسويق',
-    level: 'beginner',
-    students_count: 210,
-    duration: '8 ساعات',
-    status: 'published',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-    isFeatured: true,
-    isNew: true
-  },
-  {
-    id: '3',
-    title: 'إدارة المشاريع الصغيرة',
-    description: 'كيفية بدء وإدارة مشروع صغير بنجاح من الصفر وحتى تحقيق الأرباح',
-    image_url: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=2070&auto=format&fit=crop',
-    instructor: 'محمد علي',
-    price: 699,
-    currency: 'EGP',
-    category: 'إدارة',
-    level: 'intermediate',
-    students_count: 95,
-    duration: '6 ساعات',
-    status: 'published',
-    created_at: '2023-01-01T00:00:00Z',
-    updated_at: '2023-01-01T00:00:00Z',
-    isFeatured: true
-  },
-  {
-    id: '4',
-    title: 'استراتيجيات التفاوض المتقدمة',
-    description: 'تقنيات وأساليب متقدمة في التفاوض لإتمام الصفقات بنجاح وتحقيق أفضل النتائج',
-    image_url: 'https://images.unsplash.com/photo-1573167507387-6b4b98cb7c13?q=80&w=2069&auto=format&fit=crop',
-    instructor: 'أمير حسن',
-    price: 899,
-    currency: 'EGP',
-    category: 'مبيعات',
-    level: 'advanced',
-    students_count: 63,
-    duration: '7 ساعات',
-    status: 'published',
-    created_at: '2023-01-01T00:00:00Z',
-    updated_at: '2023-01-01T00:00:00Z',
-    isHot: true
-  }
-];
 
 export default CoursesSection;

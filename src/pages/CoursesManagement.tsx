@@ -34,6 +34,7 @@ const CoursesManagement = () => {
             </>
           } />
           <Route path="/:id" element={<CourseEdit />} />
+          <Route path="/create" element={<CourseEdit />} />
         </Routes>
       </div>
     </div>
