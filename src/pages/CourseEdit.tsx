@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -86,6 +85,17 @@ interface LessonForm {
   duration: string;
 }
 
+interface LessonData {
+  title: string;
+  description: string;
+  order_number: number;
+  is_free: boolean;
+  video_url: string;
+  video_file_name: string;
+  duration: string;
+  course_id: string;
+}
+
 const CourseEdit = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -97,7 +107,6 @@ const CourseEdit = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // Course Form State
   const [courseForm, setCourseForm] = useState<CourseForm>({
     title: '',
     description: '',
@@ -111,7 +120,6 @@ const CourseEdit = () => {
     status: 'draft',
   });
 
-  // Lesson Form State
   const [lessonForm, setLessonForm] = useState<LessonForm>({
     title: '',
     description: '',
@@ -128,7 +136,6 @@ const CourseEdit = () => {
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
 
-  // Fetch course details if editing an existing course
   const { data: course, isLoading: isCourseLoading } = useQuery({
     queryKey: ['course', id],
     queryFn: async () => {
@@ -146,7 +153,6 @@ const CourseEdit = () => {
     enabled: !!id && id !== 'create'
   });
 
-  // Fetch lessons for this course
   const { data: lessons, isLoading: isLessonsLoading } = useQuery({
     queryKey: ['lessons', id],
     queryFn: async () => {
@@ -164,7 +170,6 @@ const CourseEdit = () => {
     enabled: !!id && id !== 'create'
   });
 
-  // Set form data when course is loaded
   useEffect(() => {
     if (course) {
       setCourseForm({
@@ -186,7 +191,6 @@ const CourseEdit = () => {
     }
   }, [course]);
 
-  // Reset lesson form 
   const resetLessonForm = (orderNumber?: number) => {
     setLessonForm({
       title: '',
@@ -200,11 +204,9 @@ const CourseEdit = () => {
     setVideoPreviewUrl(null);
   };
 
-  // Course mutations
   const saveCourse = useMutation({
     mutationFn: async (courseData: CourseForm) => {
       if (id && id !== 'create') {
-        // Update existing course
         const { data, error } = await supabase
           .from('courses')
           .update(courseData)
@@ -213,7 +215,6 @@ const CourseEdit = () => {
         if (error) throw error;
         return { ...data, id };
       } else {
-        // Create new course
         const { data, error } = await supabase
           .from('courses')
           .insert([courseData])
@@ -238,15 +239,9 @@ const CourseEdit = () => {
     }
   });
 
-  // Lesson mutations - Fix for the type error in the saveLesson mutation
-  interface LessonData extends LessonForm {
-    course_id: string;
-  }
-
   const saveLesson = useMutation({
     mutationFn: async (lessonData: LessonData) => {
       if (selectedLessonId) {
-        // Update existing lesson
         const { data, error } = await supabase
           .from('lessons')
           .update(lessonData)
@@ -255,7 +250,6 @@ const CourseEdit = () => {
         if (error) throw error;
         return data;
       } else {
-        // Create new lesson
         const { data, error } = await supabase
           .from('lessons')
           .insert([lessonData])
@@ -299,14 +293,12 @@ const CourseEdit = () => {
     }
   });
 
-  // Handle form changes
   const handleCourseInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     const newCourseForm = { ...courseForm };
     if (name === 'price') {
       newCourseForm.price = parseFloat(value);
     } else {
-      // Using type assertion to avoid type errors with dynamic property access
       (newCourseForm as any)[name] = value;
     }
     setCourseForm(newCourseForm);
@@ -318,13 +310,11 @@ const CourseEdit = () => {
     if (name === 'order_number') {
       newLessonForm.order_number = parseInt(value);
     } else {
-      // Using type assertion to avoid type errors with dynamic property access
       (newLessonForm as any)[name] = value;
     }
     setLessonForm(newLessonForm);
   };
 
-  // Handle form submissions
   const handleSaveCourse = (e: React.FormEvent) => {
     e.preventDefault();
     saveCourse.mutate(courseForm);
@@ -334,7 +324,6 @@ const CourseEdit = () => {
     e.preventDefault();
     if (!id) return;
     
-    // Fix for the spread type error - explicitly construct the object
     const lessonData: LessonData = {
       title: lessonForm.title,
       description: lessonForm.description,
@@ -349,7 +338,6 @@ const CourseEdit = () => {
     saveLesson.mutate(lessonData);
   };
 
-  // Handle edit lesson
   const handleEditLesson = (lesson: any) => {
     setSelectedLessonId(lesson.id);
     setLessonForm({
@@ -371,13 +359,11 @@ const CourseEdit = () => {
     setIsEditLessonOpen(true);
   };
 
-  // Handle delete lesson
   const handleDeleteLesson = (lessonId: string) => {
     setSelectedLessonId(lessonId);
     setIsDeleteLessonOpen(true);
   };
 
-  // File upload for course image
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -390,17 +376,14 @@ const CourseEdit = () => {
     setUploadProgress(0);
     
     try {
-      // Create preview URL
       const objectUrl = URL.createObjectURL(file);
       setPreviewUrl(objectUrl);
       
-      // Upload file
       const uploadOptions = {
         cacheControl: '3600',
         upsert: true
       };
       
-      // Track progress manually
       const xhr = new XMLHttpRequest();
       xhr.upload.addEventListener('progress', (event) => {
         if (event.lengthComputable) {
@@ -409,19 +392,16 @@ const CourseEdit = () => {
         }
       });
       
-      // Use Supabase upload
       const { data, error } = await supabase.storage
         .from('course_images')
         .upload(filePath, file, uploadOptions);
 
       if (error) throw error;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('course_images')
         .getPublicUrl(filePath);
 
-      // Update form - Avoid spread operator to fix TypeScript error
       const newCourseForm = { ...courseForm };
       newCourseForm.image_url = publicUrl;
       setCourseForm(newCourseForm);
@@ -440,7 +420,6 @@ const CourseEdit = () => {
     }
   };
 
-  // File upload for lesson video
   const handleVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -453,17 +432,14 @@ const CourseEdit = () => {
     setUploadProgress(0);
     
     try {
-      // Create preview URL
       const objectUrl = URL.createObjectURL(file);
       setVideoPreviewUrl(objectUrl);
       
-      // Upload file
       const uploadOptions = {
         cacheControl: '3600',
         upsert: true
       };
       
-      // Track progress manually using XHR
       const xhr = new XMLHttpRequest();
       xhr.upload.addEventListener('progress', (event) => {
         if (event.lengthComputable) {
@@ -472,19 +448,16 @@ const CourseEdit = () => {
         }
       });
       
-      // Use Supabase upload
       const { data, error } = await supabase.storage
         .from('course_videos')
         .upload(filePath, file, uploadOptions);
 
       if (error) throw error;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('course_videos')
         .getPublicUrl(filePath);
 
-      // Update form - Avoid spread operator to fix TypeScript error
       const newLessonForm = { ...lessonForm };
       newLessonForm.video_url = publicUrl;
       newLessonForm.video_file_name = fileName;
@@ -577,7 +550,6 @@ const CourseEdit = () => {
           </TabsTrigger>
         </TabsList>
         
-        {/* تفاصيل الدورة */}
         <TabsContent value="details">
           <Card>
             <CardHeader>
@@ -787,7 +759,6 @@ const CourseEdit = () => {
           </Card>
         </TabsContent>
         
-        {/* دروس الدورة */}
         <TabsContent value="lessons">
           <Card>
             <CardHeader>
@@ -1045,7 +1016,6 @@ const CourseEdit = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Edit Lesson Dialog */}
       <Dialog open={isEditLessonOpen} onOpenChange={setIsEditLessonOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -1197,7 +1167,6 @@ const CourseEdit = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Lesson Dialog */}
       <Dialog open={isDeleteLessonOpen} onOpenChange={setIsDeleteLessonOpen}>
         <DialogContent>
           <DialogHeader>
