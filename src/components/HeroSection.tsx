@@ -1,55 +1,25 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from 'lucide-react';
-import { supabase } from "@/integrations/supabase/client";
-
-interface ContentData {
-  [key: string]: string;
-}
+import { useContent } from "@/hooks/use-content";
 
 const HeroSection = () => {
-  const [content, setContent] = useState<ContentData>({
+  const { content, loading } = useContent('hero');
+
+  // Default content that will be shown while loading
+  const defaultContent = {
     title: 'تعلم مهارات البيزنس الاحترافية',
     subtitle: 'منصة تعليمية متخصصة في مجال الأعمال التجارية وريادة الأعمال',
     button_text: 'تصفح الدورات'
-  });
-  const [loading, setLoading] = useState(true);
+  };
 
-  useEffect(() => {
-    const fetchContent = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('website_content')
-          .select('key, content')
-          .eq('section', 'hero');
-        
-        if (error) {
-          throw error;
-        }
-
-        if (data && data.length) {
-          const contentObj: ContentData = {};
-          data.forEach(item => {
-            contentObj[item.key] = item.content;
-          });
-          
-          // Only update state with values that exist in the database
-          setContent(prevContent => ({
-            ...prevContent,
-            ...contentObj
-          }));
-        }
-      } catch (error) {
-        console.error('Error fetching hero content:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchContent();
-  }, []);
+  // Merge default content with loaded content
+  const heroContent = {
+    ...defaultContent,
+    ...content
+  };
 
   return (
     <section className="py-16 md:py-24 lg:py-32 bg-gradient-to-b from-secondary-light to-white">
@@ -57,15 +27,15 @@ const HeroSection = () => {
         {/* Text Content */}
         <div className="md:w-1/2 text-right">
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary leading-tight mb-4">
-            {content.title}
+            {heroContent.title}
           </h1>
           <p className="text-lg text-gray-700 mb-8">
-            {content.subtitle}
+            {heroContent.subtitle}
           </p>
           <div className="flex flex-wrap gap-4">
             <Link to="/courses">
               <Button size="lg" className="bg-primary hover:bg-primary-dark text-white">
-                {content.button_text}
+                {heroContent.button_text}
                 <ArrowLeft className="mr-2 h-5 w-5" />
               </Button>
             </Link>

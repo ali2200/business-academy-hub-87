@@ -2,15 +2,17 @@
 import { useState, useEffect } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 
-interface ContentItem {
+export interface ContentItem {
   id: string;
   section: string;
   key: string;
   content_type: string;
   content: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
-interface ContentData {
+export interface ContentData {
   [key: string]: string;
 }
 
@@ -25,7 +27,7 @@ export function useContent(section: string) {
         setLoading(true);
         const { data, error } = await supabase
           .from('website_content')
-          .select('id, section, key, content_type, content')
+          .select('*')
           .eq('section', section);
         
         if (error) {

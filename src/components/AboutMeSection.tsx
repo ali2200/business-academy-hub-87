@@ -1,11 +1,7 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Book, Award, School } from 'lucide-react';
-import { supabase } from "@/integrations/supabase/client";
-
-interface ContentData {
-  [key: string]: string;
-}
+import { useContent } from "@/hooks/use-content";
 
 interface FeatureItem {
   id: number;
@@ -15,12 +11,22 @@ interface FeatureItem {
 }
 
 const AboutMeSection = () => {
-  const [content, setContent] = useState<ContentData>({
+  const { content, loading } = useContent('about');
+  
+  // Default content
+  const defaultContent = {
     title: 'تعرف على بيزنس أكاديمي',
     description: 'أنا أحمد، خبير في مجال البيزنس والمبيعات مع خبرة تمتد لأكثر من 10 سنوات في السوق المصري. أسست بيزنس أكاديمي لمساعدة رواد الأعمال والمهنيين المصريين على تطوير مهاراتهم وتحقيق النجاح في عالم الأعمال.',
     video_url: 'https://static.videezy.com/system/resources/previews/000/005/529/original/Reaviling_Sjusj%C3%B8en_Ski_Senter.mp4'
-  });
-  const [features, setFeatures] = useState<FeatureItem[]>([
+  };
+
+  // Merge default content with loaded content
+  const aboutContent = {
+    ...defaultContent,
+    ...content
+  };
+
+  const [features] = useState<FeatureItem[]>([
     {
       id: 1,
       title: "دورات تدريبية احترافية",
@@ -40,41 +46,6 @@ const AboutMeSection = () => {
       icon: "award"
     }
   ]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchContent = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('website_content')
-          .select('key, content')
-          .eq('section', 'about');
-        
-        if (error) {
-          throw error;
-        }
-
-        if (data && data.length) {
-          const contentObj: ContentData = {};
-          data.forEach(item => {
-            contentObj[item.key] = item.content;
-          });
-          
-          // Only update state with values that exist in the database
-          setContent(prevContent => ({
-            ...prevContent,
-            ...contentObj
-          }));
-        }
-      } catch (error) {
-        console.error('Error fetching about content:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchContent();
-  }, []);
 
   const renderIcon = (iconName: string) => {
     switch (iconName) {
@@ -100,18 +71,18 @@ const AboutMeSection = () => {
               controls
               poster="https://images.unsplash.com/photo-1521791136064-7986c2920216?q=80&w=2069&auto=format&fit=crop"
             >
-              <source src={content.video_url} type="video/mp4" />
+              <source src={aboutContent.video_url} type="video/mp4" />
               عذراً، متصفحك لا يدعم تشغيل الفيديو
             </video>
           </div>
           
           {/* Content below the video */}
           <h2 className="text-3xl font-bold text-center text-primary mb-8">
-            {content.title}
+            {aboutContent.title}
           </h2>
           
           <p className="text-lg text-gray-700 mb-12 text-center">
-            {content.description}
+            {aboutContent.description}
           </p>
 
           {/* Features */}
