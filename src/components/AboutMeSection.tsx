@@ -61,10 +61,20 @@ const AboutMeSection = () => {
   };
 
   return (
-    <section className="py-16 md:py-24 bg-white">
+    <section className="py-10 md:py-16 bg-white">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto">
-          {/* Video at the top */}
+          <div className="text-center mb-8">
+            <h2 className="text-3xl font-bold text-primary mb-4">
+              {aboutContent.title}
+            </h2>
+            
+            <p className="text-lg text-gray-700 mb-6">
+              {aboutContent.description}
+            </p>
+          </div>
+
+          {/* Video */}
           <div className="mb-10 rounded-xl overflow-hidden shadow-xl">
             <video 
               className="w-full aspect-video object-cover"
@@ -75,15 +85,6 @@ const AboutMeSection = () => {
               عذراً، متصفحك لا يدعم تشغيل الفيديو
             </video>
           </div>
-          
-          {/* Content below the video */}
-          <h2 className="text-3xl font-bold text-center text-primary mb-8">
-            {aboutContent.title}
-          </h2>
-          
-          <p className="text-lg text-gray-700 mb-12 text-center">
-            {aboutContent.description}
-          </p>
 
           {/* Features */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
