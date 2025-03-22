@@ -12,6 +12,13 @@ import {
   NavigationMenuList,
   NavigationMenuTrigger,
 } from "@/components/ui/navigation-menu";
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetClose, 
+  SheetTrigger 
+} from "@/components/ui/sheet";
+import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -63,40 +70,6 @@ const Navbar = () => {
     setIsAuthenticated(false);
     navigate('/');
   };
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (isMobileMenuOpen && !target.closest('.mobile-menu-container') && !target.closest('.mobile-menu-button')) {
-        setIsMobileMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isMobileMenuOpen]);
-
-  useEffect(() => {
-    const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsMobileMenuOpen(false);
-      }
-    };
-
-    window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
-  }, []);
-
-  useEffect(() => {
-    if (isMobileMenuOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
-    return () => {
-      document.body.style.overflow = '';
-    };
-  }, [isMobileMenuOpen]);
 
   return (
     <header 
@@ -158,27 +131,53 @@ const Navbar = () => {
         </div>
 
         {/* Mobile Menu Button */}
-        <div className="flex md:hidden items-center mobile-menu-button">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="text-white hover:bg-white/20"
-            aria-label={isMobileMenuOpen ? "إغلاق القائمة" : "فتح القائمة"}
-          >
-            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </Button>
-        </div>
-      </div>
-
-      {/* Mobile Menu */}
-      <div 
-        className={`md:hidden fixed inset-0 bg-primary/80 backdrop-blur-md z-50 transition-transform duration-300 ease-in-out mobile-menu-container overflow-y-auto pt-20 ${
-          isMobileMenuOpen ? 'translate-y-0' : '-translate-y-full'
-        }`}
-      >
-        <div className="container mx-auto px-4 py-4 flex flex-col space-y-6">
-          <NavLinks isActive={isActive} onClick={() => setIsMobileMenuOpen(false)} isMobile />
+        <div className="flex md:hidden items-center">
+          <Sheet>
+            <SheetTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="text-white hover:bg-white/20"
+                aria-label="فتح القائمة"
+              >
+                <Menu size={24} />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-full max-w-xs p-0 bg-primary/95 backdrop-blur-xl border-none">
+              <div className="flex flex-col h-full">
+                <div className="p-4 border-b border-white/10">
+                  <div className="flex justify-between items-center">
+                    <img src="/lovable-uploads/4307c383-57c5-4d42-abdc-1344087ec7a6.png" alt="عـــلى بتاع الـبيزنس" className="h-10" />
+                    <SheetClose asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="text-white hover:bg-white/20"
+                      >
+                        <X size={24} />
+                      </Button>
+                    </SheetClose>
+                  </div>
+                </div>
+                
+                <div className="flex-1 overflow-auto p-4">
+                  <MobileNavLinks isActive={isActive} />
+                </div>
+                
+                <div className="p-4 border-t border-white/10">
+                  <Link 
+                    to="https://wa.me/201000820752" 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 text-white font-hacen py-3 w-full border border-white/30 bg-white/10 rounded-md hover:bg-primary/20 hover:border-primary/40 transition-all"
+                  >
+                    <MessageSquare size={18} strokeWidth={1.5} className="fill-primary" />
+                    <span>تواصل معنا على واتساب</span>
+                  </Link>
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
       </div>
     </header>
@@ -188,10 +187,39 @@ const Navbar = () => {
 type NavLinksProps = {
   isActive: (path: string) => boolean;
   onClick?: () => void;
-  isMobile?: boolean;
 };
 
-const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
+const NavLinks = ({ isActive, onClick }: NavLinksProps) => {
+  const links = [
+    { path: '/', label: 'الرئيسية' },
+    { path: '/courses', label: 'الدورات' },
+    { path: '/books', label: 'الكتب' },
+    { path: '/articles', label: 'المقالات' },
+    { path: '/contact', label: 'اتصل بنا' },
+  ];
+
+  return (
+    <>
+      {links.map((link) => (
+        <NavigationMenuItem key={link.path}>
+          <Link
+            to={link.path}
+            className={`${
+              isActive(link.path) 
+                ? 'text-primary bg-white/90 font-bold' 
+                : 'text-primary hover:text-primary/80 hover:bg-white/20'
+            } font-hacen px-4 py-2 transition-all duration-300 text-base rounded-md`}
+            onClick={onClick}
+          >
+            {link.label}
+          </Link>
+        </NavigationMenuItem>
+      ))}
+    </>
+  );
+};
+
+const MobileNavLinks = ({ isActive }: NavLinksProps) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   
   useEffect(() => {
@@ -217,99 +245,73 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
   ];
 
   return (
-    <>
-      <div className={`${isMobile ? 'flex flex-col space-y-5 w-full' : 'flex flex-row space-x-6 rtl:space-x-reverse items-center'}`}>
-        {links.map((link, index) => (
-          isMobile ? (
+    <div className="flex flex-col space-y-4">
+      {/* Main Navigation Links */}
+      <div className="space-y-2">
+        {links.map((link) => (
+          <SheetClose asChild key={link.path}>
             <Link
-              key={link.path}
               to={link.path}
               className={`${
                 isActive(link.path) 
-                  ? 'text-primary font-bold bg-white/90 rounded-md' 
-                  : 'text-white hover:text-primary hover:bg-white/20 rounded-md'
-              } text-xl py-3 block w-full text-center border-b border-white/20 font-hacen transition-all duration-300 animate-fade-in`}
-              style={{ animationDelay: `${index * 0.1}s` }}
-              onClick={onClick}
+                  ? 'bg-white text-primary font-bold' 
+                  : 'text-white hover:bg-white/10'
+              } block w-full text-right py-3 px-4 rounded-lg font-hacen text-lg transition-all`}
             >
               {link.label}
             </Link>
-          ) : (
-            <NavigationMenuItem key={link.path}>
-              <Link
-                to={link.path}
-                className={`${
-                  isActive(link.path) 
-                    ? 'text-primary bg-white/90 font-bold' 
-                    : 'text-primary hover:text-primary/80 hover:bg-white/20'
-                } font-hacen px-4 py-2 transition-all duration-300 text-base rounded-md`}
-                onClick={onClick}
-              >
-                {link.label}
-              </Link>
-            </NavigationMenuItem>
-          )
+          </SheetClose>
         ))}
       </div>
-
-      {isMobile && (
-        <div className="flex flex-col mt-6 space-y-4">
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            className="mx-auto text-white hover:bg-white/20 hover:text-primary"
-            aria-label="سلة التسوق"
-          >
-            <ShoppingCart size={20} />
-          </Button>
-          
-          {isAuthenticated ? (
-            <Link 
-              to="/dashboard" 
-              className="w-full"
-              onClick={onClick}
-            >
-              <Button variant="outline" className="flex items-center w-full justify-center gap-2 text-white border-white/50 bg-white/10 hover:bg-primary hover:text-white hover:border-primary">
+      
+      <div className="border-t border-white/10 pt-4 mt-4">
+        {/* Account Actions */}
+        {isAuthenticated ? (
+          <SheetClose asChild>
+            <Link to="/dashboard" className="block w-full">
+              <Button 
+                variant="outline" 
+                className="w-full flex items-center justify-center gap-2 text-white border-white/50 bg-white/10 hover:bg-white hover:text-primary"
+              >
                 <User size={18} />
                 <span className="font-hacen">حسابي</span>
               </Button>
             </Link>
-          ) : (
-            <div className="flex overflow-hidden rounded-full shadow-md w-full">
-              <Link 
-                to="/signin" 
-                className="w-1/2 group"
-                onClick={onClick}
-              >
-                <div className="bg-primary hover:bg-white text-white hover:text-primary transition-all duration-300 py-2 text-center rounded-r-full font-hacen flex items-center justify-center">
-                  <span className="group-hover:font-semibold">تسجيل الدخول</span>
-                </div>
+          </SheetClose>
+        ) : (
+          <div className="flex flex-col space-y-2">
+            <SheetClose asChild>
+              <Link to="/signin" className="block w-full">
+                <Button 
+                  className="w-full bg-white text-primary hover:bg-white/90"
+                >
+                  <span className="font-hacen">تسجيل الدخول</span>
+                </Button>
               </Link>
-              <Link 
-                to="/signup" 
-                className="w-1/2 group"
-                onClick={onClick}
-              >
-                <div className="bg-white hover:bg-primary text-primary hover:text-white transition-all duration-300 py-2 text-center rounded-l-full font-hacen flex items-center justify-center">
-                  <span className="group-hover:font-semibold">إنشاء حساب</span>
-                </div>
+            </SheetClose>
+            
+            <SheetClose asChild>
+              <Link to="/signup" className="block w-full">
+                <Button 
+                  variant="outline" 
+                  className="w-full text-white border-white hover:bg-white hover:text-primary"
+                >
+                  <span className="font-hacen">إنشاء حساب</span>
+                </Button>
               </Link>
-            </div>
-          )}
-          
-          <Link 
-            to="https://wa.me/201000820752" 
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 text-white font-hacen py-3 w-full border border-white/30 bg-white/10 rounded-md mt-4 hover:bg-primary/20 hover:border-primary/40 transition-all"
-            onClick={onClick}
-          >
-            <MessageSquare size={18} strokeWidth={1.5} className="fill-primary" />
-            <span>تواصل معنا على واتساب</span>
+            </SheetClose>
+          </div>
+        )}
+        
+        {/* Shopping Cart */}
+        <SheetClose asChild>
+          <Link to="/cart" className="flex items-center gap-2 text-white p-4 mt-4 hover:bg-white/10 rounded-lg transition-all">
+            <ShoppingCart size={20} />
+            <span className="font-hacen">سلة التسوق</span>
           </Link>
-        </div>
-      )}
-    </>
+        </SheetClose>
+      </div>
+    </div>
   );
 };
 
