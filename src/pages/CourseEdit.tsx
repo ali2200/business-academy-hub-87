@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
@@ -62,6 +61,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { CalendarIcon, Check, ChevronsUpDown, Copy, Edit, Eye, File, FileText, Loader2, Plus, RefreshCw, Trash2, Upload, Video } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -93,7 +98,11 @@ interface LessonData {
   order_number: number;
 }
 
-const CourseEdit = () => {
+interface CourseEditProps {
+  defaultTab?: string;
+}
+
+const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
   const { id: courseId } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [lessons, setLessons] = useState<any[]>([]);
@@ -103,6 +112,7 @@ const CourseEdit = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedLessonId, setSelectedLessonId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const [lessonData, setLessonData] = useState<LessonData>({
     title: '',
     description: '',
@@ -142,7 +152,6 @@ const CourseEdit = () => {
     try {
       setLoading(true);
       
-      // Fetch real data from Supabase
       const { data, error } = await supabase
         .from('lessons')
         .select('*')
@@ -183,7 +192,6 @@ const CourseEdit = () => {
         return;
       }
 
-      // Generate public URL for the uploaded file
       const { data: { publicUrl } } = supabase.storage
         .from('course-videos')
         .getPublicUrl(filePath);
@@ -209,7 +217,6 @@ const CourseEdit = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     
-    // Handle checkbox separately
     if (e.target instanceof HTMLInputElement && e.target.type === 'checkbox') {
       setLessonData({
         ...lessonData,
@@ -303,7 +310,6 @@ const CourseEdit = () => {
     if (!selectedLessonId) return;
     
     try {
-      // Delete lesson from database
       const { error } = await supabase
         .from('lessons')
         .delete()
@@ -368,105 +374,132 @@ const CourseEdit = () => {
           </div>
         </header>
 
-        <Card>
-          <CardContent className="p-6">
-            <div className="mb-6">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-                الدروس والمحاضرات
-              </h2>
-              <div className="flex justify-between items-center">
-                <p className="text-gray-500">
-                  إضافة وتعديل الدروس والمحاضرات الخاصة بالدورة
-                </p>
-                <Button
-                  onClick={() => setIsAddDialogOpen(true)}
-                  className="flex items-center gap-2"
-                >
-                  <Plus className="h-4 w-4" />
-                  إضافة درس جديد
-                </Button>
-              </div>
-            </div>
+        <Tabs defaultValue={activeTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="details">تفاصيل الدورة</TabsTrigger>
+            <TabsTrigger value="lessons">الدروس والمحاضرات</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="details">
+            <Card>
+              <CardContent className="p-6">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+                    تفاصيل الدورة
+                  </h2>
+                  <p className="text-gray-500">
+                    يمكنك تعديل تفاصيل الدورة من هنا
+                  </p>
+                </div>
+                
+                <div className="text-center py-8 text-gray-500">
+                  سيتم إضافة نموذج تعديل تفاصيل الدورة هنا
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="lessons">
+            <Card>
+              <CardContent className="p-6">
+                <div className="mb-6">
+                  <h2 className="text-2xl font-semibold text-gray-800 mb-4">
+                    الدروس والمحاضرات
+                  </h2>
+                  <div className="flex justify-between items-center">
+                    <p className="text-gray-500">
+                      إضافة وتعديل الدروس والمحاضرات الخاصة بالدورة
+                    </p>
+                    <Button
+                      onClick={() => setIsAddDialogOpen(true)}
+                      className="flex items-center gap-2"
+                    >
+                      <Plus className="h-4 w-4" />
+                      إضافة درس جديد
+                    </Button>
+                  </div>
+                </div>
 
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>عنوان الدرس</TableHead>
-                    <TableHead>المدة</TableHead>
-                    <TableHead>مجاني؟</TableHead>
-                    <TableHead>الترتيب</TableHead>
-                    <TableHead className="text-left">الإجراءات</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8">
-                        جاري التحميل...
-                      </TableCell>
-                    </TableRow>
-                  ) : lessons.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8">
-                        لا توجد دروس متاحة
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    lessons.map(lesson => (
-                      <TableRow key={lesson.id}>
-                        <TableCell>
-                          <div className="flex items-center gap-3">
-                            <div>
-                              <p className="font-medium">{lesson.title}</p>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{lesson.duration}</TableCell>
-                        <TableCell>
-                          {lesson.is_free ? 'نعم' : 'لا'}
-                        </TableCell>
-                        <TableCell>{lesson.order_number}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="عرض"
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="تعديل"
-                              onClick={() => editLesson(lesson)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="حذف"
-                              onClick={() => {
-                                setSelectedLessonId(lesson.id);
-                                setIsDeleteDialogOpen(true);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
-                          </div>
-                        </TableCell>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>عنوان الدرس</TableHead>
+                        <TableHead>المدة</TableHead>
+                        <TableHead>مجاني؟</TableHead>
+                        <TableHead>الترتيب</TableHead>
+                        <TableHead className="text-left">الإجراءات</TableHead>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {loading ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-8">
+                            جاري التحميل...
+                          </TableCell>
+                        </TableRow>
+                      ) : lessons.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-8">
+                            لا توجد دروس متاحة
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        lessons.map(lesson => (
+                          <TableRow key={lesson.id}>
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <div>
+                                  <p className="font-medium">{lesson.title}</p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>{lesson.duration}</TableCell>
+                            <TableCell>
+                              {lesson.is_free ? 'نعم' : 'لا'}
+                            </TableCell>
+                            <TableCell>{lesson.order_number}</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title="عرض"
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title="تعديل"
+                                  onClick={() => editLesson(lesson)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title="حذف"
+                                  onClick={() => {
+                                    setSelectedLessonId(lesson.id);
+                                    setIsDeleteDialogOpen(true);
+                                  }}
+                                >
+                                  <Trash2 className="h-4 w-4 text-red-500" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
 
-        {/* Dialog for adding a lesson */}
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
@@ -586,7 +619,6 @@ const CourseEdit = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Dialog for editing a lesson */}
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="sm:max-w-[600px]">
             <DialogHeader>
@@ -706,7 +738,6 @@ const CourseEdit = () => {
           </DialogContent>
         </Dialog>
 
-        {/* Dialog for deleting a lesson */}
         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
           <DialogContent className="sm:max-w-[400px]">
             <DialogHeader>
