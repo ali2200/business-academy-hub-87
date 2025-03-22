@@ -264,9 +264,21 @@ const CourseEdit = () => {
         if (error) throw error;
         return data;
       } else {
+        // Create a new object with all properties explicitly
+        const dataToInsert = {
+          title: lessonData.title,
+          description: lessonData.description,
+          order_number: lessonData.order_number,
+          is_free: lessonData.is_free,
+          video_url: lessonData.video_url,
+          video_file_name: lessonData.video_file_name,
+          duration: lessonData.duration,
+          course_id: lessonData.course_id
+        };
+        
         const { data, error } = await supabase
           .from('lessons')
-          .insert([lessonData])
+          .insert([dataToInsert])
           .select();
         
         if (error) throw error;
