@@ -306,7 +306,7 @@ const ContentManagement = () => {
 
               <div>
                 <label className="text-sm font-medium">المحتوى</label>
-                {editingItem.content_type === 'text' ? (
+                {editingItem.content_type === "text" ? (
                   <Textarea
                     value={editingItem.content}
                     onChange={(e) => setEditingItem({
@@ -324,7 +324,7 @@ const ContentManagement = () => {
                       content: e.target.value
                     })}
                     className="mt-1"
-                    dir={editingItem.content_type !== 'text' ? 'ltr' : 'rtl'}
+                    dir={editingItem.content_type === "text" ? 'rtl' : 'ltr'}
                   />
                 )}
               </div>
@@ -414,7 +414,7 @@ const ContentManagement = () => {
 
               <div>
                 <label className="text-sm font-medium">المحتوى</label>
-                {newItem.content_type === 'text' ? (
+                {newItem.content_type === "text" ? (
                   <Textarea
                     value={newItem.content}
                     onChange={(e) => setNewItem({
@@ -432,7 +432,7 @@ const ContentManagement = () => {
                       content: e.target.value
                     })}
                     className="mt-1"
-                    dir={newItem.content_type !== 'text' ? 'ltr' : 'rtl'}
+                    dir={newItem.content_type === "text" ? 'rtl' : 'ltr'}
                     placeholder={
                       newItem.content_type === 'image' ? 'رابط الصورة' :
                       newItem.content_type === 'video' ? 'رابط الفيديو' :
