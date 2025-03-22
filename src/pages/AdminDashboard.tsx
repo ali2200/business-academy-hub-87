@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -15,7 +15,8 @@ import {
   Edit,
   Trash2,
   Eye,
-  ArrowUpRight
+  ArrowUpRight,
+  PenTool
 } from 'lucide-react';
 import { toast } from "sonner";
 
@@ -348,6 +349,15 @@ const AdminDashboard = () => {
                 active={activeTab === 'funnels'} 
                 onClick={() => {
                   setActiveTab('funnels');
+                  isMobile && setSidebarOpen(false);
+                }} 
+              />
+              <AdminNavItem 
+                icon={PenTool} 
+                label="إدارة المحتوى" 
+                active={false} 
+                onClick={() => {
+                  navigate('/content-management');
                   isMobile && setSidebarOpen(false);
                 }} 
               />

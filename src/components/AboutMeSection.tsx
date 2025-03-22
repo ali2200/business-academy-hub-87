@@ -1,86 +1,130 @@
 
-import React from 'react';
-import { GraduationCap, BookOpen, Award } from 'lucide-react';
-import { Button } from "@/components/ui/button";
+import React, { useState, useEffect } from 'react';
+import { Book, Award, School } from 'lucide-react';
+import { supabase } from "@/integrations/supabase/client";
+
+interface ContentData {
+  [key: string]: string;
+}
+
+interface FeatureItem {
+  id: number;
+  title: string;
+  description: string;
+  icon: string;
+}
 
 const AboutMeSection = () => {
+  const [content, setContent] = useState<ContentData>({
+    title: 'تعرف على بيزنس أكاديمي',
+    description: 'أنا أحمد، خبير في مجال البيزنس والمبيعات مع خبرة تمتد لأكثر من 10 سنوات في السوق المصري. أسست بيزنس أكاديمي لمساعدة رواد الأعمال والمهنيين المصريين على تطوير مهاراتهم وتحقيق النجاح في عالم الأعمال.',
+    video_url: 'https://static.videezy.com/system/resources/previews/000/005/529/original/Reaviling_Sjusj%C3%B8en_Ski_Senter.mp4'
+  });
+  const [features, setFeatures] = useState<FeatureItem[]>([
+    {
+      id: 1,
+      title: "دورات تدريبية احترافية",
+      description: "دورات متخصصة في مجالات البيع والتسويق وإدارة الأعمال مقدمة باللهجة المصرية لتناسب احتياجات السوق المحلي.",
+      icon: "graduation-cap"
+    },
+    {
+      id: 2,
+      title: "كتب ومراجع تعليمية",
+      description: "مجموعة من الكتب الإلكترونية المتخصصة التي تشرح أساسيات ومفاهيم البيزنس بطريقة سهلة وعملية.",
+      icon: "book-open"
+    },
+    {
+      id: 3,
+      title: "خبرة عملية حقيقية",
+      description: "محتوى مبني على تجارب حقيقية وخبرات عملية في السوق المصري، وليس مجرد نظريات.",
+      icon: "award"
+    }
+  ]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchContent = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('website_content')
+          .select('key, content')
+          .eq('section', 'about');
+        
+        if (error) {
+          throw error;
+        }
+
+        if (data && data.length) {
+          const contentObj: ContentData = {};
+          data.forEach(item => {
+            contentObj[item.key] = item.content;
+          });
+          
+          // Only update state with values that exist in the database
+          setContent(prevContent => ({
+            ...prevContent,
+            ...contentObj
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching about content:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchContent();
+  }, []);
+
+  const renderIcon = (iconName: string) => {
+    switch (iconName) {
+      case 'graduation-cap':
+        return <School className="w-6 h-6 text-primary" />;
+      case 'book-open':
+        return <Book className="w-6 h-6 text-primary" />;
+      case 'award':
+        return <Award className="w-6 h-6 text-primary" />;
+      default:
+        return <School className="w-6 h-6 text-primary" />;
+    }
+  };
+
   return (
-    <section className="section-padding py-24 bg-gradient-to-b from-white to-gray-50">
-      <div className="container mx-auto">
-        <div className="flex flex-col items-center">
-          {/* Title */}
-          <h2 className="text-4xl font-bold mb-12 text-center">
-            <span className="text-primary">تعرف على </span>
-            <span className="text-secondary">بيزنس أكاديمي</span>
-          </h2>
-
-          {/* Video Section - Now at the top */}
-          <div className="w-full max-w-5xl mx-auto mb-16 relative">
-            <div className="absolute -top-10 -left-10 w-64 h-64 bg-primary/5 rounded-full blur-3xl"></div>
-            <div className="relative z-10 rounded-2xl overflow-hidden border border-gray-100 shadow-xl">
-              <video 
-                className="w-full h-auto"
-                controls
-                autoPlay
-                muted
-                loop
-                poster="https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=2574&auto=format&fit=crop"
-              >
-                <source src="https://static.videezy.com/system/resources/previews/000/005/529/original/Reaviling_Sjusj%C3%B8en_Ski_Senter.mp4" type="video/mp4" />
-                عذراً، متصفحك لا يدعم تشغيل الفيديو
-              </video>
-            </div>
-            <div className="absolute bottom-4 right-4 bg-white p-6 rounded-xl shadow-lg z-20 max-w-xs">
-              <p className="text-primary font-bold text-lg mb-2">مرحبًا بك في بيزنس أكاديمي!</p>
-              <p className="text-gray-600">أنا مدرس متخصص في مجالات البيزنس والمبيعات والتسويق، وهدفي مساعدتك على النجاح في عالم الأعمال.</p>
-            </div>
+    <section className="py-16 md:py-24 bg-white">
+      <div className="container mx-auto px-4">
+        <div className="max-w-4xl mx-auto">
+          {/* Video at the top */}
+          <div className="mb-10 rounded-xl overflow-hidden shadow-xl">
+            <video 
+              className="w-full aspect-video object-cover"
+              controls
+              poster="https://images.unsplash.com/photo-1521791136064-7986c2920216?q=80&w=2069&auto=format&fit=crop"
+            >
+              <source src={content.video_url} type="video/mp4" />
+              عذراً، متصفحك لا يدعم تشغيل الفيديو
+            </video>
           </div>
+          
+          {/* Content below the video */}
+          <h2 className="text-3xl font-bold text-center text-primary mb-8">
+            {content.title}
+          </h2>
+          
+          <p className="text-lg text-gray-700 mb-12 text-center">
+            {content.description}
+          </p>
 
-          {/* Content Section - Now below the video */}
-          <div className="w-full max-w-4xl mx-auto">
-            <p className="text-lg text-gray-600 mb-10 text-center">
-              أنا أحمد، خبير في مجال البيزنس والمبيعات مع خبرة تمتد لأكثر من 10 سنوات في السوق المصري. أسست بيزنس أكاديمي لمساعدة رواد الأعمال والمهنيين المصريين على تطوير مهاراتهم وتحقيق النجاح في عالم الأعمال.
-            </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-              <div className="bg-white p-8 rounded-xl shadow-md hover:shadow-lg transition-all">
-                <div className="bg-primary/10 p-4 rounded-lg inline-block mb-4">
-                  <GraduationCap className="w-8 h-8 text-primary" />
+          {/* Features */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {features.map((feature) => (
+              <div key={feature.id} className="text-center p-6 rounded-lg hover:bg-gray-50 transition-colors">
+                <div className="bg-secondary/10 w-12 h-12 mx-auto rounded-full flex items-center justify-center mb-4">
+                  {renderIcon(feature.icon)}
                 </div>
-                <h3 className="text-xl font-bold text-primary mb-3">دورات تدريبية احترافية</h3>
-                <p className="text-gray-600">
-                  دورات متخصصة في مجالات البيع والتسويق وإدارة الأعمال مقدمة باللهجة المصرية لتناسب احتياجات السوق المحلي.
-                </p>
+                <h3 className="text-xl font-bold text-primary mb-3">{feature.title}</h3>
+                <p className="text-gray-600">{feature.description}</p>
               </div>
-
-              <div className="bg-white p-8 rounded-xl shadow-md hover:shadow-lg transition-all">
-                <div className="bg-secondary/10 p-4 rounded-lg inline-block mb-4">
-                  <BookOpen className="w-8 h-8 text-secondary" />
-                </div>
-                <h3 className="text-xl font-bold text-primary mb-3">كتب ومراجع تعليمية</h3>
-                <p className="text-gray-600">
-                  مجموعة من الكتب الإلكترونية المتخصصة التي تشرح أساسيات ومفاهيم البيزنس بطريقة سهلة وعملية.
-                </p>
-              </div>
-
-              <div className="bg-white p-8 rounded-xl shadow-md hover:shadow-lg transition-all">
-                <div className="bg-green-100 p-4 rounded-lg inline-block mb-4">
-                  <Award className="w-8 h-8 text-green-600" />
-                </div>
-                <h3 className="text-xl font-bold text-primary mb-3">خبرة عملية حقيقية</h3>
-                <p className="text-gray-600">
-                  محتوى مبني على تجارب حقيقية وخبرات عملية في السوق المصري، وليس مجرد نظريات.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex justify-center">
-              <Button 
-                className="bg-primary hover:bg-primary-light text-white px-8 py-6 rounded-xl shadow-lg hover:shadow-xl transition-all"
-              >
-                اعرف المزيد عني
-              </Button>
-            </div>
+            ))}
           </div>
         </div>
       </div>
