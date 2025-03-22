@@ -234,7 +234,7 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
                 className={`${
                   isActive(link.path) 
                     ? 'text-primary bg-white/90 font-bold' 
-                    : 'text-white hover:text-primary hover:bg-white/20'
+                    : 'text-primary hover:text-primary/80 hover:bg-white/20'
                 } font-hacen px-4 py-2 transition-all duration-300 text-base rounded-md`}
                 onClick={onClick}
               >
