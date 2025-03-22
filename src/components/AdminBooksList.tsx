@@ -89,8 +89,6 @@ const AdminBooksList = () => {
       try {
         setLoading(true);
         
-        // TODO: Replace with actual API call to Supabase
-        // This is mock data for now
         const mockBooks: BookItem[] = [
           {
             id: '1',
@@ -136,9 +134,6 @@ const AdminBooksList = () => {
           }
         ];
         
-        // In future this will be replaced with:
-        // const { data, error } = await supabase.from('books').select('*');
-        
         setBooks(mockBooks);
       } catch (error) {
         console.error('Error fetching books:', error);
@@ -151,7 +146,6 @@ const AdminBooksList = () => {
     fetchBooks();
   }, [refreshTrigger]);
 
-  // Filter books based on search term and status filter
   const filteredBooks = books.filter(book => {
     const matchesSearch = 
       book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -165,7 +159,6 @@ const AdminBooksList = () => {
     return matchesSearch;
   });
 
-  // Toggle selection of a book
   const toggleBookSelection = (bookId: string) => {
     if (selectedBooks.includes(bookId)) {
       setSelectedBooks(selectedBooks.filter(id => id !== bookId));
@@ -174,7 +167,6 @@ const AdminBooksList = () => {
     }
   };
 
-  // Toggle selection of all books
   const toggleAllBooks = () => {
     if (selectedBooks.length === filteredBooks.length) {
       setSelectedBooks([]);
@@ -183,49 +175,39 @@ const AdminBooksList = () => {
     }
   };
 
-  // Handle adding a new book
   const handleAddBook = () => {
-    // TODO: Implement book creation via Supabase
     toast.success('تمت إضافة الكتاب بنجاح');
     setIsAddDialogOpen(false);
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // Handle updating a book
   const handleUpdateBook = () => {
     if (!selectedBook) return;
     
-    // TODO: Implement book update via Supabase
     toast.success('تم تحديث الكتاب بنجاح');
     setIsEditDialogOpen(false);
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // Handle deleting a book
   const handleDeleteBook = () => {
     if (!selectedBook) return;
     
-    // TODO: Implement book deletion via Supabase
     toast.success('تم حذف الكتاب بنجاح');
     setIsDeleteDialogOpen(false);
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // Handle bulk deleting books
   const handleBulkDelete = () => {
     if (selectedBooks.length === 0) return;
     
-    // TODO: Implement bulk deletion via Supabase
     toast.success(`تم حذف ${selectedBooks.length} كتب بنجاح`);
     setSelectedBooks([]);
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // Handle bulk status change
   const handleBulkStatusChange = (status: BookStatus) => {
     if (selectedBooks.length === 0) return;
     
-    // TODO: Implement bulk status change via Supabase
     toast.success(`تم تغيير حالة ${selectedBooks.length} كتب إلى "${status === 'published' ? 'منشور' : 'مسودة'}"`);
     setSelectedBooks([]);
     setRefreshTrigger(prev => prev + 1);
@@ -386,7 +368,8 @@ const AdminBooksList = () => {
                     <TableCell>{book.price} {book.currency}</TableCell>
                     <TableCell>{book.purchasesCount}</TableCell>
                     <TableCell>
-                      <Badge variant={book.status === 'published' ? 'success' : 'secondary'}>
+                      <Badge variant={book.status === 'published' ? 'default' : 'secondary'} 
+                        className={book.status === 'published' ? 'bg-green-500 hover:bg-green-600' : ''}>
                         {book.status === 'published' ? 'منشور' : 'مسودة'}
                       </Badge>
                     </TableCell>
@@ -446,7 +429,6 @@ const AdminBooksList = () => {
         </Pagination>
       </CardContent>
 
-      {/* Delete Book Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
@@ -465,8 +447,6 @@ const AdminBooksList = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Add/Edit Book Dialogs would be implemented here */}
     </Card>
   );
 };

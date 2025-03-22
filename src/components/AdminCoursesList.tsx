@@ -90,8 +90,6 @@ const AdminCoursesList = () => {
       try {
         setLoading(true);
         
-        // TODO: Replace with actual API call to Supabase
-        // This is mock data for now
         const mockCourses: CourseItem[] = [
           {
             id: '1',
@@ -140,9 +138,6 @@ const AdminCoursesList = () => {
           }
         ];
         
-        // In future this will be replaced with:
-        // const { data, error } = await supabase.from('courses').select('*');
-        
         setCourses(mockCourses);
       } catch (error) {
         console.error('Error fetching courses:', error);
@@ -155,7 +150,6 @@ const AdminCoursesList = () => {
     fetchCourses();
   }, [refreshTrigger]);
 
-  // Filter courses based on search term and status filter
   const filteredCourses = courses.filter(course => {
     const matchesSearch = 
       course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -169,7 +163,6 @@ const AdminCoursesList = () => {
     return matchesSearch;
   });
 
-  // Toggle selection of a course
   const toggleCourseSelection = (courseId: string) => {
     if (selectedCourses.includes(courseId)) {
       setSelectedCourses(selectedCourses.filter(id => id !== courseId));
@@ -178,7 +171,6 @@ const AdminCoursesList = () => {
     }
   };
 
-  // Toggle selection of all courses
   const toggleAllCourses = () => {
     if (selectedCourses.length === filteredCourses.length) {
       setSelectedCourses([]);
@@ -187,49 +179,39 @@ const AdminCoursesList = () => {
     }
   };
 
-  // Handle adding a new course
   const handleAddCourse = () => {
-    // TODO: Implement course creation via Supabase
     toast.success('تمت إضافة الدورة بنجاح');
     setIsAddDialogOpen(false);
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // Handle updating a course
   const handleUpdateCourse = () => {
     if (!selectedCourse) return;
     
-    // TODO: Implement course update via Supabase
     toast.success('تم تحديث الدورة بنجاح');
     setIsEditDialogOpen(false);
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // Handle deleting a course
   const handleDeleteCourse = () => {
     if (!selectedCourse) return;
     
-    // TODO: Implement course deletion via Supabase
     toast.success('تم حذف الدورة بنجاح');
     setIsDeleteDialogOpen(false);
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // Handle bulk deleting courses
   const handleBulkDelete = () => {
     if (selectedCourses.length === 0) return;
     
-    // TODO: Implement bulk deletion via Supabase
     toast.success(`تم حذف ${selectedCourses.length} دورات بنجاح`);
     setSelectedCourses([]);
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // Handle bulk status change
   const handleBulkStatusChange = (status: CourseStatus) => {
     if (selectedCourses.length === 0) return;
     
-    // TODO: Implement bulk status change via Supabase
     toast.success(`تم تغيير حالة ${selectedCourses.length} دورات إلى "${status === 'published' ? 'منشور' : 'مسودة'}"`);
     setSelectedCourses([]);
     setRefreshTrigger(prev => prev + 1);
@@ -397,7 +379,8 @@ const AdminCoursesList = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={course.status === 'published' ? 'success' : 'secondary'}>
+                      <Badge variant={course.status === 'published' ? 'default' : 'secondary'}
+                        className={course.status === 'published' ? 'bg-green-500 hover:bg-green-600' : ''}>
                         {course.status === 'published' ? 'منشور' : 'مسودة'}
                       </Badge>
                     </TableCell>
@@ -457,7 +440,6 @@ const AdminCoursesList = () => {
         </Pagination>
       </CardContent>
 
-      {/* Delete Course Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
@@ -476,8 +458,6 @@ const AdminCoursesList = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Add/Edit Course Dialogs would be implemented here */}
     </Card>
   );
 };

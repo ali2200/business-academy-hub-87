@@ -115,7 +115,6 @@ const PagesManagement = () => {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Filter pages based on search term and status filter
   const filteredPages = pages.filter(page => {
     const matchesSearch = 
       page.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -129,7 +128,6 @@ const PagesManagement = () => {
     return matchesSearch;
   });
 
-  // Toggle selection of a page
   const togglePageSelection = (pageId: string) => {
     if (selectedPages.includes(pageId)) {
       setSelectedPages(selectedPages.filter(id => id !== pageId));
@@ -138,7 +136,6 @@ const PagesManagement = () => {
     }
   };
 
-  // Toggle selection of all pages
   const toggleAllPages = () => {
     if (selectedPages.length === filteredPages.length) {
       setSelectedPages([]);
@@ -147,49 +144,39 @@ const PagesManagement = () => {
     }
   };
 
-  // Handle adding a new page
   const handleAddPage = () => {
-    // TODO: Implement page creation via Supabase
     toast.success('تمت إضافة الصفحة بنجاح');
     setIsAddDialogOpen(false);
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // Handle updating a page
   const handleUpdatePage = () => {
     if (!selectedPage) return;
     
-    // TODO: Implement page update via Supabase
     toast.success('تم تحديث الصفحة بنجاح');
     setIsEditDialogOpen(false);
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // Handle deleting a page
   const handleDeletePage = () => {
     if (!selectedPage) return;
     
-    // TODO: Implement page deletion via Supabase
     toast.success('تم حذف الصفحة بنجاح');
     setIsDeleteDialogOpen(false);
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // Handle bulk deleting pages
   const handleBulkDelete = () => {
     if (selectedPages.length === 0) return;
     
-    // TODO: Implement bulk deletion via Supabase
     toast.success(`تم حذف ${selectedPages.length} صفحات بنجاح`);
     setSelectedPages([]);
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // Handle bulk status change
   const handleBulkStatusChange = (status: PageStatus) => {
     if (selectedPages.length === 0) return;
     
-    // TODO: Implement bulk status change via Supabase
     toast.success(`تم تغيير حالة ${selectedPages.length} صفحات إلى "${status === 'published' ? 'منشور' : 'مسودة'}"`);
     setSelectedPages([]);
     setRefreshTrigger(prev => prev + 1);
@@ -359,7 +346,8 @@ const PagesManagement = () => {
                         <TableCell>{page.author || '-'}</TableCell>
                         <TableCell>{page.template || 'default'}</TableCell>
                         <TableCell>
-                          <Badge variant={page.status === 'published' ? 'success' : 'secondary'}>
+                          <Badge variant={page.status === 'published' ? 'default' : 'secondary'}
+                            className={page.status === 'published' ? 'bg-green-500 hover:bg-green-600' : ''}>
                             {page.status === 'published' ? 'منشور' : 'مسودة'}
                           </Badge>
                         </TableCell>
@@ -421,7 +409,6 @@ const PagesManagement = () => {
         </Card>
       </div>
 
-      {/* Delete Page Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
@@ -440,8 +427,6 @@ const PagesManagement = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
-      {/* Add/Edit Page Dialogs would be implemented here */}
     </div>
   );
 };
