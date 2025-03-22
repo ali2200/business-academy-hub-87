@@ -42,9 +42,9 @@ const CoursesManagement = () => {
               <AdminCoursesList />
             </>
           } />
+          <Route path="/create" element={<CourseEdit />} />
           <Route path="/:id" element={<CourseEdit />} />
           <Route path="/:id/lessons" element={<CourseEdit defaultTab="lessons" />} />
-          <Route path="/create" element={<CourseEdit />} />
         </Routes>
       </div>
     </div>

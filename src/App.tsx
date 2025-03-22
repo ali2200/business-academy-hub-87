@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from "sonner";
@@ -53,9 +52,9 @@ function App() {
           <Route path="/content-management" element={<ContentManagement />} />
           <Route path="/pages-management" element={<PagesManagement />} />
           <Route path="/media-management" element={<MediaManagement />} />
-          <Route path="/books-management" element={<BooksManagement />} />
+          <Route path="/books-management/*" element={<BooksManagement />} />
           <Route path="/courses-management/*" element={<CoursesManagement />} />
-          <Route path="/articles-management" element={<ArticlesManagement />} />
+          <Route path="/articles-management/*" element={<ArticlesManagement />} />
           <Route path="/admin-course-player/:id" element={<AdminCoursePlayer />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
