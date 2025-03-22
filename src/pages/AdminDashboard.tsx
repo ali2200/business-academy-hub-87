@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
@@ -36,6 +35,7 @@ import {
   PaginationNext, 
   PaginationPrevious 
 } from "@/components/ui/pagination";
+import AddContentDialog from '@/components/AddContentDialog';
 
 // Mock data for courses
 const COURSES_DATA = [
@@ -247,27 +247,27 @@ const AdminDashboard = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
-  const createCourse = () => {
+  const handleAddCourse = (courseData: any) => {
+    console.log('New course data:', courseData);
+    // Here you would typically save this to your backend
     toast.success("تم إنشاء مسودة دورة جديدة", {
       description: "يمكنك الآن إضافة محتوى الدورة"
     });
   };
 
-  const createBook = () => {
+  const handleAddBook = (bookData: any) => {
+    console.log('New book data:', bookData);
+    // Here you would typically save this to your backend
     toast.success("تم إنشاء مسودة كتاب جديد", {
       description: "يمكنك الآن إضافة محتوى الكتاب"
     });
   };
 
-  const createArticle = () => {
+  const handleAddArticle = (articleData: any) => {
+    console.log('New article data:', articleData);
+    // Here you would typically save this to your backend
     toast.success("تم إنشاء مسودة مقال جديد", {
       description: "يمكنك الآن كتابة المقال"
-    });
-  };
-
-  const createFunnel = () => {
-    toast.success("تم إنشاء مسودة قمع مبيعات جديد", {
-      description: "يمكنك الآن تصميم صفحات قمع المبيعات"
     });
   };
 
@@ -566,10 +566,16 @@ const AdminDashboard = () => {
               <TabsContent value="courses" className="animate-fade-in">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-2xl font-bold text-primary">إدارة الدورات</h2>
-                  <Button onClick={createCourse} className="flex items-center">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    <span>إضافة دورة جديدة</span>
-                  </Button>
+                  <AddContentDialog 
+                    contentType="course" 
+                    onAdd={handleAddCourse}
+                    trigger={
+                      <Button className="flex items-center">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        <span>إضافة دورة جديدة</span>
+                      </Button>
+                    }
+                  />
                 </div>
                 
                 <div className="mb-6">
@@ -675,10 +681,16 @@ const AdminDashboard = () => {
               <TabsContent value="books" className="animate-fade-in">
                 <div className="flex justify-between items-center mb-6">
                   <h2 className="text-2xl font-bold text-primary">إدارة الكتب</h2>
-                  <Button onClick={createBook} className="flex items-center">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    <span>إضافة كتاب جديد</span>
-                  </Button>
+                  <AddContentDialog 
+                    contentType="book" 
+                    onAdd={handleAddBook}
+                    trigger={
+                      <Button className="flex items-center">
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        <span>إضافة كتاب جديد</span>
+                      </Button>
+                    }
+                  />
                 </div>
                 
                 <div className="mb-6">
@@ -720,273 +732,4 @@ const AdminDashboard = () => {
                             </div>
                           </td>
                           <td className="py-3 px-4 text-gray-600">{book.author}</td>
-                          <td className="py-3 px-4 text-gray-600">{book.price} {book.currency}</td>
-                          <td className="py-3 px-4 text-gray-600">{book.purchasesCount}</td>
-                          <td className="py-3 px-4">
-                            <Badge 
-                              variant={book.status === 'published' ? 'secondary' : 'outline'}
-                              className={book.status === 'published' ? 'bg-green-100 text-green-800 hover:bg-green-100' : ''}
-                            >
-                              {book.status === 'published' ? 'منشور' : 'مسودة'}
-                            </Badge>
-                          </td>
-                          <td className="py-3 px-4 text-gray-600">{book.lastUpdated}</td>
-                          <td className="py-3 px-4">
-                            <div className="flex space-x-2 rtl:space-x-reverse">
-                              <Button variant="ghost" size="icon">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon">
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                
-                <Pagination className="mt-6">
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious href="#" />
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationLink href="#" isActive>
-                        1
-                      </PaginationLink>
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationNext href="#" />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </TabsContent>
-              
-              {/* Articles Tab */}
-              <TabsContent value="articles" className="animate-fade-in">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-primary">إدارة المقالات</h2>
-                  <Button onClick={createArticle} className="flex items-center">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    <span>إضافة مقال جديد</span>
-                  </Button>
-                </div>
-                
-                <div className="mb-6">
-                  <div className="relative">
-                    <Search className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
-                    <Input
-                      placeholder="ابحث عن مقال..."
-                      className="pl-3 pr-10"
-                    />
-                  </div>
-                </div>
-                
-                <div className="overflow-x-auto bg-white rounded-lg border">
-                  <table className="w-full text-left">
-                    <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="py-3 px-4 text-gray-500 font-medium text-right">المقال</th>
-                        <th className="py-3 px-4 text-gray-500 font-medium text-right">الكاتب</th>
-                        <th className="py-3 px-4 text-gray-500 font-medium text-right">المشاهدات</th>
-                        <th className="py-3 px-4 text-gray-500 font-medium text-right">الحالة</th>
-                        <th className="py-3 px-4 text-gray-500 font-medium text-right">تاريخ النشر</th>
-                        <th className="py-3 px-4 text-gray-500 font-medium text-right">الإجراءات</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {ARTICLES_DATA.map((article) => (
-                        <tr key={article.id} className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="py-3 px-4">
-                            <div className="flex items-center">
-                              <div className="h-10 w-10 rounded overflow-hidden ml-2">
-                                <img 
-                                  src={article.image} 
-                                  alt={article.title} 
-                                  className="h-full w-full object-cover"
-                                />
-                              </div>
-                              <span className="font-medium">{article.title}</span>
-                            </div>
-                          </td>
-                          <td className="py-3 px-4 text-gray-600">{article.author}</td>
-                          <td className="py-3 px-4 text-gray-600">{article.viewsCount}</td>
-                          <td className="py-3 px-4">
-                            <Badge 
-                              variant={article.status === 'published' ? 'secondary' : 'outline'}
-                              className={article.status === 'published' ? 'bg-green-100 text-green-800 hover:bg-green-100' : ''}
-                            >
-                              {article.status === 'published' ? 'منشور' : 'مسودة'}
-                            </Badge>
-                          </td>
-                          <td className="py-3 px-4 text-gray-600">{article.publishDate}</td>
-                          <td className="py-3 px-4">
-                            <div className="flex space-x-2 rtl:space-x-reverse">
-                              <Button variant="ghost" size="icon">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon">
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                
-                <Pagination className="mt-6">
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious href="#" />
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationLink href="#" isActive>
-                        1
-                      </PaginationLink>
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationNext href="#" />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
-              </TabsContent>
-              
-              {/* Sales Funnels Tab */}
-              <TabsContent value="funnels" className="animate-fade-in">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-2xl font-bold text-primary">قمع المبيعات</h2>
-                  <Button onClick={createFunnel} className="flex items-center">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    <span>إنشاء قمع مبيعات جديد</span>
-                  </Button>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {/* Example Sales Funnel Cards */}
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle>دورة البيع الاحترافي</CardTitle>
-                      <CardDescription>قمع مبيعات لدورة البيع الاحترافي</CardDescription>
-                    </CardHeader>
-                    <CardContent className="pb-2">
-                      <div className="flex justify-between text-sm text-gray-500 mb-1">
-                        <span>معدل التحويل</span>
-                        <span>8.2%</span>
-                      </div>
-                      <Progress value={8.2} className="h-1" />
-                      <div className="mt-4 space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>الزيارات</span>
-                          <span>1,245</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span>المشتركين</span>
-                          <span>102</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span>الإيرادات</span>
-                          <span>50,898 ج.م</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="flex gap-2">
-                      <Button variant="outline" className="flex-1">تعديل</Button>
-                      <Button className="flex-1">عرض التقرير</Button>
-                    </CardFooter>
-                  </Card>
-                  
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle>كتاب أسرار البيع</CardTitle>
-                      <CardDescription>قمع مبيعات لكتاب أسرار البيع</CardDescription>
-                    </CardHeader>
-                    <CardContent className="pb-2">
-                      <div className="flex justify-between text-sm text-gray-500 mb-1">
-                        <span>معدل التحويل</span>
-                        <span>5.7%</span>
-                      </div>
-                      <Progress value={5.7} className="h-1" />
-                      <div className="mt-4 space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span>الزيارات</span>
-                          <span>837</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span>المشتركين</span>
-                          <span>48</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span>الإيرادات</span>
-                          <span>3,792 ج.م</span>
-                        </div>
-                      </div>
-                    </CardContent>
-                    <CardFooter className="flex gap-2">
-                      <Button variant="outline" className="flex-1">تعديل</Button>
-                      <Button className="flex-1">عرض التقرير</Button>
-                    </CardFooter>
-                  </Card>
-                  
-                  <Card>
-                    <CardHeader className="pb-2">
-                      <CardTitle>قمع مبيعات جديد</CardTitle>
-                      <CardDescription>أنشئ قمع مبيعات جديد لمنتجاتك</CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-6 pb-8 text-center">
-                      <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                        <PlusCircle className="h-8 w-8 text-gray-400" />
-                      </div>
-                      <p className="text-gray-500">
-                        ابدأ بإنشاء قمع مبيعات جديد لزيادة مبيعات منتجاتك
-                      </p>
-                    </CardContent>
-                    <CardFooter>
-                      <Button onClick={createFunnel} className="w-full">
-                        إنشاء قمع مبيعات
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
-      </main>
-    </div>
-  );
-};
-
-type AdminNavItemProps = {
-  icon: React.FC<any>;
-  label: string;
-  active: boolean;
-  onClick: () => void;
-};
-
-const AdminNavItem = ({ icon: Icon, label, active, onClick }: AdminNavItemProps) => (
-  <li>
-    <button
-      className={`flex items-center py-3 px-4 rounded-lg transition-colors w-full text-right ${
-        active 
-          ? 'bg-primary text-white' 
-          : 'text-gray-600 hover:bg-gray-100'
-      }`}
-      onClick={onClick}
-    >
-      <Icon size={20} className="ml-3" />
-      <span>{label}</span>
-    </button>
-  </li>
-);
-
-export default AdminDashboard;
+                          <td className="py-3 px-4 text-gray-600">{book.price}
