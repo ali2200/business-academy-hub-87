@@ -74,13 +74,20 @@ const AddContentDialog: React.FC<AddContentDialogProps> = ({
       
       // Create the appropriate content based on type
       if (contentType === 'article') {
+        // Generate a slug from the title
+        const slug = title
+          .toLowerCase()
+          .replace(/[^\w\s]/gi, '')
+          .replace(/\s+/g, '-');
+          
         const { data, error } = await supabase
           .from('articles')
           .insert({
             title,
             excerpt: description,
             content: activeTab === 'import' ? htmlContent : '<p>محتوى المقال</p>',
-            status: 'draft'
+            status: 'draft',
+            slug // Add the slug field here
           })
           .select();
           

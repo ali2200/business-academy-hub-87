@@ -11,7 +11,8 @@ import {
   FileText,
   Video,
   Clock,
-  Info
+  Info,
+  Edit // Add the missing Edit import
 } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
@@ -132,7 +133,12 @@ const CourseEdit = () => {
       
       if (lessonsError) throw lessonsError;
       
-      setCourse(courseData);
+      // Fix the type issue by properly casting the level field to CourseLevel
+      setCourse({
+        ...courseData,
+        level: (courseData.level as CourseLevel) || 'beginner'
+      });
+      
       setLessons(lessonsData || []);
       
       // Update the new lesson order number
