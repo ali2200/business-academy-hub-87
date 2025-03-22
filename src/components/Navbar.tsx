@@ -1,13 +1,15 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, ShoppingCart, User } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Menu, X, ShoppingCart, User, LogIn } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -18,12 +20,35 @@ const Navbar = () => {
       }
     };
 
+    // Check for user authentication
+    const checkAuth = () => {
+      const userData = localStorage.getItem('user');
+      if (userData) {
+        try {
+          const user = JSON.parse(userData);
+          setIsAuthenticated(user.isAuthenticated);
+        } catch (error) {
+          console.error("Error parsing user data:", error);
+          setIsAuthenticated(false);
+        }
+      } else {
+        setIsAuthenticated(false);
+      }
+    };
+
+    checkAuth();
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const isActive = (path: string) => {
     return location.pathname === path;
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('user');
+    setIsAuthenticated(false);
+    navigate('/');
   };
 
   return (
@@ -79,10 +104,27 @@ type NavLinksProps = {
 };
 
 const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  useEffect(() => {
+    // Check for user authentication
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      try {
+        const user = JSON.parse(userData);
+        setIsAuthenticated(user.isAuthenticated);
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+        setIsAuthenticated(false);
+      }
+    }
+  }, []);
+  
   const links = [
     { path: '/', label: 'الرئيسية' },
     { path: '/courses', label: 'الدورات' },
     { path: '/books', label: 'الكتب' },
+    { path: '/articles', label: 'المقالات' },
     { path: '/contact', label: 'اتصل بنا' },
   ];
 
@@ -110,16 +152,30 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
         >
           <ShoppingCart size={20} />
         </Button>
-        <Link 
-          to="/dashboard" 
-          className="animate-fade-in"
-          style={{ animationDelay: `${(links.length + 1) * 0.1}s` }}
-        >
-          <Button variant="outline" className="flex items-center space-x-2 rtl:space-x-reverse">
-            <User size={18} />
-            <span>حسابي</span>
-          </Button>
-        </Link>
+        
+        {isAuthenticated ? (
+          <Link 
+            to="/dashboard" 
+            className="animate-fade-in"
+            style={{ animationDelay: `${(links.length + 1) * 0.1}s` }}
+          >
+            <Button variant="outline" className="flex items-center space-x-2 rtl:space-x-reverse">
+              <User size={18} />
+              <span>حسابي</span>
+            </Button>
+          </Link>
+        ) : (
+          <Link 
+            to="/signin" 
+            className="animate-fade-in"
+            style={{ animationDelay: `${(links.length + 1) * 0.1}s` }}
+          >
+            <Button variant="outline" className="flex items-center space-x-2 rtl:space-x-reverse">
+              <LogIn size={18} />
+              <span>تسجيل الدخول</span>
+            </Button>
+          </Link>
+        )}
       </div>
     </>
   );

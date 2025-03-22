@@ -12,6 +12,12 @@ import BookDetail from "./pages/BookDetail";
 import Dashboard from "./pages/Dashboard";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
+import SignIn from "./pages/SignIn";
+import SignUp from "./pages/SignUp";
+import CoursePlayer from "./pages/CoursePlayer";
+import BookReader from "./pages/BookReader";
+import AdminDashboard from "./pages/AdminDashboard";
+import Articles from "./pages/Articles";
 
 const queryClient = new QueryClient();
 
@@ -29,6 +35,12 @@ const App = () => (
           <Route path="/books/:id" element={<BookDetail />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/signin" element={<SignIn />} />
+          <Route path="/signup" element={<SignUp />} />
+          <Route path="/course-player/:courseId/:lessonId?" element={<CoursePlayer />} />
+          <Route path="/book-reader/:bookId" element={<BookReader />} />
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/articles" element={<Articles />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
