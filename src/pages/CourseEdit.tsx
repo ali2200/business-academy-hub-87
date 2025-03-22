@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
-import { useMutation, useQuery } from 'react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { v4 as uuidv4 } from 'uuid';
 import { useDropzone } from 'react-dropzone';
 import { format } from 'date-fns';
@@ -116,9 +117,9 @@ const CourseEdit = () => {
   const [fileName, setFileName] = useState<string | null>(null);
   const [date, setDate] = useState<Date | undefined>(new Date());
 
-  const { data: course, error: courseError } = useQuery(
-    ['course', courseId],
-    async () => {
+  const { data: course, error: courseError } = useQuery({
+    queryKey: ['course', courseId],
+    queryFn: async () => {
       const { data, error } = await supabase
         .from('courses')
         .select('*')
@@ -131,7 +132,7 @@ const CourseEdit = () => {
       }
       return data;
     }
-  );
+  });
 
   useEffect(() => {
     fetchLessons();
@@ -182,12 +183,16 @@ const CourseEdit = () => {
         return;
       }
 
-      const url = `${supabase.storageUrl}/object/public/${supabase.storageBucket}/course-videos/${filePath}`;
-      setFileUrl(url);
+      // Generate public URL for the uploaded file
+      const { data: { publicUrl } } = supabase.storage
+        .from('course-videos')
+        .getPublicUrl(filePath);
+
+      setFileUrl(publicUrl);
       setFileName(fileName);
       setLessonData({
         ...lessonData,
-        video_url: url,
+        video_url: publicUrl,
         video_file_name: fileName
       });
       toast.success('تم رفع الملف بنجاح');
@@ -199,18 +204,23 @@ const CourseEdit = () => {
     }
   }, [lessonData, setLessonData]);
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: 'video/*' })
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: { 'video/*': [] } })
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value, type, checked } = e.target;
-  
-    // Handle boolean value for checkbox
-    const inputValue = type === 'checkbox' ? checked : value;
-  
-    setLessonData({
-      ...lessonData,
-      [name]: inputValue
-    });
+    const { name, value } = e.target;
+    
+    // Handle checkbox separately
+    if (e.target instanceof HTMLInputElement && e.target.type === 'checkbox') {
+      setLessonData({
+        ...lessonData,
+        [name]: e.target.checked
+      });
+    } else {
+      setLessonData({
+        ...lessonData,
+        [name]: value
+      });
+    }
   };
   
   const handleNumberInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
