@@ -62,28 +62,12 @@ const AdminCoursesList = () => {
   };
 
   const handleEditLessons = (courseId: string) => {
-    navigate(`/courses-management/${courseId}?tab=lessons`);
+    navigate(`/courses-management/${courseId}/lessons`);
   };
 
   const handleViewCourse = (courseId: string) => {
     window.open(`/courses/${courseId}`, '_blank');
   };
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center py-10">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-10 text-red-500">
-        حدث خطأ أثناء تحميل الدورات
-      </div>
-    );
-  }
 
   return (
     <Card className="shadow-md">

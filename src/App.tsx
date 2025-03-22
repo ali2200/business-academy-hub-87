@@ -53,7 +53,7 @@ function App() {
           <Route path="/pages-management" element={<PagesManagement />} />
           <Route path="/media-management" element={<MediaManagement />} />
           <Route path="/books-management" element={<BooksManagement />} />
-          <Route path="/courses-management" element={<CoursesManagement />} />
+          <Route path="/courses-management/*" element={<CoursesManagement />} />
           <Route path="/articles-management" element={<ArticlesManagement />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

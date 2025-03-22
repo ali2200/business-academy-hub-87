@@ -17,11 +17,6 @@ const CoursesManagement = () => {
   const location = useLocation();
   const params = useParams();
   
-  // Check if we should activate the lessons tab from URL parameters
-  const searchParams = new URLSearchParams(location.search);
-  const tabFromURL = searchParams.get('tab');
-  const defaultTab = tabFromURL === 'lessons' ? 'lessons' : 'details';
-
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
@@ -47,7 +42,8 @@ const CoursesManagement = () => {
               <AdminCoursesList />
             </>
           } />
-          <Route path="/:id" element={<CourseEdit defaultTab={defaultTab} />} />
+          <Route path="/:id" element={<CourseEdit />} />
+          <Route path="/:id/lessons" element={<CourseEdit defaultTab="lessons" />} />
           <Route path="/create" element={<CourseEdit />} />
         </Routes>
       </div>
