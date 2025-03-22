@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from "sonner";
@@ -21,6 +22,7 @@ import PagesManagement from "@/pages/PagesManagement";
 import MediaManagement from "@/pages/MediaManagement";
 import BooksManagement from "@/pages/BooksManagement";
 import CoursesManagement from "@/pages/CoursesManagement";
+import ArticlesManagement from "@/pages/ArticlesManagement";
 
 function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -52,6 +54,7 @@ function App() {
           <Route path="/media-management" element={<MediaManagement />} />
           <Route path="/books-management" element={<BooksManagement />} />
           <Route path="/courses-management" element={<CoursesManagement />} />
+          <Route path="/articles-management" element={<ArticlesManagement />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <WhatsAppButton />
