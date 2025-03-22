@@ -12,7 +12,7 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {/* About */}
           <div className="animate-fade-in">
-            <h3 className="text-2xl font-bold mb-6 text-secondary">بيزنس أكاديمي</h3>
+            <h3 className="text-2xl font-bold mb-6 text-secondary">عـــلى بتاع الـبيزنس</h3>
             <p className="mb-6 text-white/80 leading-relaxed">
               منصة تعليمية رائدة في مجال البيزنس والمبيعات والتسويق، نقدم محتوى عربي أصيل يناسب السوق المصري والعربي.
             </p>
@@ -55,11 +55,11 @@ const Footer = () => {
             <ul className="space-y-4">
               <li className="flex items-center space-x-3 rtl:space-x-reverse">
                 <Mail size={18} className="text-secondary flex-shrink-0" />
-                <span>info@business-academy.com</span>
+                <span>info@ali-for-business.com</span>
               </li>
               <li className="flex items-center space-x-3 rtl:space-x-reverse">
                 <Phone size={18} className="text-secondary flex-shrink-0" />
-                <span>+20 123 456 7890</span>
+                <span>+20 100 082 0752</span>
               </li>
               <li className="flex items-start space-x-3 rtl:space-x-reverse">
                 <MapPin size={18} className="text-secondary flex-shrink-0 mt-1" />
@@ -73,7 +73,7 @@ const Footer = () => {
         <div className="border-t border-white/10 pt-8 mt-8">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-white/60 text-center md:text-right mb-4 md:mb-0">
-              © {currentYear} بيزنس أكاديمي. جميع الحقوق محفوظة
+              © {currentYear} عـــلى بتاع الـبيزنس. جميع الحقوق محفوظة
             </p>
             <div className="flex space-x-4 rtl:space-x-reverse">
               <Link to="/terms" className="text-white/60 hover:text-white transition-colors">الشروط والأحكام</Link>

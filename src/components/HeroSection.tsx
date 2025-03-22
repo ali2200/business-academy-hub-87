@@ -56,7 +56,7 @@ const HeroSection = () => {
               تعلم <span className="text-secondary">مهارات البيزنس</span> بالطريقة الصحيحة
             </h1>
             <p className="text-lg text-gray-600 mb-8 animate-fade-in" style={{ animationDelay: '0.4s' }}>
-              منصة بيزنس أكاديمي هي وجهتك الأولى لتعلم مهارات البيزنس والمبيعات والتسويق باللهجة المصرية. دورات احترافية وكتب متخصصة لتطوير مهاراتك وتحقيق نجاحك.
+              منصة عـــلى بتاع الـبيزنس هي وجهتك الأولى لتعلم مهارات البيزنس والمبيعات والتسويق باللهجة المصرية. دورات احترافية وكتب متخصصة لتطوير مهاراتك وتحقيق نجاحك.
             </p>
             <div className="flex flex-wrap gap-4 animate-fade-in" style={{ animationDelay: '0.6s' }}>
               <Button className="bg-secondary hover:bg-secondary-light text-white px-8 py-6 rounded-xl flex items-center space-x-2 rtl:space-x-reverse shadow-lg hover:shadow-xl transition-all">
@@ -93,7 +93,7 @@ const HeroSection = () => {
               <div className="glassmorphism p-4 rounded-2xl shadow-xl relative z-10 transform transition-transform hover:scale-105 duration-700">
                 <img 
                   src="/images/hero.svg" 
-                  alt="Business Academy Hub" 
+                  alt="Ali For Business Hub" 
                   className="w-full h-auto max-w-md mx-auto parallax" 
                   data-strength="10"
                 />

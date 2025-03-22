@@ -104,7 +104,7 @@ const Navbar = () => {
       <div className="container mx-auto px-4 flex justify-between items-center">
         {/* Logo */}
         <Link to="/" className="flex items-center animate-fade-in">
-          <img src="/images/logo.svg" alt="بيزنس أكاديمي" className="h-8 md:h-10" />
+          <img src="/lovable-uploads/4307c383-57c5-4d42-abdc-1344087ec7a6.png" alt="عـــلى بتاع الـبيزنس" className="h-10 md:h-12" />
         </Link>
 
         {/* Desktop Navigation */}
