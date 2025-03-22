@@ -69,9 +69,33 @@ const Navbar = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMobileMenuOpen]);
 
+  // Close mobile menu when clicking on ESC
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, []);
+
+  // Prevent body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
+
   return (
     <header 
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${
         isScrolled 
           ? 'py-2 bg-white/90 backdrop-blur-md shadow-md' 
           : 'py-3 lg:py-5 bg-transparent'
@@ -95,6 +119,7 @@ const Navbar = () => {
             size="icon" 
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             className="text-primary"
+            aria-label={isMobileMenuOpen ? "إغلاق القائمة" : "فتح القائمة"}
           >
             {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
           </Button>
@@ -103,11 +128,11 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       <div 
-        className={`md:hidden absolute top-full left-0 right-0 bg-white shadow-lg transform transition-transform duration-300 ease-in-out mobile-menu-container ${
+        className={`md:hidden fixed inset-0 bg-white/95 backdrop-blur-sm z-50 transition-transform duration-300 ease-in-out mobile-menu-container overflow-y-auto pt-20 ${
           isMobileMenuOpen ? 'translate-y-0' : '-translate-y-full'
         }`}
       >
-        <div className="container mx-auto px-4 py-4 flex flex-col space-y-4">
+        <div className="container mx-auto px-4 py-4 flex flex-col space-y-6">
           <NavLinks isActive={isActive} onClick={() => setIsMobileMenuOpen(false)} isMobile />
         </div>
       </div>
@@ -148,25 +173,34 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
 
   return (
     <>
-      {links.map((link, index) => (
-        <Link
-          key={link.path}
-          to={link.path}
-          className={`${
-            isActive(link.path) ? 'nav-link-active' : 'nav-link'
-          } text-base lg:text-lg mx-2 py-2 ${isMobile ? 'block w-full text-right' : 'inline-block'} animate-fade-in`}
-          style={{ animationDelay: `${index * 0.1}s` }}
-          onClick={onClick}
-        >
-          {link.label}
-        </Link>
-      ))}
-      <div className={`flex ${isMobile ? 'flex-col' : 'items-center'} ${isMobile ? 'space-y-3' : 'space-x-2 rtl:space-x-reverse mr-4'}`}>
+      <div className={`${isMobile ? 'flex flex-col space-y-5 w-full' : 'flex flex-row space-x-2 rtl:space-x-reverse items-center'}`}>
+        {links.map((link, index) => (
+          <Link
+            key={link.path}
+            to={link.path}
+            className={`${
+              isActive(link.path) 
+                ? 'text-primary font-bold after:w-full' 
+                : 'text-gray-800 hover:text-primary'
+            } ${isMobile 
+                ? 'text-xl py-3 block w-full text-center border-b border-gray-100' 
+                : 'text-base mx-3 py-2 relative after:absolute after:bottom-0 after:right-0 after:h-0.5 after:bg-primary after:transition-all'
+              } transition-all duration-300 animate-fade-in`}
+            style={{ animationDelay: `${index * 0.1}s` }}
+            onClick={onClick}
+          >
+            {link.label}
+          </Link>
+        ))}
+      </div>
+
+      <div className={`flex ${isMobile ? 'flex-col mt-6 space-y-4' : 'items-center space-x-3 rtl:space-x-reverse'}`}>
         <Button 
           variant="ghost" 
           size="icon" 
-          className="animate-fade-in text-primary hover:text-secondary"
+          className={`animate-fade-in ${isMobile ? 'mx-auto' : ''} text-primary hover:text-primary-light`}
           style={{ animationDelay: `${links.length * 0.1}s` }}
+          aria-label="سلة التسوق"
         >
           <ShoppingCart size={20} />
         </Button>
@@ -174,10 +208,11 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
         {isAuthenticated ? (
           <Link 
             to="/dashboard" 
-            className="animate-fade-in w-full"
+            className={`animate-fade-in ${isMobile ? 'w-full' : ''}`}
             style={{ animationDelay: `${(links.length + 1) * 0.1}s` }}
+            onClick={onClick}
           >
-            <Button variant="outline" className={`flex items-center ${isMobile ? 'w-full justify-center' : ''} space-x-2 rtl:space-x-reverse`}>
+            <Button variant="outline" className={`flex items-center ${isMobile ? 'w-full justify-center' : ''} gap-2`}>
               <User size={18} />
               <span>حسابي</span>
             </Button>
@@ -187,8 +222,9 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
             to="/signin" 
             className={`animate-fade-in ${isMobile ? 'w-full' : ''}`}
             style={{ animationDelay: `${(links.length + 1) * 0.1}s` }}
+            onClick={onClick}
           >
-            <Button variant="outline" className={`flex items-center ${isMobile ? 'w-full justify-center' : ''} space-x-2 rtl:space-x-reverse`}>
+            <Button variant="outline" className={`flex items-center ${isMobile ? 'w-full justify-center' : ''} gap-2`}>
               <LogIn size={18} />
               <span>تسجيل الدخول</span>
             </Button>
@@ -196,8 +232,14 @@ const NavLinks = ({ isActive, onClick, isMobile = false }: NavLinksProps) => {
         )}
         
         {isMobile && (
-          <Link to="#" className="flex items-center space-x-2 rtl:space-x-reverse text-primary">
-            <MessageSquare size={18} />
+          <Link 
+            to="https://wa.me/201000820752" 
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 text-primary font-medium py-3 w-full border rounded-md mt-4"
+            onClick={onClick}
+          >
+            <MessageSquare size={18} strokeWidth={1.5} className="fill-primary" />
             <span>تواصل معنا على واتساب</span>
           </Link>
         )}

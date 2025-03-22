@@ -10,11 +10,11 @@ const WhatsAppButton = () => {
 
   useEffect(() => {
     const toggleVisibility = () => {
-      // Show the button after scrolling down 300px
-      if (window.pageYOffset > 300) {
+      // Show the button after scrolling down 100px or immediately on mobile
+      if (window.pageYOffset > 100 || isMobile) {
         setIsVisible(true);
       } else {
-        setIsVisible(true); // Always visible, but can be changed to false to hide initially
+        setIsVisible(false);
       }
     };
 
@@ -24,10 +24,10 @@ const WhatsAppButton = () => {
     toggleVisibility();
     
     return () => window.removeEventListener('scroll', toggleVisibility);
-  }, []);
+  }, [isMobile]);
 
   return (
-    <div className={`fixed ${isMobile ? 'bottom-4 right-4' : 'bottom-8 left-8'} z-50 transition-all duration-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}>
+    <div className={`fixed ${isMobile ? 'bottom-4 right-4' : 'bottom-8 right-8'} z-50 transition-all duration-300 ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}>
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -39,7 +39,7 @@ const WhatsAppButton = () => {
               aria-label="تواصل معنا عبر واتساب"
             >
               <div className="relative">
-                <MessageSquare className="w-6 h-6 fill-white text-white" />
+                <MessageSquare className="w-6 h-6 fill-white" strokeWidth={1.5} />
               </div>
             </a>
           </TooltipTrigger>
