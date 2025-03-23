@@ -29,13 +29,21 @@ const CoursesManagement = () => {
                     <h1 className="text-3xl font-bold text-primary">إدارة الدورات</h1>
                     <p className="text-gray-600 mt-1">إدارة وتنظيم الدورات التدريبية المتاحة على المنصة</p>
                   </div>
-                  <Button
-                    onClick={() => navigate('/admin-dashboard')}
-                    variant="outline"
-                    className="flex items-center gap-2"
-                  >
-                    العودة للوحة التحكم
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => navigate('/courses-management/create')}
+                      className="flex items-center gap-2"
+                    >
+                      إضافة دورة جديدة
+                    </Button>
+                    <Button
+                      onClick={() => navigate('/admin-dashboard')}
+                      variant="outline"
+                      className="flex items-center gap-2"
+                    >
+                      العودة للوحة التحكم
+                    </Button>
+                  </div>
                 </div>
               </header>
 
