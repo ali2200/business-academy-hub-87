@@ -346,6 +346,9 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
     mutationFn: async (courseData: CourseForm) => {
       const courseToSave = {
         ...courseData,
+        title: courseData.title,          // Make sure title is explicitly included
+        instructor: courseData.instructor, // Make sure instructor is explicitly included
+        price: courseData.price,          // Make sure price is explicitly included
         image_url: imageUrl
       };
       
@@ -363,7 +366,7 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
         // Create new course
         const { data, error } = await supabase
           .from('courses')
-          .insert([courseToSave])
+          .insert(courseToSave)  // No need for array here, since we're providing all required fields
           .select();
         
         if (error) throw error;
