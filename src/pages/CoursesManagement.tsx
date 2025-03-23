@@ -113,8 +113,8 @@ const CoursesManagement = () => {
               <AdminCoursesList />
             </>
           } />
-          <Route path="create" element={<CourseEdit />} />
-          <Route path="create/lessons" element={<CourseEdit defaultTab="lessons" />} />
+          <Route path="/create" element={<CourseEdit />} />
+          <Route path="/create/lessons" element={<CourseEdit defaultTab="lessons" />} />
           <Route path=":id" element={<CourseEdit />} />
           <Route path=":id/lessons" element={<CourseEdit defaultTab="lessons" />} />
         </Routes>
