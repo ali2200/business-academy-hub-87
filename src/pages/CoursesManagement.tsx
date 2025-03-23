@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import AdminCoursesList from '@/components/AdminCoursesList';
@@ -10,16 +10,64 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { FileText, Video } from 'lucide-react';
+import { FileText, Video, AlertCircle } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const CoursesManagement = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const params = useParams();
+  const [storageError, setStorageError] = useState<string | null>(null);
+  const [isCheckingStorage, setIsCheckingStorage] = useState(true);
+  
+  useEffect(() => {
+    // التحقق من وجود حاويات التخزين عند تحميل الصفحة
+    const checkStorageBuckets = async () => {
+      try {
+        setIsCheckingStorage(true);
+        const { data: buckets, error } = await supabase.storage.listBuckets();
+        
+        if (error) {
+          console.error('Error checking storage buckets:', error);
+          setStorageError('حدث خطأ أثناء التحقق من حاويات التخزين');
+          return;
+        }
+        
+        const courseImagesBucketExists = buckets.some(bucket => bucket.id === 'course-images');
+        const courseVideosBucketExists = buckets.some(bucket => bucket.id === 'course-videos');
+        
+        if (!courseImagesBucketExists || !courseVideosBucketExists) {
+          setStorageError('حاويات التخزين المطلوبة غير موجودة، يرجى التواصل مع مسؤول النظام لإنشائها');
+        } else {
+          setStorageError(null);
+          toast.success('تم التحقق من حاويات التخزين بنجاح');
+        }
+      } catch (err) {
+        console.error('Unexpected error checking storage:', err);
+        setStorageError('حدث خطأ غير متوقع أثناء التحقق من حاويات التخزين');
+      } finally {
+        setIsCheckingStorage(false);
+      }
+    };
+    
+    checkStorageBuckets();
+  }, []);
   
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
+        {storageError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>تنبيه!</AlertTitle>
+            <AlertDescription>
+              {storageError}
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <Routes>
           <Route path="/" element={
             <>
@@ -33,6 +81,7 @@ const CoursesManagement = () => {
                     <Button
                       onClick={() => navigate('/courses-management/create')}
                       className="flex items-center gap-2"
+                      disabled={!!storageError}
                     >
                       إضافة دورة جديدة
                     </Button>
