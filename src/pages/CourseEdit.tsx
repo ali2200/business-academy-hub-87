@@ -189,7 +189,7 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
         category: course.category || '',
         level: course.level || '',
         duration: course.duration || '',
-        status: course.status || 'draft',
+        status: (course.status as "draft" | "published") || 'draft',
       });
       setImageUrl(course.image_url || null);
     }
@@ -363,7 +363,7 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
         // Create new course
         const { data, error } = await supabase
           .from('courses')
-          .insert(courseToSave)
+          .insert([courseToSave])
           .select();
         
         if (error) throw error;
