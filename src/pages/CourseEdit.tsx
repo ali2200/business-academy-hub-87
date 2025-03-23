@@ -230,6 +230,30 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
     setUploadingImage(true);
 
     try {
+      console.log('Trying to upload image to bucket: course-images');
+      
+      // التحقق من وجود حاوية التخزين أولاً
+      const { data: buckets, error: bucketsError } = await supabase.storage
+        .listBuckets();
+      
+      if (bucketsError) {
+        console.error('Error listing buckets:', bucketsError);
+        throw bucketsError;
+      }
+      
+      console.log('Available buckets:', buckets);
+      
+      // التحقق مما إذا كانت حاوية course-images موجودة
+      const courseImagesBucketExists = buckets.some(bucket => bucket.id === 'course-images');
+      
+      if (!courseImagesBucketExists) {
+        console.error('Error: course-images bucket does not exist');
+        toast.error('حاوية التخزين غير موجودة، يرجى التواصل مع مسؤول النظام');
+        setUploadingImage(false);
+        return;
+      }
+
+      // رفع الملف إلى حاوية التخزين
       const { data, error } = await supabase.storage
         .from('course-images')
         .upload(filePath, file, {
@@ -273,6 +297,29 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
     setUploading(true);
 
     try {
+      console.log('Trying to upload file to bucket: course-videos');
+      
+      // التحقق من وجود حاوية التخزين أولاً
+      const { data: buckets, error: bucketsError } = await supabase.storage
+        .listBuckets();
+      
+      if (bucketsError) {
+        console.error('Error listing buckets:', bucketsError);
+        throw bucketsError;
+      }
+      
+      console.log('Available buckets:', buckets);
+      
+      // التحقق مما إذا كانت حاوية course-videos موجودة
+      const courseVideosBucketExists = buckets.some(bucket => bucket.id === 'course-videos');
+      
+      if (!courseVideosBucketExists) {
+        console.error('Error: course-videos bucket does not exist');
+        toast.error('حاوية التخزين غير موجودة، يرجى التواصل مع مسؤول النظام');
+        setUploading(false);
+        return;
+      }
+
       const { data, error } = await supabase.storage
         .from('course-videos')
         .upload(filePath, file, {
@@ -1188,4 +1235,3 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
 };
 
 export default CourseEdit;
-
