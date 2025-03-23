@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Route, Routes, useLocation, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { 
   PenTool, 
   Search, 
@@ -15,9 +14,6 @@ import {
   RefreshCw,
   Filter,
   MoreHorizontal,
-  BookOpen,
-  Newspaper,
-  FileText,
   Layout,
   FolderOpen
 } from 'lucide-react';
@@ -64,8 +60,6 @@ import {
   PaginationPrevious 
 } from "@/components/ui/pagination";
 import { supabase } from "@/integrations/supabase/client";
-import AdminCoursesList from '@/components/AdminCoursesList';
-import AdminBooksList from '@/components/AdminBooksList';
 
 // Define the content item type
 interface ContentItem {
@@ -78,16 +72,17 @@ interface ContentItem {
   updated_at?: string;
 }
 
+interface ContentManagementProps {
+  tab?: string;
+}
+
 const ADMIN_TABS = [
   { id: 'website-content', label: 'محتوى الموقع', icon: <PenTool className="h-4 w-4" /> },
-  { id: 'pages', label: 'الصفحات', icon: <FileText className="h-4 w-4" /> },
-  { id: 'courses', label: 'الدورات', icon: <FileVideo className="h-4 w-4" /> },
-  { id: 'books', label: 'الكتب', icon: <BookOpen className="h-4 w-4" /> },
-  { id: 'articles', label: 'المقالات', icon: <Newspaper className="h-4 w-4" /> },
+  { id: 'pages', label: 'الصفحات', icon: <File className="h-4 w-4" /> },
   { id: 'media', label: 'الوسائط', icon: <Image className="h-4 w-4" /> },
 ];
 
-const ContentManagement = () => {
+const ContentManagement = ({ tab }: ContentManagementProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
@@ -108,25 +103,30 @@ const ContentManagement = () => {
     content_type: 'text' as 'text' | 'image' | 'video' | 'link'
   });
 
-  // Set active tab based on URL path or query param
+  // Set active tab based on URL path or query param or prop
   useEffect(() => {
+    if (tab && ADMIN_TABS.some(t => t.id === tab)) {
+      setActiveTab(tab);
+      return;
+    }
+    
     const pathSegments = location.pathname.split('/');
     const lastSegment = pathSegments[pathSegments.length - 1];
     
     if (lastSegment === 'content-management') {
       // Default to website-content when on the main route
       setActiveTab('website-content');
-    } else if (ADMIN_TABS.some(tab => tab.id === lastSegment)) {
+    } else if (ADMIN_TABS.some(t => t.id === lastSegment)) {
       setActiveTab(lastSegment);
     }
     
     // Also check for query params if needed
     const params = new URLSearchParams(location.search);
     const tabParam = params.get('tab');
-    if (tabParam && ADMIN_TABS.some(tab => tab.id === tabParam)) {
+    if (tabParam && ADMIN_TABS.some(t => t.id === tabParam)) {
       setActiveTab(tabParam);
     }
-  }, [location]);
+  }, [location, tab]);
 
   // Load content from Supabase
   useEffect(() => {
@@ -277,7 +277,7 @@ const ContentManagement = () => {
     }
   };
 
-  // Render page header based on active tab
+  // Render page header
   const renderPageHeader = () => {
     const tabData = ADMIN_TABS.find(tab => tab.id === activeTab);
     
@@ -291,9 +291,6 @@ const ContentManagement = () => {
             <p className="text-gray-600 mt-1">
               {activeTab === 'website-content' && 'تعديل محتوى الموقع من مكان واحد'}
               {activeTab === 'pages' && 'تحكم في صفحات الموقع الإلكتروني'}
-              {activeTab === 'courses' && 'إدارة وتنظيم الدورات التدريبية المتاحة على المنصة'}
-              {activeTab === 'books' && 'إدارة وتنظيم الكتب المتاحة للبيع على المنصة'}
-              {activeTab === 'articles' && 'إدارة وتنظيم المقالات المنشورة على المنصة'}
               {activeTab === 'media' && 'إدارة ملفات الوسائط والصور المستخدمة في الموقع'}
             </p>
           </div>
@@ -324,23 +321,6 @@ const ContentManagement = () => {
               src="/pages-management" 
               className="w-full min-h-[600px] border border-gray-200 rounded-lg"
               title="إدارة الصفحات"
-            />
-          </div>
-        );
-      case 'courses':
-        return <AdminCoursesList />;
-      case 'books':
-        return <AdminBooksList />;
-      case 'articles':
-        return (
-          <div className="mt-4">
-            <Button className="mb-4" onClick={() => navigate('/articles-management')}>
-              فتح إدارة المقالات التفصيلية
-            </Button>
-            <iframe 
-              src="/articles-management" 
-              className="w-full min-h-[600px] border border-gray-200 rounded-lg"
-              title="إدارة المقالات"
             />
           </div>
         );
