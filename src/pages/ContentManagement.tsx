@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate, Route, Routes, useLocation, Link } from 'react-router-dom';
 import { 
   PenTool, 
   Search, 
@@ -13,7 +13,13 @@ import {
   Link as LinkIcon,
   File,
   RefreshCw,
-  Filter
+  Filter,
+  MoreHorizontal,
+  BookOpen,
+  Newspaper,
+  FileText,
+  Layout,
+  FolderOpen
 } from 'lucide-react';
 import { toast } from "sonner";
 
@@ -58,6 +64,8 @@ import {
   PaginationPrevious 
 } from "@/components/ui/pagination";
 import { supabase } from "@/integrations/supabase/client";
+import AdminCoursesList from '@/components/AdminCoursesList';
+import AdminBooksList from '@/components/AdminBooksList';
 
 // Define the content item type
 interface ContentItem {
@@ -70,11 +78,21 @@ interface ContentItem {
   updated_at?: string;
 }
 
+const ADMIN_TABS = [
+  { id: 'website-content', label: 'محتوى الموقع', icon: <PenTool className="h-4 w-4" /> },
+  { id: 'pages', label: 'الصفحات', icon: <FileText className="h-4 w-4" /> },
+  { id: 'courses', label: 'الدورات', icon: <FileVideo className="h-4 w-4" /> },
+  { id: 'books', label: 'الكتب', icon: <BookOpen className="h-4 w-4" /> },
+  { id: 'articles', label: 'المقالات', icon: <Newspaper className="h-4 w-4" /> },
+  { id: 'media', label: 'الوسائط', icon: <Image className="h-4 w-4" /> },
+];
+
 const ContentManagement = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [contentItems, setContentItems] = useState<ContentItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState('website-content');
   const [searchTerm, setSearchTerm] = useState('');
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -90,9 +108,31 @@ const ContentManagement = () => {
     content_type: 'text' as 'text' | 'image' | 'video' | 'link'
   });
 
+  // Set active tab based on URL path or query param
+  useEffect(() => {
+    const pathSegments = location.pathname.split('/');
+    const lastSegment = pathSegments[pathSegments.length - 1];
+    
+    if (lastSegment === 'content-management') {
+      // Default to website-content when on the main route
+      setActiveTab('website-content');
+    } else if (ADMIN_TABS.some(tab => tab.id === lastSegment)) {
+      setActiveTab(lastSegment);
+    }
+    
+    // Also check for query params if needed
+    const params = new URLSearchParams(location.search);
+    const tabParam = params.get('tab');
+    if (tabParam && ADMIN_TABS.some(tab => tab.id === tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [location]);
+
   // Load content from Supabase
   useEffect(() => {
     const fetchContent = async () => {
+      if (activeTab !== 'website-content') return;
+      
       try {
         setLoading(true);
         
@@ -116,7 +156,7 @@ const ContentManagement = () => {
     };
     
     fetchContent();
-  }, [refreshTrigger]);
+  }, [activeTab, refreshTrigger]);
 
   // Filter content based on search term and active tab
   const filteredContent = contentItems.filter(item => {
@@ -125,7 +165,7 @@ const ContentManagement = () => {
       item.section.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.content.toLowerCase().includes(searchTerm.toLowerCase());
     
-    if (activeTab === 'all') {
+    if (activeTab === 'website-content') {
       return matchesSearch;
     }
     
@@ -214,6 +254,14 @@ const ContentManagement = () => {
     }
   };
 
+  // Handle tab change
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    // Update the URL without a full page reload
+    const newUrl = `/content-management/${value}`;
+    window.history.pushState({}, '', newUrl);
+  };
+
   // Render content type icon
   const renderContentTypeIcon = (type: 'text' | 'image' | 'video' | 'link') => {
     switch (type) {
@@ -229,208 +277,288 @@ const ContentManagement = () => {
     }
   };
 
+  // Render page header based on active tab
+  const renderPageHeader = () => {
+    const tabData = ADMIN_TABS.find(tab => tab.id === activeTab);
+    
+    return (
+      <header className="mb-8">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-primary">
+              إدارة {tabData?.label || 'المحتوى'}
+            </h1>
+            <p className="text-gray-600 mt-1">
+              {activeTab === 'website-content' && 'تعديل محتوى الموقع من مكان واحد'}
+              {activeTab === 'pages' && 'تحكم في صفحات الموقع الإلكتروني'}
+              {activeTab === 'courses' && 'إدارة وتنظيم الدورات التدريبية المتاحة على المنصة'}
+              {activeTab === 'books' && 'إدارة وتنظيم الكتب المتاحة للبيع على المنصة'}
+              {activeTab === 'articles' && 'إدارة وتنظيم المقالات المنشورة على المنصة'}
+              {activeTab === 'media' && 'إدارة ملفات الوسائط والصور المستخدمة في الموقع'}
+            </p>
+          </div>
+          <Button
+            onClick={() => navigate('/admin-dashboard')}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            العودة للوحة التحكم
+          </Button>
+        </div>
+      </header>
+    );
+  };
+
+  // Render appropriate content for the active tab
+  const renderTabContent = () => {
+    switch (activeTab) {
+      case 'website-content':
+        return renderWebsiteContentTab();
+      case 'pages':
+        return (
+          <div className="mt-4">
+            <Button className="mb-4" onClick={() => navigate('/pages-management')}>
+              فتح إدارة الصفحات التفصيلية
+            </Button>
+            <iframe 
+              src="/pages-management" 
+              className="w-full min-h-[600px] border border-gray-200 rounded-lg"
+              title="إدارة الصفحات"
+            />
+          </div>
+        );
+      case 'courses':
+        return <AdminCoursesList />;
+      case 'books':
+        return <AdminBooksList />;
+      case 'articles':
+        return (
+          <div className="mt-4">
+            <Button className="mb-4" onClick={() => navigate('/articles-management')}>
+              فتح إدارة المقالات التفصيلية
+            </Button>
+            <iframe 
+              src="/articles-management" 
+              className="w-full min-h-[600px] border border-gray-200 rounded-lg"
+              title="إدارة المقالات"
+            />
+          </div>
+        );
+      case 'media':
+        return (
+          <div className="mt-4">
+            <Button className="mb-4" onClick={() => navigate('/media-management')}>
+              فتح إدارة الوسائط التفصيلية
+            </Button>
+            <iframe 
+              src="/media-management" 
+              className="w-full min-h-[600px] border border-gray-200 rounded-lg"
+              title="إدارة الوسائط"
+            />
+          </div>
+        );
+      default:
+        return <div>يرجى اختيار قسم من الأقسام أعلاه</div>;
+    }
+  };
+
+  // Render website content tab
+  const renderWebsiteContentTab = () => {
+    return (
+      <div>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <div className="flex gap-2">
+            <Button
+              onClick={() => setIsAddDialogOpen(true)}
+              className="flex items-center gap-2"
+            >
+              <PlusCircle className="h-4 w-4" />
+              إضافة محتوى جديد
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => setRefreshTrigger(prev => prev + 1)}
+              className="flex items-center gap-2"
+            >
+              <RefreshCw className="h-4 w-4" />
+              تحديث
+            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Filter className="h-4 w-4" />
+                  تصفية
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>تصفية حسب النوع</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setActiveTab('website-content')}>
+                  الكل
+                </DropdownMenuItem>
+                {sections.map(section => (
+                  <DropdownMenuItem 
+                    key={section} 
+                    onClick={() => setActiveTab(section)}
+                  >
+                    {section}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+          <div className="relative w-full sm:w-64">
+            <Search className="absolute right-3 top-2.5 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="بحث في المحتوى..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pr-10"
+            />
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-gray-50 text-right">
+                <th className="px-4 py-3 text-sm font-medium text-gray-600">القسم</th>
+                <th className="px-4 py-3 text-sm font-medium text-gray-600">المفتاح</th>
+                <th className="px-4 py-3 text-sm font-medium text-gray-600">المحتوى</th>
+                <th className="px-4 py-3 text-sm font-medium text-gray-600">النوع</th>
+                <th className="px-4 py-3 text-sm font-medium text-gray-600">آخر تحديث</th>
+                <th className="px-4 py-3 text-sm font-medium text-gray-600">الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-4">
+                    جاري التحميل...
+                  </td>
+                </tr>
+              ) : filteredContent.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-4">
+                    لا توجد نتائج
+                  </td>
+                </tr>
+              ) : (
+                filteredContent.map(item => (
+                  <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <Badge variant="outline">{item.section}</Badge>
+                    </td>
+                    <td className="px-4 py-3 font-medium">{item.key}</td>
+                    <td className="px-4 py-3">
+                      <div className="max-w-xs truncate">
+                        {item.content_type === 'image' || item.content_type === 'video' ? (
+                          <a
+                            href={item.content}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            عرض الملف
+                          </a>
+                        ) : item.content_type === 'link' ? (
+                          <a
+                            href={item.content}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:underline"
+                          >
+                            {item.content}
+                          </a>
+                        ) : (
+                          item.content.length > 50
+                            ? `${item.content.substring(0, 50)}...`
+                            : item.content
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-1">
+                        {renderContentTypeIcon(item.content_type)}
+                        <span>
+                          {item.content_type === 'text' ? 'نص' : 
+                           item.content_type === 'image' ? 'صورة' : 
+                           item.content_type === 'video' ? 'فيديو' : 'رابط'}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-600 text-sm">
+                      {item.updated_at
+                        ? new Date(item.updated_at).toLocaleDateString('ar-EG')
+                        : '-'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedItem(item);
+                            setIsEditDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedItem(item);
+                            setIsDeleteDialogOpen(true);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        
+        <Pagination className="mt-4">
+          <PaginationContent>
+            <PaginationItem>
+              <PaginationPrevious href="#" />
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationLink href="#" isActive>1</PaginationLink>
+            </PaginationItem>
+            <PaginationItem>
+              <PaginationNext href="#" />
+            </PaginationItem>
+          </PaginationContent>
+        </Pagination>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        <header className="mb-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-primary">إدارة المحتوى</h1>
-              <p className="text-gray-600 mt-1">تعديل محتوى الموقع من مكان واحد</p>
-            </div>
-            <Button
-              onClick={() => navigate('/admin-dashboard')}
-              variant="outline"
-              className="flex items-center gap-2"
-            >
-              العودة للوحة التحكم
-            </Button>
-          </div>
-        </header>
+        {renderPageHeader()}
 
         <Card className="mb-8">
           <CardContent className="pt-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => setIsAddDialogOpen(true)}
-                  className="flex items-center gap-2"
-                >
-                  <PlusCircle className="h-4 w-4" />
-                  إضافة محتوى جديد
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => setRefreshTrigger(prev => prev + 1)}
-                  className="flex items-center gap-2"
-                >
-                  <RefreshCw className="h-4 w-4" />
-                  تحديث
-                </Button>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline" className="flex items-center gap-2">
-                      <Filter className="h-4 w-4" />
-                      تصفية
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>تصفية حسب النوع</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setActiveTab('all')}>
-                      الكل
-                    </DropdownMenuItem>
-                    {sections.map(section => (
-                      <DropdownMenuItem 
-                        key={section} 
-                        onClick={() => setActiveTab(section)}
-                      >
-                        {section}
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              <div className="relative w-full sm:w-64">
-                <Search className="absolute right-3 top-2.5 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="بحث في المحتوى..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pr-10"
-                />
-              </div>
-            </div>
-
-            <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="mb-6">
-                <TabsTrigger value="all">الكل</TabsTrigger>
-                {sections.map(section => (
-                  <TabsTrigger key={section} value={section}>
-                    {section}
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+              <TabsList className="mb-6 flex flex-wrap gap-2">
+                {ADMIN_TABS.map(tab => (
+                  <TabsTrigger key={tab.id} value={tab.id} className="flex items-center gap-2">
+                    {tab.icon}
+                    {tab.label}
                   </TabsTrigger>
                 ))}
               </TabsList>
 
               <TabsContent value={activeTab} className="space-y-4">
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="bg-gray-50 text-right">
-                        <th className="px-4 py-3 text-sm font-medium text-gray-600">القسم</th>
-                        <th className="px-4 py-3 text-sm font-medium text-gray-600">المفتاح</th>
-                        <th className="px-4 py-3 text-sm font-medium text-gray-600">المحتوى</th>
-                        <th className="px-4 py-3 text-sm font-medium text-gray-600">النوع</th>
-                        <th className="px-4 py-3 text-sm font-medium text-gray-600">آخر تحديث</th>
-                        <th className="px-4 py-3 text-sm font-medium text-gray-600">الإجراءات</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {loading ? (
-                        <tr>
-                          <td colSpan={6} className="text-center py-4">
-                            جاري التحميل...
-                          </td>
-                        </tr>
-                      ) : filteredContent.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="text-center py-4">
-                            لا توجد نتائج
-                          </td>
-                        </tr>
-                      ) : (
-                        filteredContent.map(item => (
-                          <tr key={item.id} className="border-b border-gray-100 hover:bg-gray-50">
-                            <td className="px-4 py-3">
-                              <Badge variant="outline">{item.section}</Badge>
-                            </td>
-                            <td className="px-4 py-3 font-medium">{item.key}</td>
-                            <td className="px-4 py-3">
-                              <div className="max-w-xs truncate">
-                                {item.content_type === 'image' || item.content_type === 'video' ? (
-                                  <a
-                                    href={item.content}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:underline"
-                                  >
-                                    عرض الملف
-                                  </a>
-                                ) : item.content_type === 'link' ? (
-                                  <a
-                                    href={item.content}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:underline"
-                                  >
-                                    {item.content}
-                                  </a>
-                                ) : (
-                                  item.content.length > 50
-                                    ? `${item.content.substring(0, 50)}...`
-                                    : item.content
-                                )}
-                              </div>
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-1">
-                                {renderContentTypeIcon(item.content_type)}
-                                <span>
-                                  {item.content_type === 'text' ? 'نص' : 
-                                   item.content_type === 'image' ? 'صورة' : 
-                                   item.content_type === 'video' ? 'فيديو' : 'رابط'}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="px-4 py-3 text-gray-600 text-sm">
-                              {item.updated_at
-                                ? new Date(item.updated_at).toLocaleDateString('ar-EG')
-                                : '-'}
-                            </td>
-                            <td className="px-4 py-3">
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => {
-                                    setSelectedItem(item);
-                                    setIsEditDialogOpen(true);
-                                  }}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => {
-                                    setSelectedItem(item);
-                                    setIsDeleteDialogOpen(true);
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4 text-red-500" />
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-                
-                <Pagination>
-                  <PaginationContent>
-                    <PaginationItem>
-                      <PaginationPrevious href="#" />
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationLink href="#" isActive>1</PaginationLink>
-                    </PaginationItem>
-                    <PaginationItem>
-                      <PaginationNext href="#" />
-                    </PaginationItem>
-                  </PaginationContent>
-                </Pagination>
+                {renderTabContent()}
               </TabsContent>
             </Tabs>
           </CardContent>
