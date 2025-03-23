@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
@@ -84,7 +83,6 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
-// Define form schema for course
 const courseFormSchema = z.object({
   title: z.string().min(3, "العنوان يجب أن يكون 3 أحرف على الأقل"),
   instructor: z.string().min(3, "اسم المحاضر يجب أن يكون 3 أحرف على الأقل"),
@@ -139,8 +137,9 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [isNewCourse, setIsNewCourse] = useState(!courseId);
+  const [tempCourseId, setTempCourseId] = useState<string | null>(null);
 
-  // Course form
   const form = useForm<CourseForm>({
     resolver: zodResolver(courseFormSchema),
     defaultValues: {
@@ -156,7 +155,6 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
     },
   });
 
-  // Fetch course data
   const { data: course, error: courseError, isLoading: isLoadingCourse } = useQuery({
     queryKey: ['course', courseId],
     queryFn: async () => {
@@ -177,7 +175,6 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
     enabled: !!courseId
   });
 
-  // Update form values when course data is loaded
   useEffect(() => {
     if (course) {
       form.reset({
@@ -224,7 +221,6 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
     }
   };
 
-  // Course image upload
   const onDropImage = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     const fileExt = file.name.split('.').pop();
@@ -268,7 +264,6 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
     maxFiles: 1
   });
 
-  // Lesson video upload
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     const fileExt = file.name.split('.').pop();
@@ -314,7 +309,6 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: { 'video/*': [] } });
 
-  // Lesson form handlers
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     
@@ -341,7 +335,6 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
     });
   };
 
-  // Save course mutation
   const saveCourse = useMutation({
     mutationFn: async (courseData: CourseForm) => {
       const courseToSave = {
@@ -352,12 +345,12 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
         image_url: imageUrl
       };
       
-      if (courseId) {
+      if (courseId || tempCourseId) {
         // Update existing course
         const { data, error } = await supabase
           .from('courses')
           .update(courseToSave)
-          .eq('id', courseId)
+          .eq('id', courseId || tempCourseId)
           .select();
         
         if (error) throw error;
@@ -374,10 +367,22 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
       }
     },
     onSuccess: (data) => {
-      toast.success(courseId ? 'تم تحديث الدورة بنجاح' : 'تم إنشاء الدورة بنجاح');
-      
       if (!courseId && data && data.length > 0) {
-        navigate(`/courses-management/${data[0].id}`);
+        // For a new course
+        const newCourseId = data[0].id;
+        setTempCourseId(newCourseId);
+        
+        if (activeTab === 'lessons') {
+          // If we're on the lessons tab, update URL but don't navigate
+          // This prevents losing the current tab state
+          window.history.replaceState(null, '', `/courses-management/${newCourseId}/lessons`);
+        } else {
+          navigate(`/courses-management/${newCourseId}`);
+        }
+        
+        toast.success('تم إنشاء الدورة بنجاح');
+      } else {
+        toast.success('تم تحديث الدورة بنجاح');
       }
     },
     onError: (error) => {
@@ -386,9 +391,14 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
     }
   });
 
-  // Save lesson mutation
   const saveLesson = useMutation({
     mutationFn: async (lessonData: LessonData) => {
+      const actualCourseId = courseId || tempCourseId;
+      
+      if (!actualCourseId) {
+        throw new Error('يجب حفظ الدورة أولاً قبل إضافة الدروس');
+      }
+      
       if (selectedLessonId) {
         const dataToUpdate = {
           title: lessonData.title,
@@ -417,7 +427,7 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
           duration: lessonData.duration,
           is_free: lessonData.is_free,
           order_number: lessonData.order_number,
-          course_id: courseId
+          course_id: actualCourseId
         };
         
         const { data, error } = await supabase
@@ -502,6 +512,18 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
     saveCourse.mutate(data);
   };
 
+  const handleTabChange = (newTab: string) => {
+    if (newTab === 'lessons' && isNewCourse && !tempCourseId) {
+      saveCourse.mutate(form.getValues(), {
+        onSuccess: () => {
+          setActiveTab(newTab);
+        }
+      });
+    } else {
+      setActiveTab(newTab);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
@@ -509,10 +531,10 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-3xl font-bold text-primary">
-                {courseId ? `تعديل الدورة: ${course?.title || ''}` : 'إضافة دورة جديدة'}
+                {courseId || tempCourseId ? `تعديل ال��ورة: ${course?.title || ''}` : 'إضافة دورة جديدة'}
               </h1>
               <p className="text-gray-600 mt-1">
-                {courseId ? 'إدارة وتنظيم محتوى الدورة التدريبية' : 'إضافة دورة تدريبية جديدة إلى المنصة'}
+                {courseId || tempCourseId ? 'إدارة وتنظيم محتوى الدورة التدريبية' : 'إضافة دورة تدريبية جديدة إلى المنصة'}
               </p>
             </div>
             <Button
@@ -525,10 +547,10 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
           </div>
         </header>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="details">تفاصيل الدورة</TabsTrigger>
-            <TabsTrigger value="lessons" disabled={!courseId}>الدروس والمحاضرات</TabsTrigger>
+            <TabsTrigger value="lessons">الدروس والمحاضرات</TabsTrigger>
           </TabsList>
           
           <TabsContent value="details">
@@ -546,7 +568,6 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
                 <Form {...form}>
                   <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Course title */}
                       <FormField
                         control={form.control}
                         name="title"
@@ -561,7 +582,6 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
                         )}
                       />
 
-                      {/* Instructor */}
                       <FormField
                         control={form.control}
                         name="instructor"
@@ -577,7 +597,6 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
                       />
                     </div>
 
-                    {/* Course image */}
                     <div className="space-y-2">
                       <Label>صورة الدورة</Label>
                       <div {...getImageRootProps()} className="border-dashed border-2 rounded-md p-4 cursor-pointer">
@@ -608,7 +627,6 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
                       </div>
                     </div>
 
-                    {/* Description */}
                     <FormField
                       control={form.control}
                       name="description"
@@ -628,7 +646,6 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
                     />
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Price */}
                       <FormField
                         control={form.control}
                         name="price"
@@ -643,7 +660,6 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
                         )}
                       />
 
-                      {/* Currency */}
                       <FormField
                         control={form.control}
                         name="currency"
@@ -672,7 +688,6 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      {/* Category */}
                       <FormField
                         control={form.control}
                         name="category"
@@ -701,7 +716,6 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
                         )}
                       />
 
-                      {/* Level */}
                       <FormField
                         control={form.control}
                         name="level"
@@ -729,7 +743,6 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
                         )}
                       />
 
-                      {/* Duration */}
                       <FormField
                         control={form.control}
                         name="duration"
@@ -745,7 +758,6 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
                       />
                     </div>
 
-                    {/* Status */}
                     <FormField
                       control={form.control}
                       name="status"
@@ -774,7 +786,6 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
                       )}
                     />
 
-                    {/* Content sections - Would be implemented in a comprehensive course creator */}
                     <div className="space-y-4">
                       <h3 className="text-lg font-medium">محتويات الدورة</h3>
                       
@@ -813,11 +824,14 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
                   </h2>
                   <div className="flex justify-between items-center">
                     <p className="text-gray-500">
-                      إضافة وتعديل الدروس والمحاضرات الخاصة بالدورة
+                      {!courseId && !tempCourseId ? 
+                        'يجب حفظ الدورة أولاً قبل إضافة الدروس' : 
+                        'إضافة وتعديل الدروس والمحاضرات الخاصة بالدورة'}
                     </p>
                     <Button
                       onClick={() => setIsAddDialogOpen(true)}
                       className="flex items-center gap-2"
+                      disabled={!courseId && !tempCourseId}
                     >
                       <Plus className="h-4 w-4" />
                       إضافة درس جديد
@@ -825,81 +839,90 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
                   </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>عنوان الدرس</TableHead>
-                        <TableHead>المدة</TableHead>
-                        <TableHead>مجاني؟</TableHead>
-                        <TableHead>الترتيب</TableHead>
-                        <TableHead className="text-left">الإجراءات</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {loading ? (
+                {!courseId && !tempCourseId ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-md p-4 text-amber-800 mb-4">
+                    <p className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      يجب حفظ معلومات الدورة أولاً قبل إضافة الدروس والمحاضرات. الرجاء إكمال معلومات الدورة في تبويب "تفاصيل الدورة" والضغط على زر "إنشاء الدورة".
+                    </p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center py-8">
-                            جاري التحميل...
-                          </TableCell>
+                          <TableHead>عنوان الدرس</TableHead>
+                          <TableHead>المدة</TableHead>
+                          <TableHead>مجاني؟</TableHead>
+                          <TableHead>الترتيب</TableHead>
+                          <TableHead className="text-left">الإجراءات</TableHead>
                         </TableRow>
-                      ) : lessons.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={5} className="text-center py-8">
-                            لا توجد دروس متاحة
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        lessons.map(lesson => (
-                          <TableRow key={lesson.id}>
-                            <TableCell>
-                              <div className="flex items-center gap-3">
-                                <div>
-                                  <p className="font-medium">{lesson.title}</p>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>{lesson.duration}</TableCell>
-                            <TableCell>
-                              {lesson.is_free ? 'نعم' : 'لا'}
-                            </TableCell>
-                            <TableCell>{lesson.order_number}</TableCell>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  title="عرض"
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  title="تعديل"
-                                  onClick={() => editLesson(lesson)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  title="حذف"
-                                  onClick={() => {
-                                    setSelectedLessonId(lesson.id);
-                                    setIsDeleteDialogOpen(true);
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4 text-red-500" />
-                                </Button>
-                              </div>
+                      </TableHeader>
+                      <TableBody>
+                        {loading ? (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center py-8">
+                              جاري التحميل...
                             </TableCell>
                           </TableRow>
-                        ))
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
+                        ) : lessons.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={5} className="text-center py-8">
+                              لا توجد دروس متاحة
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          lessons.map(lesson => (
+                            <TableRow key={lesson.id}>
+                              <TableCell>
+                                <div className="flex items-center gap-3">
+                                  <div>
+                                    <p className="font-medium">{lesson.title}</p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>{lesson.duration}</TableCell>
+                              <TableCell>
+                                {lesson.is_free ? 'نعم' : 'لا'}
+                              </TableCell>
+                              <TableCell>{lesson.order_number}</TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    title="عرض"
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    title="تعديل"
+                                    onClick={() => editLesson(lesson)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    title="حذف"
+                                    onClick={() => {
+                                      setSelectedLessonId(lesson.id);
+                                      setIsDeleteDialogOpen(true);
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -1165,3 +1188,4 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
 };
 
 export default CourseEdit;
+
