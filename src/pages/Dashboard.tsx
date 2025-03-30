@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, Home, BookOpen, ShoppingCart, Settings, LogOut, Play, Award, Book, Clock, Check, Info, Edit, FileText, Video, Save, Plus, Trash2, School } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -11,116 +12,49 @@ import { toast } from "sonner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
-
-const USER = {
-  name: 'محمد أحمد',
-  email: 'mohammed.ahmed@example.com',
-  avatar: 'https://i.pravatar.cc/150?img=4',
-  joinDate: '12 أكتوبر 2023'
-};
-
-const ENROLLED_COURSES = [
-  {
-    id: 1,
-    title: 'أساسيات البيع الاحترافي',
-    image: 'https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=2070&auto=format&fit=crop',
-    instructor: 'أحمد محمد',
-    progress: 65,
-    totalLessons: 24,
-    completedLessons: 16,
-    lastAccessed: 'منذ يومين',
-    certificate: false
-  },
-  {
-    id: 2,
-    title: 'التسويق الرقمي للمبتدئين',
-    image: 'https://images.unsplash.com/photo-1557838923-2985c318be48?q=80&w=2069&auto=format&fit=crop',
-    instructor: 'سارة أحمد',
-    progress: 30,
-    totalLessons: 32,
-    completedLessons: 10,
-    lastAccessed: 'منذ أسبوع',
-    certificate: false
-  },
-  {
-    id: 3,
-    title: 'إدارة المشاريع الصغيرة',
-    image: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=2070&auto=format&fit=crop',
-    instructor: 'محمد علي',
-    progress: 100,
-    totalLessons: 28,
-    completedLessons: 28,
-    lastAccessed: 'منذ شهر',
-    certificate: true
-  }
-];
-
-const PURCHASED_BOOKS = [
-  {
-    id: 1,
-    title: 'أسرار البيع الناجح',
-    cover: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=1974&auto=format&fit=crop',
-    author: 'د. أحمد محمد',
-    purchaseDate: '15 أكتوبر 2023',
-    pages: 280,
-    readPages: 145
-  },
-  {
-    id: 2,
-    title: 'استراتيجيات التسويق الحديثة',
-    cover: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=2730&auto=format&fit=crop',
-    author: 'م. سارة أحمد',
-    purchaseDate: '3 أكتوبر 2023',
-    pages: 320,
-    readPages: 50
-  }
-];
-
-const CERTIFICATES = [
-  {
-    id: 1,
-    courseTitle: 'إدارة المشاريع الصغيرة',
-    issueDate: '20 سبتمبر 2023',
-    certificate: 'https://images.unsplash.com/photo-1589330694653-ded6df03f754?q=80&w=1935&auto=format&fit=crop'
-  }
-];
-
-const ABOUT_ME_CONTENT = {
-  title: "تعرف على بيزنس أكاديمي",
-  videoUrl: "https://static.videezy.com/system/resources/previews/000/005/529/original/Reaviling_Sjusj%C3%B8en_Ski_Senter.mp4",
-  description: "أنا أحمد، خبير في مجال البيزنس والمبيعات مع خبرة تمتد لأكثر من 10 سنوات في السوق المصري. أسست بيزنس أكاديمي لمساعدة رواد الأعمال والمهنيين المصريين على تطوير مهاراتهم وتحقيق النجاح في عالم الأعمال.",
-  features: [
-    {
-      id: 1,
-      title: "دورات تدريبية احترافية",
-      description: "دورات متخصصة في مجالات البيع والتسويق وإدارة الأعمال مقدمة باللهجة المصرية لتناسب احتياجات السوق المحلي.",
-      icon: "graduation-cap"
-    },
-    {
-      id: 2,
-      title: "كتب ومراجع تعليمية",
-      description: "مجموعة من الكتب الإلكترونية ال��تخصصة التي تشرح أساسيات ومفاهيم البيزنس بطريقة سهلة وعملية.",
-      icon: "book-open"
-    },
-    {
-      id: 3,
-      title: "خبرة عملية حقيقية",
-      description: "محتوى مبني على تجارب حقيقية وخبرات عملية في السوق المصري، وليس مجرد نظريات.",
-      icon: "award"
-    }
-  ]
-};
+import { supabase } from "@/integrations/supabase/client";
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const isMobile = useIsMobile();
   const [activeTab, setActiveTab] = useState('courses');
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
+  const [purchasedBooks, setPurchasedBooks] = useState<any[]>([]);
+  const [certificates, setCertificates] = useState<any[]>([]);
   
-  const [aboutContent, setAboutContent] = useState(ABOUT_ME_CONTENT);
+  const [aboutContent, setAboutContent] = useState({
+    title: "تعرف على بيزنس أكاديمي",
+    videoUrl: "https://static.videezy.com/system/resources/previews/000/005/529/original/Reaviling_Sjusj%C3%B8en_Ski_Senter.mp4",
+    description: "أنا أحمد، خبير في مجال البيزنس والمبيعات مع خبرة تمتد لأكثر من 10 سنوات في السوق المصري. أسست بيزنس أكاديمي لمساعدة رواد الأعمال والمهنيين المصريين على تطوير مهاراتهم وتحقيق النجاح في عالم الأعمال.",
+    features: [
+      {
+        id: 1,
+        title: "دورات تدريبية احترافية",
+        description: "دورات متخصصة في مجالات البيع والتسويق وإدارة الأعمال مقدمة باللهجة المصرية لتناسب احتياجات السوق المحلي.",
+        icon: "graduation-cap"
+      },
+      {
+        id: 2,
+        title: "كتب ومراجع تعليمية",
+        description: "مجموعة من الكتب الإلكترونية المتخصصة التي تشرح أساسيات ومفاهيم البيزنس بطريقة سهلة وعملية.",
+        icon: "book-open"
+      },
+      {
+        id: 3,
+        title: "خبرة عملية حقيقية",
+        description: "محتوى مبني على تجارب حقيقية وخبرات عملية في السوق المصري، وليس مجرد نظريات.",
+        icon: "award"
+      }
+    ]
+  });
+  
   const [editMode, setEditMode] = useState(false);
   const [editedFeature, setEditedFeature] = useState<null | number>(null);
-  
-  const [tempContent, setTempContent] = useState(ABOUT_ME_CONTENT);
+  const [tempContent, setTempContent] = useState(aboutContent);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -132,8 +66,232 @@ const Dashboard = () => {
     }
   }, [isMobile]);
 
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        setLoading(true);
+        
+        // Get current auth session
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          toast.error("يجب تسجيل الدخول للوصول إلى لوحة التحكم");
+          navigate('/signin');
+          return;
+        }
+        
+        // Store user data
+        setUser(session.user);
+        
+        // Get user profile
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (profileError && profileError.code !== 'PGRST116') {
+          console.error("Error fetching profile:", profileError);
+          toast.error("حدث خطأ أثناء جلب بيانات الملف الشخصي");
+        } else if (profileData) {
+          setProfile(profileData);
+        }
+        
+        // Fetch enrolled courses
+        const { data: coursesData, error: coursesError } = await supabase
+          .from('course_enrollments')
+          .select(`
+            id,
+            progress,
+            created_at,
+            courses:course_id (
+              id,
+              title,
+              description,
+              instructor,
+              price,
+              image_url,
+              students_count,
+              level,
+              duration,
+              status
+            )
+          `)
+          .eq('user_id', session.user.id);
+        
+        if (coursesError) {
+          console.error("Error fetching enrolled courses:", coursesError);
+        } else if (coursesData) {
+          // Fetch lesson progress for each course
+          const enhancedCourses = await Promise.all(coursesData.map(async (enrollment) => {
+            // Get all lessons for this course
+            const { data: lessonsData, error: lessonsError } = await supabase
+              .from('lessons')
+              .select('id')
+              .eq('course_id', enrollment.courses.id);
+            
+            // Get completed lessons for this course
+            const { data: completedLessons, error: completedError } = await supabase
+              .from('lesson_progress')
+              .select('*')
+              .eq('user_id', session.user.id)
+              .in('lesson_id', lessonsData?.map(l => l.id) || [])
+              .eq('completed', true);
+            
+            // Get latest accessed lesson
+            const { data: latestAccess, error: latestError } = await supabase
+              .from('lesson_progress')
+              .select('created_at, updated_at')
+              .eq('user_id', session.user.id)
+              .in('lesson_id', lessonsData?.map(l => l.id) || [])
+              .order('updated_at', { ascending: false })
+              .limit(1);
+            
+            // Calculate days since last access
+            let lastAccessed = "لم يتم الوصول بعد";
+            if (latestAccess && latestAccess.length > 0) {
+              const lastDate = new Date(latestAccess[0].updated_at);
+              const currentDate = new Date();
+              const diffTime = Math.abs(currentDate.getTime() - lastDate.getTime());
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              
+              if (diffDays === 0) {
+                lastAccessed = "اليوم";
+              } else if (diffDays === 1) {
+                lastAccessed = "منذ يوم واحد";
+              } else if (diffDays < 7) {
+                lastAccessed = `منذ ${diffDays} أيام`;
+              } else if (diffDays < 30) {
+                const weeks = Math.floor(diffDays / 7);
+                lastAccessed = `منذ ${weeks} ${weeks === 1 ? 'أسبوع' : 'أسابيع'}`;
+              } else {
+                const months = Math.floor(diffDays / 30);
+                lastAccessed = `منذ ${months} ${months === 1 ? 'شهر' : 'أشهر'}`;
+              }
+            }
+            
+            const totalLessons = lessonsData?.length || 0;
+            const completedLessonsCount = completedLessons?.length || 0;
+            const progress = totalLessons > 0 ? Math.round((completedLessonsCount / totalLessons) * 100) : 0;
+            
+            // Check if eligible for certificate
+            const certificateEligible = progress === 100;
+            
+            return {
+              id: enrollment.courses.id,
+              title: enrollment.courses.title,
+              image: enrollment.courses.image_url || 'https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=2070&auto=format&fit=crop',
+              instructor: enrollment.courses.instructor,
+              progress: progress,
+              totalLessons: totalLessons,
+              completedLessons: completedLessonsCount,
+              lastAccessed: lastAccessed,
+              certificate: certificateEligible,
+              enrollmentId: enrollment.id,
+              enrollmentDate: enrollment.created_at
+            };
+          }));
+          
+          setEnrolledCourses(enhancedCourses);
+        }
+        
+        // Fetch purchased books
+        const { data: ordersData, error: ordersError } = await supabase
+          .from('orders')
+          .select(`
+            id,
+            created_at,
+            order_items (
+              item_id,
+              item_type
+            )
+          `)
+          .eq('user_id', session.user.id)
+          .eq('status', 'completed');
+        
+        if (!ordersError && ordersData) {
+          // Extract book IDs from orders
+          const bookItemIds = ordersData.flatMap(order => 
+            order.order_items
+              .filter(item => item.item_type === 'book')
+              .map(item => item.item_id)
+          );
+          
+          if (bookItemIds.length > 0) {
+            // Fetch book details
+            const { data: booksData, error: booksError } = await supabase
+              .from('books')
+              .select('*')
+              .in('id', bookItemIds);
+            
+            if (!booksError && booksData) {
+              // Format books with purchase date from order
+              const formattedBooks = booksData.map(book => {
+                // Find the order that contains this book
+                const order = ordersData.find(o => 
+                  o.order_items.some(item => 
+                    item.item_id === book.id && item.item_type === 'book'
+                  )
+                );
+                
+                // Placeholder for read progress (in a real app, you would track this)
+                const readPages = Math.floor(Math.random() * (book.pages || 100));
+                
+                return {
+                  id: book.id,
+                  title: book.title,
+                  cover: book.cover_url || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=1974&auto=format&fit=crop',
+                  author: book.author,
+                  purchaseDate: new Date(order?.created_at || Date.now()).toLocaleDateString('ar-EG'),
+                  pages: book.pages || 100,
+                  readPages: readPages,
+                };
+              });
+              
+              setPurchasedBooks(formattedBooks);
+            }
+          }
+        }
+        
+        // Fetch certificates for completed courses
+        if (enhancedCourses) {
+          const completedCourses = enhancedCourses.filter(course => course.progress === 100);
+          
+          const certificatesData = completedCourses.map(course => ({
+            id: course.id,
+            courseTitle: course.title,
+            issueDate: new Date(course.enrollmentDate).toLocaleDateString('ar-EG'),
+            certificate: 'https://images.unsplash.com/photo-1589330694653-ded6df03f754?q=80&w=1935&auto=format&fit=crop'
+          }));
+          
+          setCertificates(certificatesData);
+        }
+        
+      } catch (err) {
+        console.error("Error in fetchUserData:", err);
+        toast.error("حدث خطأ أثناء جلب بيانات المستخدم");
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchUserData();
+  }, [navigate]);
+
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      localStorage.removeItem('user');
+      toast.success("تم تسجيل الخروج بنجاح");
+      navigate('/signin');
+    } catch (error) {
+      console.error("Error during logout:", error);
+      toast.error("حدث خطأ أثناء تسجيل الخروج");
+    }
   };
 
   const showCertificateToast = () => {
@@ -187,6 +345,25 @@ const Dashboard = () => {
     });
   };
 
+  const goToCoursePlayer = (courseId: string) => {
+    navigate(`/course-player/${courseId}`);
+  };
+
+  const goToBookReader = (bookId: string) => {
+    navigate(`/book-reader/${bookId}`);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-4"></div>
+          <p className="text-gray-600">جاري التحميل...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="lg:hidden fixed top-4 right-4 z-50">
@@ -207,13 +384,16 @@ const Dashboard = () => {
       >
         <div className="p-6 flex flex-col h-full">
           <div className="flex items-center gap-3 border-b border-gray-100 pb-6 mb-6">
-            <Avatar className="h-14 w-14 border-2 border-secondary">
-              <AvatarImage src={USER.avatar} alt={USER.name} />
-              <AvatarFallback>{USER.name.charAt(0)}</AvatarFallback>
+            <Avatar 
+              className="h-14 w-14 border-2 border-secondary cursor-pointer" 
+              onClick={() => navigate('/profile')}
+            >
+              <AvatarImage src={profile?.avatar_url || user?.user_metadata?.avatar_url} alt={profile?.display_name || user?.email} />
+              <AvatarFallback>{(profile?.display_name || user?.email || '').charAt(0)}</AvatarFallback>
             </Avatar>
             <div>
-              <h2 className="font-bold text-lg text-primary">{USER.name}</h2>
-              <p className="text-sm text-gray-500">{USER.email}</p>
+              <h2 className="font-bold text-lg text-primary">{profile?.display_name || profile?.first_name}</h2>
+              <p className="text-sm text-gray-500">{user?.email}</p>
             </div>
           </div>
           
@@ -279,10 +459,10 @@ const Dashboard = () => {
               <NavItem 
                 icon={Settings} 
                 label="الإعدادات" 
-                href="/dashboard" 
+                href="/profile" 
                 active={activeTab === 'settings'} 
                 onClick={() => {
-                  setActiveTab('settings');
+                  navigate('/profile');
                   isMobile && setSidebarOpen(false);
                 }} 
               />
@@ -293,6 +473,7 @@ const Dashboard = () => {
             <Button 
               variant="outline" 
               className="w-full flex items-center justify-center text-gray-600 hover:text-primary transition-colors"
+              onClick={handleLogout}
             >
               <LogOut size={18} className="ml-2" />
               <span>تسجيل الخروج</span>
@@ -309,7 +490,7 @@ const Dashboard = () => {
         <div className="container mx-auto px-4">
           <header className="mb-8 pt-4">
             <h1 className="text-3xl font-bold text-primary mb-2">لوحة التحكم</h1>
-            <p className="text-gray-600">اهلا بك {USER.name}، هنا يمك��ك متابعة تعلمك ومشترياتك</p>
+            <p className="text-gray-600">اهلا بك {profile?.display_name || profile?.first_name || user?.email}، هنا يمكنك متابعة تعلمك ومشترياتك</p>
           </header>
           
           <div className="bg-white rounded-xl shadow-sm p-6">
@@ -336,10 +517,10 @@ const Dashboard = () => {
               <TabsContent value="courses" className="animate-fade-in">
                 <h2 className="text-2xl font-bold mb-6 text-primary">دوراتي</h2>
                 
-                {ENROLLED_COURSES.length > 0 ? (
+                {enrolledCourses.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {ENROLLED_COURSES.map((course) => (
-                      <CourseCard key={course.id} course={course} />
+                    {enrolledCourses.map((course) => (
+                      <CourseCard key={course.id} course={course} onContinue={() => goToCoursePlayer(course.id)} />
                     ))}
                   </div>
                 ) : (
@@ -355,10 +536,10 @@ const Dashboard = () => {
               <TabsContent value="books" className="animate-fade-in">
                 <h2 className="text-2xl font-bold mb-6 text-primary">كتبي</h2>
                 
-                {PURCHASED_BOOKS.length > 0 ? (
+                {purchasedBooks.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {PURCHASED_BOOKS.map((book) => (
-                      <BookCard key={book.id} book={book} />
+                    {purchasedBooks.map((book) => (
+                      <BookCard key={book.id} book={book} onRead={() => goToBookReader(book.id)} />
                     ))}
                   </div>
                 ) : (
@@ -374,9 +555,9 @@ const Dashboard = () => {
               <TabsContent value="certificates" className="animate-fade-in">
                 <h2 className="text-2xl font-bold mb-6 text-primary">شهاداتي</h2>
                 
-                {CERTIFICATES.length > 0 ? (
+                {certificates.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {CERTIFICATES.map((cert) => (
+                    {certificates.map((cert) => (
                       <Card key={cert.id} className="overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all">
                         <CardHeader className="p-4 pb-0">
                           <div className="rounded-lg overflow-hidden mb-4 border border-gray-200">
@@ -671,10 +852,21 @@ const NavItem = ({ icon: Icon, label, href, active, onClick }: NavItemProps) => 
 );
 
 type CourseCardProps = {
-  course: typeof ENROLLED_COURSES[0];
+  course: {
+    id: string;
+    title: string;
+    image: string;
+    instructor: string;
+    progress: number;
+    totalLessons: number;
+    completedLessons: number;
+    lastAccessed: string;
+    certificate: boolean;
+  };
+  onContinue: () => void;
 };
 
-const CourseCard = ({ course }: CourseCardProps) => (
+const CourseCard = ({ course, onContinue }: CourseCardProps) => (
   <Card className="overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all">
     <div className="relative h-40 overflow-hidden">
       <img 
@@ -722,7 +914,10 @@ const CourseCard = ({ course }: CourseCardProps) => (
     </CardContent>
     
     <CardFooter className="p-4 pt-0">
-      <Button className="w-full bg-secondary hover:bg-secondary-light flex items-center justify-center">
+      <Button 
+        className="w-full bg-secondary hover:bg-secondary-light flex items-center justify-center"
+        onClick={onContinue}
+      >
         <Play size={18} className="ml-2" />
         {course.progress === 100 ? 'مراجعة الدورة' : 'متابعة التعلم'}
       </Button>
@@ -731,10 +926,19 @@ const CourseCard = ({ course }: CourseCardProps) => (
 );
 
 type BookCardProps = {
-  book: typeof PURCHASED_BOOKS[0];
+  book: {
+    id: string;
+    title: string;
+    cover: string;
+    author: string;
+    purchaseDate: string;
+    pages: number;
+    readPages: number;
+  };
+  onRead: () => void;
 };
 
-const BookCard = ({ book }: BookCardProps) => (
+const BookCard = ({ book, onRead }: BookCardProps) => (
   <Card className="overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all">
     <div className="flex">
       <div className="w-1/3 p-4">
@@ -775,6 +979,7 @@ const BookCard = ({ book }: BookCardProps) => (
       </Button>
       <Button 
         className="flex-1 bg-primary hover:bg-primary-light text-sm"
+        onClick={onRead}
       >
         متابعة القراءة
       </Button>

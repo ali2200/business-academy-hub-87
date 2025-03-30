@@ -175,7 +175,7 @@ const AdminSignIn = () => {
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <>
-                    <span>تسجيل دخول المسؤول</span>
+                    <span>تسجيل دخول</span>
                     <ArrowRight className="mr-2 h-4 w-4" />
                   </>
                 )}
