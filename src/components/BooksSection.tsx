@@ -1,10 +1,10 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Star, BookOpen } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { useContent } from "@/hooks/use-content";
 
 // Mock data for books
 const BOOKS = [
@@ -59,6 +59,22 @@ const BOOKS = [
 ];
 
 const BooksSection = () => {
+  const { content, loading } = useContent('books');
+  
+  // Default content
+  const defaultContent = {
+    title: 'أحدث الكتب المتخصصة',
+    subtitle: 'مجموعة مختارة من أفضل الكتب المتخصصة في مجالات البيزنس والمبيعات والتسويق',
+    button_text: 'عرض جميع الكتب',
+    badge_text: 'مكتبتنا'
+  };
+
+  // Merge default content with loaded content
+  const booksContent = {
+    ...defaultContent,
+    ...content
+  };
+
   // Observer for scroll animations
   React.useEffect(() => {
     const observer = new IntersectionObserver(
@@ -89,10 +105,10 @@ const BooksSection = () => {
       <div className="container mx-auto px-4">
         {/* Section header */}
         <div className="text-center mb-10 md:mb-16 reveal-on-scroll">
-          <Badge className="bg-primary/10 text-primary hover:bg-primary/20 mb-3 md:mb-4">مكتبتنا</Badge>
-          <h2 className="text-3xl md:text-4xl font-bold mb-4 md:mb-6">أحدث الكتب المتخصصة</h2>
+          <Badge className="bg-primary/10 text-primary hover:bg-primary/20 mb-3 md:mb-4">{booksContent.badge_text}</Badge>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4 md:mb-6">{booksContent.title}</h2>
           <p className="text-gray-600 max-w-3xl mx-auto text-sm md:text-base">
-            مجموعة مختارة من أفضل الكتب المتخصصة في مجالات البيزنس والمبيعات والتسويق
+            {booksContent.subtitle}
           </p>
         </div>
 
@@ -107,7 +123,7 @@ const BooksSection = () => {
         <div className="text-center mt-10 md:mt-16 reveal-on-scroll">
           <Link to="/books">
             <Button className="bg-primary hover:bg-primary-light text-white px-6 py-5 md:px-8 md:py-6 rounded-xl flex items-center space-x-2 rtl:space-x-reverse mx-auto shadow-lg hover:shadow-xl transition-all text-base md:text-lg">
-              <span>عرض جميع الكتب</span>
+              <span>{booksContent.button_text}</span>
               <ArrowLeft size={18} />
             </Button>
           </Link>
