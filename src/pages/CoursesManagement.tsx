@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -35,6 +36,7 @@ const CoursesManagement = () => {
         return;
       }
       
+      // استخدام أسماء الحاويات بدقة، مع الشرطة العادية "-"
       const courseImagesBucketExists = buckets?.some(bucket => bucket.id === 'course-images');
       const courseVideosBucketExists = buckets?.some(bucket => bucket.id === 'course-videos');
       
@@ -56,28 +58,31 @@ const CoursesManagement = () => {
     try {
       setIsCreatingBuckets(true);
       
-      const { data: imagesBucket, error: imagesError } = await supabase.storage.createBucket(
+      // إنشاء حاوية course-images مع الشرطة العادية "-"
+      const { data: coversBucket, error: coversError } = await supabase.storage.createBucket(
         'course-images', 
         { public: true }
       );
       
-      if (imagesError && !imagesError.message.includes('already exists')) {
-        console.error('Error creating course-images bucket:', imagesError);
+      if (coversError && !coversError.message.includes('already exists')) {
+        console.error('Error creating course-images bucket:', coversError);
         toast.error('فشل إنشاء حاوية صور الدورات');
         return;
       }
       
-      const { data: videosBucket, error: videosError } = await supabase.storage.createBucket(
+      // إنشاء حاوية course-videos مع الشرطة العادية "-"
+      const { data: filesBucket, error: filesError } = await supabase.storage.createBucket(
         'course-videos', 
         { public: true }
       );
       
-      if (videosError && !videosError.message.includes('already exists')) {
-        console.error('Error creating course-videos bucket:', videosError);
+      if (filesError && !filesError.message.includes('already exists')) {
+        console.error('Error creating course-videos bucket:', filesError);
         toast.error('فشل إنشاء حاوية فيديوهات الدورات');
         return;
       }
       
+      // تحديث الوصول العام للحاويات
       for (const bucketId of ['course-images', 'course-videos']) {
         const { error: policyError } = await supabase.storage.updateBucket(
           bucketId,
@@ -90,6 +95,7 @@ const CoursesManagement = () => {
       }
       
       toast.success('تم إنشاء حاويات التخزين بنجاح');
+      // إعادة التحقق من الحاويات
       await checkStorageBuckets();
     } catch (err) {
       console.error('Error creating storage buckets:', err);
@@ -100,9 +106,10 @@ const CoursesManagement = () => {
   };
   
   useEffect(() => {
+    // التحقق من وجود حاويات التخزين عند تحميل الصفحة
     checkStorageBuckets();
   }, []);
-  
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
