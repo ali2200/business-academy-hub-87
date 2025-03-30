@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Users, Clock, Award } from 'lucide-react';
@@ -35,16 +36,23 @@ const CoursesSection = () => {
   const [activeCategory, setActiveCategory] = useState('الكل');
   const [filteredCourses, setFilteredCourses] = useState<CourseData[]>([]);
 
-  // Fetch courses using React Query
+  // Fetch courses using React Query with explicit retry and cache config
   const { data: courses = [], isLoading, error } = useQuery({
     queryKey: ['publishedCourses'],
     queryFn: async () => {
+      console.log('Fetching published courses...');
       const { data, error } = await supabase
         .from('courses')
         .select('*')
-        .eq('status', 'published');
+        .eq('status', 'published')
+        .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching published courses:', error);
+        throw error;
+      }
+      
+      console.log('Fetched published courses:', data?.length || 0);
       
       if (data && data.length > 0) {
         // Format and enhance data with UI-specific properties
@@ -59,7 +67,10 @@ const CoursesSection = () => {
       // Fallback to empty array if no courses
       return [];
     },
-    refetchInterval: 60000, // Refetch every minute to keep data fresh
+    refetchInterval: 30000, // More frequent refetch - every 30 seconds
+    refetchOnWindowFocus: true, // Refetch when window gains focus
+    refetchOnMount: true, // Refetch when component mounts
+    staleTime: 10000, // Data becomes stale after 10 seconds
   });
 
   // Filter courses when active category or courses change
@@ -72,7 +83,19 @@ const CoursesSection = () => {
     if (activeCategory === 'الكل') {
       setFilteredCourses(courses);
     } else {
-      setFilteredCourses(courses.filter(course => course.category === activeCategory));
+      const categoryMap: {[key: string]: string} = {
+        'مبيعات': 'sales',
+        'تسويق': 'marketing',
+        'إدارة': 'business',
+        'ريادة أعمال': 'entrepreneurship',
+        'تطوير ذاتي': 'development'
+      };
+      
+      const categoryValue = categoryMap[activeCategory] || activeCategory;
+      setFilteredCourses(courses.filter(course => 
+        course.category === categoryValue || 
+        course.category === activeCategory
+      ));
     }
   }, [activeCategory, courses]);
 
@@ -224,7 +247,12 @@ const CourseCard = ({ course, index }: CourseCardProps) => {
         {/* Category */}
         <div className="absolute bottom-2 right-2">
           <span className="bg-white/80 backdrop-blur-md text-primary text-[10px] md:text-xs px-2 py-0.5 md:px-3 md:py-1 rounded-full">
-            {course.category || 'عام'}
+            {course.category === 'sales' ? 'مبيعات' :
+             course.category === 'marketing' ? 'تسويق' :
+             course.category === 'business' ? 'إدارة' :
+             course.category === 'entrepreneurship' ? 'ريادة أعمال' :
+             course.category === 'development' ? 'تطوير ذاتي' :
+             course.category || 'عام'}
           </span>
         </div>
       </div>
