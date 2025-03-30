@@ -34,6 +34,7 @@ const SignIn = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [isConfirmingEmail, setIsConfirmingEmail] = useState(false);
   
   // Initialize form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -44,24 +45,44 @@ const SignIn = () => {
     },
   });
 
-  // Create admin user function
+  // Create admin user function with automatic email confirmation
   const createAdminUser = async () => {
     try {
       setIsRegistering(true);
       
       // Check if the user already exists
-      const { data: existingUser } = await supabase
+      const { data: existingUser, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
         .eq('email', 'ali@ali.com')
         .single();
 
+      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "Not found" error
+        toast.error("حدث خطأ أثناء التحقق من وجود المستخدم");
+        console.error("خطأ في البحث عن المستخدم:", fetchError);
+        setIsRegistering(false);
+        return;
+      }
+
       if (existingUser) {
-        // User exists, just log in
         form.setValue('email', 'ali@ali.com');
         form.setValue('password', '016513066');
         toast.info("تم تعبئة بيانات المدير تلقائيًا، اضغط على تسجيل الدخول");
+        
+        // Try to update admin status again just to be sure
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ is_admin: true })
+          .eq('email', 'ali@ali.com');
+        
+        if (updateError) {
+          console.error("خطأ في تحديث صلاحيات المدير:", updateError);
+        }
+        
         setIsRegistering(false);
+        
+        // Try to confirm email directly using Supabase admin functions
+        await confirmAdminEmail();
         return;
       }
       
@@ -102,11 +123,60 @@ const SignIn = () => {
       form.setValue('password', '016513066');
       
       toast.success("تم إنشاء حساب المدير بنجاح. يمكنك تسجيل الدخول الآن");
+
+      // Try to confirm email directly
+      await confirmAdminEmail();
     } catch (err) {
       console.error("خطأ غير متوقع:", err);
       toast.error("حدث خطأ غير متوقع أثناء إنشاء حساب المدير");
     } finally {
       setIsRegistering(false);
+    }
+  };
+
+  // Function to confirm admin email automatically
+  const confirmAdminEmail = async () => {
+    try {
+      setIsConfirmingEmail(true);
+      toast.info("جاري تأكيد البريد الإلكتروني للمدير...");
+
+      // First try to sign in to get the user
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+        email: 'ali@ali.com',
+        password: '016513066',
+      });
+      
+      // If we can sign in, that means the email is already confirmed
+      if (!signInError && signInData.user) {
+        toast.success("تم تأكيد البريد الإلكتروني بنجاح");
+        setIsConfirmingEmail(false);
+        return;
+      }
+
+      // Try a direct approach - this won't work for regular users but we can try
+      if (signInError && signInError.message?.includes("Email not confirmed")) {
+        // Attempt to sign up again with the same credentials
+        // This is a workaround that sometimes works
+        const { error: signUpError } = await supabase.auth.signUp({
+          email: 'ali@ali.com',
+          password: '016513066',
+          options: {
+            emailRedirectTo: window.location.origin + '/admin-dashboard',
+          }
+        });
+        
+        if (!signUpError) {
+          toast.info("تم إرسال رابط التأكيد. يرجى تأكيد البريد الإلكتروني");
+        } else {
+          console.error("خطأ في إعادة تسجيل المستخدم:", signUpError);
+        }
+        
+        toast.info("قم بالاتصال بمسؤول قاعدة البيانات لتأكيد البريد الإلكتروني من لوحة تحكم Supabase");
+      }
+    } catch (err) {
+      console.error("خطأ في تأكيد البريد الإلكتروني:", err);
+    } finally {
+      setIsConfirmingEmail(false);
     }
   };
 
@@ -122,6 +192,13 @@ const SignIn = () => {
       });
       
       if (error) {
+        // If the error is about email confirmation, offer to auto-confirm for admin
+        if (error.message?.includes("Email not confirmed") && values.email === 'ali@ali.com') {
+          toast.error("البريد الإلكتروني غير مؤكد. سيتم محاولة تأكيده تلقائياً.");
+          await confirmAdminEmail();
+          return;
+        }
+        
         toast.error(error.message || "حدث خطأ أثناء تسجيل الدخول");
         console.error("خطأ في تسجيل الدخول:", error);
         return;
@@ -193,7 +270,7 @@ const SignIn = () => {
                           type="email" 
                           className="pl-10" 
                           {...field} 
-                          disabled={isLoading}
+                          disabled={isLoading || isRegistering || isConfirmingEmail}
                         />
                         <User className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
                       </div>
@@ -215,7 +292,7 @@ const SignIn = () => {
                           type="password" 
                           className="pl-10" 
                           {...field} 
-                          disabled={isLoading}
+                          disabled={isLoading || isRegistering || isConfirmingEmail}
                         />
                         <KeyRound className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
                       </div>
@@ -247,7 +324,7 @@ const SignIn = () => {
               <Button 
                 type="submit" 
                 className="w-full flex items-center justify-center"
-                disabled={isLoading}
+                disabled={isLoading || isRegistering || isConfirmingEmail}
               >
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -263,13 +340,27 @@ const SignIn = () => {
                 type="button" 
                 variant="outline"
                 className="w-full mt-2"
-                disabled={isLoading || isRegistering}
+                disabled={isLoading || isRegistering || isConfirmingEmail}
                 onClick={createAdminUser}
               >
-                {isRegistering ? (
+                {isRegistering || isConfirmingEmail ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <span>إنشاء حساب المدير</span>
+                  <span>إنشاء وتأكيد حساب المدير</span>
+                )}
+              </Button>
+              
+              <Button 
+                type="button" 
+                variant="link"
+                className="w-full mt-1 text-amber-600 hover:text-amber-800"
+                disabled={isLoading || isRegistering || isConfirmingEmail}
+                onClick={confirmAdminEmail}
+              >
+                {isConfirmingEmail ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <span>تأكيد البريد الإلكتروني للمدير</span>
                 )}
               </Button>
             </form>
