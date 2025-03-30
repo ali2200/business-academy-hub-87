@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -27,12 +26,12 @@ const BooksManagement = () => {
         return;
       }
       
-      // استخدم نفس أسماء الحاويات بدقة، مع علامة الشرطة
+      // استخدام نفس أسماء الحاويات بدقة، مع الشرطة العادية "-"
       const bookCoversBucketExists = buckets?.some(bucket => bucket.id === 'book-covers');
       const bookFilesBucketExists = buckets?.some(bucket => bucket.id === 'book-files');
       
       if (!bookCoversBucketExists || !bookFilesBucketExists) {
-        setStorageError('حاويات التخزين المطلوبة غير موجودة، يمكنك إنشاؤها تلقائياً');
+        setStorageError('حاويات التخزين المطلوبة غير موجودة، يجب إنشاء حاويات بأسماء: book-covers و book-files (مع الشرطة -)');
       } else {
         setStorageError(null);
         toast.success('تم التحقق من حاويات التخزين بنجاح');
@@ -49,7 +48,7 @@ const BooksManagement = () => {
     try {
       setIsCreatingBuckets(true);
       
-      // إنشاء حاوية book-covers إذا لم تكن موجودة
+      // إنشاء حاوية book-covers مع الشرطة العادية "-"
       const { data: coversBucket, error: coversError } = await supabase.storage.createBucket(
         'book-covers', 
         { public: true }
@@ -61,7 +60,7 @@ const BooksManagement = () => {
         return;
       }
       
-      // إنشاء حاوية book-files إذا لم تكن موجودة
+      // إنشاء حاوية book-files مع الشرطة العادية "-"
       const { data: filesBucket, error: filesError } = await supabase.storage.createBucket(
         'book-files', 
         { public: true }

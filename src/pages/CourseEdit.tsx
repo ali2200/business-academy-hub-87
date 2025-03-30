@@ -232,7 +232,6 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
     try {
       console.log('Trying to upload image to bucket: course-images');
       
-      // التحقق من وجود حاوية التخزين أولاً
       const { data: buckets, error: bucketsError } = await supabase.storage
         .listBuckets();
       
@@ -243,18 +242,15 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
       
       console.log('Available buckets:', buckets);
       
-      // التحقق مما إذا كانت حاوية course-images موجودة (بالضبط كما هو الاسم، مع مراعاة الحساسية لحالة الأحرف)
       const courseImagesBucketExists = buckets.some(bucket => bucket.id === 'course-images');
       
       if (!courseImagesBucketExists) {
         console.error('Error: course-images bucket does not exist');
-        toast.error('حاوية التخزين غير موجودة، يرجى التواصل مع مسؤول النظام');
-        toast.error('تأكد من إنشاء حاوية باسم course-images بالضبط (مع الشرطة وليس الشرطة السفلية)');
+        toast.error('حاوية التخزين غير موجودة، يرجى إنشاء حاوية باسم course-images (مع الشرطة - وليس _)');
         setUploadingImage(false);
         return;
       }
 
-      // رفع الملف إلى حاوية التخزين
       const { data, error } = await supabase.storage
         .from('course-images')
         .upload(filePath, file, {
@@ -300,7 +296,6 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
     try {
       console.log('Trying to upload file to bucket: course-videos');
       
-      // التحقق من وجود حاوية التخزين أولاً
       const { data: buckets, error: bucketsError } = await supabase.storage
         .listBuckets();
       
@@ -311,13 +306,11 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
       
       console.log('Available buckets:', buckets);
       
-      // التحقق مما إذا كانت حاوية course-videos موجودة (بالضبط كما هو الاسم، مع مراعاة الحساسية لحالة الأحرف)
       const courseVideosBucketExists = buckets.some(bucket => bucket.id === 'course-videos');
       
       if (!courseVideosBucketExists) {
         console.error('Error: course-videos bucket does not exist');
-        toast.error('حاوية التخزين غير موجودة، يرجى التواصل مع مسؤول النظام');
-        toast.error('تأكد من إنشاء حاوية باسم course-videos بالضبط (مع الشرطة وليس الشرطة السفلية)');
+        toast.error('حاوية التخزين غير موجودة، يرجى إنشاء حاوية باسم course-videos (مع الشرطة - وليس _)');
         setUploading(false);
         return;
       }

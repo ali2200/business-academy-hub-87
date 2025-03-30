@@ -39,7 +39,7 @@ const CoursesManagement = () => {
       const courseVideosBucketExists = buckets?.some(bucket => bucket.id === 'course-videos');
       
       if (!courseImagesBucketExists || !courseVideosBucketExists) {
-        setStorageError('حاويات التخزين المطلوبة غير موجودة، يمكنك إنشاؤها تلقائياً');
+        setStorageError('حاويات التخزين المطلوبة غير موجودة، يجب إنشاء حاويات بأسماء: course-images و course-videos (مع الشرطة -)');
       } else {
         setStorageError(null);
         toast.success('تم التحقق من حاويات التخزين بنجاح');
