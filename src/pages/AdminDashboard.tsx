@@ -1,13 +1,68 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { BookOpen, BookText, FileText, LayoutGrid, Image, Video, FileVideo, Users, Settings, ShoppingCart, Bell, User, LogOut, PenTool, Newspaper, BookOpen as BookIcon } from 'lucide-react';
-
+import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    const checkAdminStatus = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Get current auth session
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          toast.error("يجب تسجيل الدخول للوصول إلى لوحة التحكم");
+          navigate('/signin');
+          return;
+        }
+        
+        // Check if user is admin
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (error || !data?.is_admin) {
+          toast.error("ليس لديك صلاحية للوصول إلى لوحة التحكم");
+          navigate('/dashboard');
+          return;
+        }
+        
+        setIsAdmin(true);
+      } catch (err) {
+        console.error("Error checking admin status:", err);
+        toast.error("حدث خطأ أثناء التحقق من صلاحياتك");
+        navigate('/dashboard');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    checkAdminStatus();
+  }, [navigate]);
+  
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      localStorage.removeItem('user');
+      toast.success("تم تسجيل الخروج بنجاح");
+      navigate('/signin');
+    } catch (error) {
+      console.error("Error during logout:", error);
+      toast.error("حدث خطأ أثناء تسجيل الخروج");
+    }
+  };
   
   const stats = [
     { label: 'إجمالي المبيعات', value: '14,560 ج.م', percentage: '+12%', trend: 'up' },
@@ -92,6 +147,21 @@ const AdminDashboard = () => {
     },
   ];
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-4"></div>
+          <p className="text-gray-600">جاري التحميل...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return null; // Will redirect in useEffect
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Admin Header */}
@@ -112,7 +182,11 @@ const AdminDashboard = () => {
             <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
               <User className="h-5 w-5 text-gray-600" />
             </Button>
-            <Button variant="ghost" className="flex items-center gap-2 text-red-600">
+            <Button 
+              variant="ghost" 
+              className="flex items-center gap-2 text-red-600"
+              onClick={handleLogout}
+            >
               <LogOut className="h-5 w-5" />
               <span>تسجيل الخروج</span>
             </Button>

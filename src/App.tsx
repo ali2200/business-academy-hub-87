@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from "sonner";
 import Index from "@/pages/Index";
 import Courses from "@/pages/Courses";
@@ -22,12 +22,44 @@ import AdminCoursePlayer from "@/pages/AdminCoursePlayer";
 import CourseEdit from "@/pages/CourseEdit";
 import CoursesManagement from "@/pages/CoursesManagement";
 import BooksManagement from "@/pages/BooksManagement";
+import AdminRoute from "@/components/AdminRoute";
+import { supabase } from "@/integrations/supabase/client";
 
 function App() {
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  
+  useEffect(() => {
+    // Check authentication status on load and session changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsAuthenticated(!!session);
+    });
+
+    // Initial session check
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAuthenticated(!!session);
+    });
+
+    // Clean up subscription
+    return () => subscription.unsubscribe();
+  }, []);
 
   const toggleTheme = () => {
     setTheme(theme === 'light' ? 'dark' : 'light');
+  };
+
+  // Route that requires authentication
+  const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+    if (isAuthenticated === null) {
+      // Still checking auth status
+      return <div className="min-h-screen flex items-center justify-center">جاري التحميل...</div>;
+    }
+    
+    if (!isAuthenticated) {
+      return <Navigate to="/signin" />;
+    }
+    
+    return <>{children}</>;
   };
 
   return (
@@ -48,33 +80,87 @@ function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
-          <Route path="/dashboard" element={<Dashboard />} />
+          
+          {/* Protected User Routes */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
           
           {/* Admin Routes */}
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          <Route path="/admin-dashboard" element={
+            <AdminRoute>
+              <AdminDashboard />
+            </AdminRoute>
+          } />
           
           {/* Content Management Routes - now only for website content */}
-          <Route path="/content-management" element={<ContentManagement />} />
-          <Route path="/content-management/:tab" element={<ContentManagement />} />
+          <Route path="/content-management" element={
+            <AdminRoute>
+              <ContentManagement />
+            </AdminRoute>
+          } />
+          <Route path="/content-management/:tab" element={
+            <AdminRoute>
+              <ContentManagement />
+            </AdminRoute>
+          } />
           
           {/* Courses management routes */}
-          <Route path="/courses-management" element={<CoursesManagement />} />
-          <Route path="/courses-management/create" element={<CourseEdit />} />
-          <Route path="/courses-management/:id" element={<CourseEdit />} />
-          <Route path="/courses-management/:id/lessons" element={<CourseEdit defaultTab="lessons" />} />
-          <Route path="/admin-course-player/:id" element={<AdminCoursePlayer />} />
+          <Route path="/courses-management" element={
+            <AdminRoute>
+              <CoursesManagement />
+            </AdminRoute>
+          } />
+          <Route path="/courses-management/create" element={
+            <AdminRoute>
+              <CourseEdit />
+            </AdminRoute>
+          } />
+          <Route path="/courses-management/:id" element={
+            <AdminRoute>
+              <CourseEdit />
+            </AdminRoute>
+          } />
+          <Route path="/courses-management/:id/lessons" element={
+            <AdminRoute>
+              <CourseEdit defaultTab="lessons" />
+            </AdminRoute>
+          } />
+          <Route path="/admin-course-player/:id" element={
+            <AdminRoute>
+              <AdminCoursePlayer />
+            </AdminRoute>
+          } />
           
           {/* Books management routes */}
-          <Route path="/books-management" element={<BooksManagement />} />
+          <Route path="/books-management" element={
+            <AdminRoute>
+              <BooksManagement />
+            </AdminRoute>
+          } />
           
           {/* Media management routes */}
-          <Route path="/media-management" element={<ContentManagement tab="media" />} />
+          <Route path="/media-management" element={
+            <AdminRoute>
+              <ContentManagement tab="media" />
+            </AdminRoute>
+          } />
           
           {/* Pages management routes */}
-          <Route path="/pages-management" element={<ContentManagement tab="pages" />} />
+          <Route path="/pages-management" element={
+            <AdminRoute>
+              <ContentManagement tab="pages" />
+            </AdminRoute>
+          } />
           
           {/* Articles management routes */}
-          <Route path="/articles-management" element={<ContentManagement tab="articles" />} />
+          <Route path="/articles-management" element={
+            <AdminRoute>
+              <ContentManagement tab="articles" />
+            </AdminRoute>
+          } />
           
           {/* 404 Page */}
           <Route path="*" element={<NotFound />} />
