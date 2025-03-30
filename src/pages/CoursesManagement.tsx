@@ -10,7 +10,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
-import { FileText, Video, AlertCircle, RefreshCw } from 'lucide-react';
+import { FileText, Video, AlertCircle, RefreshCw, Plus } from 'lucide-react';
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ const CoursesManagement = () => {
   const params = useParams();
   const [storageError, setStorageError] = useState<string | null>(null);
   const [isCheckingStorage, setIsCheckingStorage] = useState(true);
+  const [isCreatingBuckets, setIsCreatingBuckets] = useState(false);
   
   const checkStorageBuckets = async () => {
     try {
@@ -35,11 +36,11 @@ const CoursesManagement = () => {
         return;
       }
       
-      const courseImagesBucketExists = buckets.some(bucket => bucket.id === 'course-images');
-      const courseVideosBucketExists = buckets.some(bucket => bucket.id === 'course-videos');
+      const courseImagesBucketExists = buckets?.some(bucket => bucket.id === 'course-images');
+      const courseVideosBucketExists = buckets?.some(bucket => bucket.id === 'course-videos');
       
       if (!courseImagesBucketExists || !courseVideosBucketExists) {
-        setStorageError('حاويات التخزين المطلوبة غير موجودة، يرجى التواصل مع مسؤول النظام لإنشائها');
+        setStorageError('حاويات التخزين المطلوبة غير موجودة، يمكنك إنشاؤها تلقائياً');
       } else {
         setStorageError(null);
         toast.success('تم التحقق من حاويات التخزين بنجاح');
@@ -49,6 +50,57 @@ const CoursesManagement = () => {
       setStorageError('حدث خطأ غير متوقع أثناء التحقق من حاويات التخزين');
     } finally {
       setIsCheckingStorage(false);
+    }
+  };
+
+  const createStorageBuckets = async () => {
+    try {
+      setIsCreatingBuckets(true);
+      
+      // Create course-images bucket if it doesn't exist
+      const { data: imagesBucket, error: imagesError } = await supabase.storage.createBucket(
+        'course-images', 
+        { public: true }
+      );
+      
+      if (imagesError && !imagesError.message.includes('already exists')) {
+        console.error('Error creating course-images bucket:', imagesError);
+        toast.error('فشل إنشاء حاوية صور الدورات');
+        return;
+      }
+      
+      // Create course-videos bucket if it doesn't exist
+      const { data: videosBucket, error: videosError } = await supabase.storage.createBucket(
+        'course-videos', 
+        { public: true }
+      );
+      
+      if (videosError && !videosError.message.includes('already exists')) {
+        console.error('Error creating course-videos bucket:', videosError);
+        toast.error('فشل إنشاء حاوية فيديوهات الدورات');
+        return;
+      }
+      
+      // Update public access for buckets
+      for (const bucketId of ['course-images', 'course-videos']) {
+        const { error: policyError } = await supabase.storage.updateBucket(
+          bucketId,
+          { public: true }
+        );
+        
+        if (policyError) {
+          console.error(`Error updating policy for ${bucketId}:`, policyError);
+        }
+      }
+      
+      toast.success('تم إنشاء حاويات التخزين بنجاح');
+      // Re-check buckets
+      await checkStorageBuckets();
+    } catch (err) {
+      console.error('Error creating storage buckets:', err);
+      toast.error('حدث خطأ أثناء إنشاء حاويات التخزين');
+    } finally {
+      setIsCreatingBuckets(false);
     }
   };
   
@@ -67,14 +119,25 @@ const CoursesManagement = () => {
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>تنبيه!</AlertTitle>
               </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={checkStorageBuckets}
-                disabled={isCheckingStorage}
-              >
-                <RefreshCw className={`h-4 w-4 ${isCheckingStorage ? 'animate-spin' : ''}`} />
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={createStorageBuckets}
+                  disabled={isCreatingBuckets}
+                >
+                  <Plus className="h-4 w-4 ml-1" />
+                  {isCreatingBuckets ? 'جاري الإنشاء...' : 'إنشاء الحاويات'}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={checkStorageBuckets}
+                  disabled={isCheckingStorage}
+                >
+                  <RefreshCw className={`h-4 w-4 ${isCheckingStorage ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
             </div>
             <AlertDescription className="mt-2">
               {storageError}
@@ -95,7 +158,7 @@ const CoursesManagement = () => {
                     <Button
                       onClick={() => navigate('/courses-management/create')}
                       className="flex items-center gap-2"
-                      disabled={!!storageError}
+                      disabled={!!storageError && !isCreatingBuckets}
                     >
                       إضافة دورة جديدة
                     </Button>

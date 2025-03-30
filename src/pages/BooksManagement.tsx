@@ -1,15 +1,141 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import AdminBooksList from '@/components/AdminBooksList';
+import { AlertCircle, RefreshCw, Plus } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const BooksManagement = () => {
   const navigate = useNavigate();
+  const [storageError, setStorageError] = useState<string | null>(null);
+  const [isCheckingStorage, setIsCheckingStorage] = useState(true);
+  const [isCreatingBuckets, setIsCreatingBuckets] = useState(false);
+  
+  const checkStorageBuckets = async () => {
+    try {
+      setIsCheckingStorage(true);
+      const { data: buckets, error } = await supabase.storage.listBuckets();
+      
+      console.log('Available buckets:', buckets);
+      
+      if (error) {
+        console.error('Error checking storage buckets:', error);
+        setStorageError('حدث خطأ أثناء التحقق من حاويات التخزين');
+        return;
+      }
+      
+      const bookCoversBucketExists = buckets?.some(bucket => bucket.id === 'book-covers');
+      const bookFilesBucketExists = buckets?.some(bucket => bucket.id === 'book-files');
+      
+      if (!bookCoversBucketExists || !bookFilesBucketExists) {
+        setStorageError('حاويات التخزين المطلوبة غير موجودة، يمكنك إنشاؤها تلقائياً');
+      } else {
+        setStorageError(null);
+        toast.success('تم التحقق من حاويات التخزين بنجاح');
+      }
+    } catch (err) {
+      console.error('Unexpected error checking storage:', err);
+      setStorageError('حدث خطأ غير متوقع أثناء التحقق من حاويات التخزين');
+    } finally {
+      setIsCheckingStorage(false);
+    }
+  };
+
+  const createStorageBuckets = async () => {
+    try {
+      setIsCreatingBuckets(true);
+      
+      // Create book-covers bucket if it doesn't exist
+      const { data: coversBucket, error: coversError } = await supabase.storage.createBucket(
+        'book-covers', 
+        { public: true }
+      );
+      
+      if (coversError && !coversError.message.includes('already exists')) {
+        console.error('Error creating book-covers bucket:', coversError);
+        toast.error('فشل إنشاء حاوية أغلفة الكتب');
+        return;
+      }
+      
+      // Create book-files bucket if it doesn't exist
+      const { data: filesBucket, error: filesError } = await supabase.storage.createBucket(
+        'book-files', 
+        { public: true }
+      );
+      
+      if (filesError && !filesError.message.includes('already exists')) {
+        console.error('Error creating book-files bucket:', filesError);
+        toast.error('فشل إنشاء حاوية ملفات الكتب');
+        return;
+      }
+      
+      // Update public access for buckets
+      for (const bucketId of ['book-covers', 'book-files']) {
+        const { error: policyError } = await supabase.storage.updateBucket(
+          bucketId,
+          { public: true }
+        );
+        
+        if (policyError) {
+          console.error(`Error updating policy for ${bucketId}:`, policyError);
+        }
+      }
+      
+      toast.success('تم إنشاء حاويات التخزين بنجاح');
+      // Re-check buckets
+      await checkStorageBuckets();
+    } catch (err) {
+      console.error('Error creating storage buckets:', err);
+      toast.error('حدث خطأ أثناء إنشاء حاويات التخزين');
+    } finally {
+      setIsCreatingBuckets(false);
+    }
+  };
+  
+  useEffect(() => {
+    // التحقق من وجود حاويات التخزين عند تحميل الصفحة
+    checkStorageBuckets();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
+        {storageError && (
+          <Alert variant="destructive" className="mb-4">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>تنبيه!</AlertTitle>
+              </div>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={createStorageBuckets}
+                  disabled={isCreatingBuckets}
+                >
+                  <Plus className="h-4 w-4 ml-1" />
+                  {isCreatingBuckets ? 'جاري الإنشاء...' : 'إنشاء الحاويات'}
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={checkStorageBuckets}
+                  disabled={isCheckingStorage}
+                >
+                  <RefreshCw className={`h-4 w-4 ${isCheckingStorage ? 'animate-spin' : ''}`} />
+                </Button>
+              </div>
+            </div>
+            <AlertDescription className="mt-2">
+              {storageError}
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <header className="mb-8">
           <div className="flex justify-between items-center">
             <div>
