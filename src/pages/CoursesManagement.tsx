@@ -36,12 +36,15 @@ const CoursesManagement = () => {
         return;
       }
       
-      // استخدام أسماء الحاويات بدقة، مع الشرطة العادية "-"
-      const courseImagesBucketExists = buckets?.some(bucket => bucket.id === 'course-images');
-      const courseVideosBucketExists = buckets?.some(bucket => bucket.id === 'course-videos');
+      // التحقق من وجود الحاويات المطلوبة (باستخدام الأسماء الموجودة في سوبربيز)
+      const courseImagesBucketExists = buckets?.some(bucket => 
+        bucket.id === 'course_images' || bucket.id === 'Course Images');
+      
+      const courseVideosBucketExists = buckets?.some(bucket => 
+        bucket.id === 'course_videos' || bucket.id === 'Course Videos');
       
       if (!courseImagesBucketExists || !courseVideosBucketExists) {
-        setStorageError('حاويات التخزين المطلوبة غير موجودة، يجب إنشاء حاويات بأسماء: course-images و course-videos (مع الشرطة -)');
+        setStorageError('حاويات التخزين المطلوبة غير موجودة، يجب التأكد من وجود حاويات لصور وفيديوهات الدورات');
       } else {
         setStorageError(null);
         toast.success('تم التحقق من حاويات التخزين بنجاح');
@@ -58,32 +61,32 @@ const CoursesManagement = () => {
     try {
       setIsCreatingBuckets(true);
       
-      // إنشاء حاوية course-images مع الشرطة العادية "-"
+      // إنشاء حاوية course_images (باستخدام الشرطة السفلية)
       const { data: coversBucket, error: coversError } = await supabase.storage.createBucket(
-        'course-images', 
+        'course_images', 
         { public: true }
       );
       
       if (coversError && !coversError.message.includes('already exists')) {
-        console.error('Error creating course-images bucket:', coversError);
+        console.error('Error creating course_images bucket:', coversError);
         toast.error('فشل إنشاء حاوية صور الدورات');
         return;
       }
       
-      // إنشاء حاوية course-videos مع الشرطة العادية "-"
+      // إنشاء حاوية course_videos (باستخدام الشرطة السفلية)
       const { data: filesBucket, error: filesError } = await supabase.storage.createBucket(
-        'course-videos', 
+        'course_videos', 
         { public: true }
       );
       
       if (filesError && !filesError.message.includes('already exists')) {
-        console.error('Error creating course-videos bucket:', filesError);
+        console.error('Error creating course_videos bucket:', filesError);
         toast.error('فشل إنشاء حاوية فيديوهات الدورات');
         return;
       }
       
       // تحديث الوصول العام للحاويات
-      for (const bucketId of ['course-images', 'course-videos']) {
+      for (const bucketId of ['course_images', 'course_videos']) {
         const { error: policyError } = await supabase.storage.updateBucket(
           bucketId,
           { public: true }

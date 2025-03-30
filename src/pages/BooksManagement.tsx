@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -26,12 +27,14 @@ const BooksManagement = () => {
         return;
       }
       
-      // استخدام نفس أسماء الحاويات بدقة، مع الشرطة العادية "-"
-      const bookCoversBucketExists = buckets?.some(bucket => bucket.id === 'book-covers');
-      const bookFilesBucketExists = buckets?.some(bucket => bucket.id === 'book-files');
+      // التحقق من وجود الحاويات المطلوبة (باستخدام الأسماء الموجودة في سوبربيز)
+      const bookCoversBucketExists = buckets?.some(bucket => 
+        bucket.id === 'book_covers' || bucket.id === 'Book Covers');
+      const bookFilesBucketExists = buckets?.some(bucket => 
+        bucket.id === 'book_files' || bucket.id === 'Book Files');
       
       if (!bookCoversBucketExists || !bookFilesBucketExists) {
-        setStorageError('حاويات التخزين المطلوبة غير موجودة، يجب إنشاء حاويات بأسماء: book-covers و book-files (مع الشرطة -)');
+        setStorageError('حاويات التخزين المطلوبة غير موجودة، يجب التأكد من وجود حاويات لأغلفة وملفات الكتب');
       } else {
         setStorageError(null);
         toast.success('تم التحقق من حاويات التخزين بنجاح');
@@ -48,32 +51,32 @@ const BooksManagement = () => {
     try {
       setIsCreatingBuckets(true);
       
-      // إنشاء حاوية book-covers مع الشرطة العادية "-"
+      // إنشاء حاوية book_covers (باستخدام الشرطة السفلية)
       const { data: coversBucket, error: coversError } = await supabase.storage.createBucket(
-        'book-covers', 
+        'book_covers', 
         { public: true }
       );
       
       if (coversError && !coversError.message.includes('already exists')) {
-        console.error('Error creating book-covers bucket:', coversError);
+        console.error('Error creating book_covers bucket:', coversError);
         toast.error('فشل إنشاء حاوية أغلفة الكتب');
         return;
       }
       
-      // إنشاء حاوية book-files مع الشرطة العادية "-"
+      // إنشاء حاوية book_files (باستخدام الشرطة السفلية)
       const { data: filesBucket, error: filesError } = await supabase.storage.createBucket(
-        'book-files', 
+        'book_files', 
         { public: true }
       );
       
       if (filesError && !filesError.message.includes('already exists')) {
-        console.error('Error creating book-files bucket:', filesError);
+        console.error('Error creating book_files bucket:', filesError);
         toast.error('فشل إنشاء حاوية ملفات الكتب');
         return;
       }
       
       // تحديث الوصول العام للحاويات
-      for (const bucketId of ['book-covers', 'book-files']) {
+      for (const bucketId of ['book_covers', 'book_files']) {
         const { error: policyError } = await supabase.storage.updateBucket(
           bucketId,
           { public: true }

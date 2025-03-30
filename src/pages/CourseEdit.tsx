@@ -230,7 +230,7 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
     setUploadingImage(true);
 
     try {
-      console.log('Trying to upload image to bucket: course-images');
+      console.log('Trying to upload image to bucket: course_images');
       
       const { data: buckets, error: bucketsError } = await supabase.storage
         .listBuckets();
@@ -242,17 +242,27 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
       
       console.log('Available buckets:', buckets);
       
-      const courseImagesBucketExists = buckets.some(bucket => bucket.id === 'course-images');
+      const courseImagesBucketExists = buckets.some(bucket => 
+        bucket.id === 'course_images' || bucket.id === 'Course Images');
+      
+      let bucketName = 'course_images';
+      if (courseImagesBucketExists) {
+        const foundBucket = buckets.find(bucket => 
+          bucket.id === 'course_images' || bucket.id === 'Course Images');
+        if (foundBucket) {
+          bucketName = foundBucket.id;
+        }
+      }
       
       if (!courseImagesBucketExists) {
-        console.error('Error: course-images bucket does not exist');
-        toast.error('حاوية التخزين غير موجودة، يرجى إنشاء حاوية باسم course-images (مع الشرطة - وليس _)');
+        console.error('Error: course images bucket does not exist');
+        toast.error('حاوية تخزين الصور غير موجودة، يرجى إنشاء حاوية لصور الدورات من صفحة إدارة الدورات');
         setUploadingImage(false);
         return;
       }
 
       const { data, error } = await supabase.storage
-        .from('course-images')
+        .from(bucketName)
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false
@@ -266,7 +276,7 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
       }
 
       const { data: { publicUrl } } = supabase.storage
-        .from('course-images')
+        .from(bucketName)
         .getPublicUrl(filePath);
 
       setImageUrl(publicUrl);
@@ -294,7 +304,7 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
     setUploading(true);
 
     try {
-      console.log('Trying to upload file to bucket: course-videos');
+      console.log('Trying to upload file to bucket: course_videos');
       
       const { data: buckets, error: bucketsError } = await supabase.storage
         .listBuckets();
@@ -306,17 +316,27 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
       
       console.log('Available buckets:', buckets);
       
-      const courseVideosBucketExists = buckets.some(bucket => bucket.id === 'course-videos');
+      const courseVideosBucketExists = buckets.some(bucket => 
+        bucket.id === 'course_videos' || bucket.id === 'Course Videos');
+      
+      let bucketName = 'course_videos';
+      if (courseVideosBucketExists) {
+        const foundBucket = buckets.find(bucket => 
+          bucket.id === 'course_videos' || bucket.id === 'Course Videos');
+        if (foundBucket) {
+          bucketName = foundBucket.id;
+        }
+      }
       
       if (!courseVideosBucketExists) {
-        console.error('Error: course-videos bucket does not exist');
-        toast.error('حاوية التخزين غير موجودة، يرجى إنشاء حاوية باسم course-videos (مع الشرطة - وليس _)');
+        console.error('Error: course videos bucket does not exist');
+        toast.error('حاوية تخزين الفيديوهات غير موجودة، يرجى إنشاء حاوية لفيديوهات الدورات من صفحة إدارة الدورات');
         setUploading(false);
         return;
       }
 
       const { data, error } = await supabase.storage
-        .from('course-videos')
+        .from(bucketName)
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false
@@ -330,7 +350,7 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
       }
 
       const { data: { publicUrl } } = supabase.storage
-        .from('course-videos')
+        .from(bucketName)
         .getPublicUrl(filePath);
 
       setFileUrl(publicUrl);
