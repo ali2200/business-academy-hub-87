@@ -5,12 +5,23 @@ import { BookOpen, BookText, FileText, LayoutGrid, Image, Video, FileVideo, User
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
+  const [userAvatar, setUserAvatar] = useState('');
   
   useEffect(() => {
     const checkAdminStatus = async () => {
@@ -26,10 +37,12 @@ const AdminDashboard = () => {
           return;
         }
         
+        setUserEmail(session.user.email || '');
+        
         // Check if user is admin
         const { data, error } = await supabase
           .from('profiles')
-          .select('is_admin')
+          .select('is_admin, display_name, first_name, last_name, avatar_url')
           .eq('id', session.user.id)
           .single();
         
@@ -40,6 +53,8 @@ const AdminDashboard = () => {
         }
         
         setIsAdmin(true);
+        setUserName(data.display_name || `${data.first_name || ''} ${data.last_name || ''}`);
+        setUserAvatar(data.avatar_url || '');
       } catch (err) {
         console.error("Error checking admin status:", err);
         toast.error("حدث خطأ أثناء التحقق من صلاحياتك");
@@ -179,17 +194,44 @@ const AdminDashboard = () => {
             <Button variant="ghost" size="icon">
               <Bell className="h-5 w-5 text-gray-600" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => navigate('/')}>
-              <User className="h-5 w-5 text-gray-600" />
-            </Button>
-            <Button 
-              variant="ghost" 
-              className="flex items-center gap-2 text-red-600"
-              onClick={handleLogout}
-            >
-              <LogOut className="h-5 w-5" />
-              <span>تسجيل الخروج</span>
-            </Button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="rounded-full h-9 w-9 relative">
+                  {userAvatar ? (
+                    <img src={userAvatar} alt={userName} className="h-9 w-9 rounded-full object-cover" />
+                  ) : (
+                    <User className="h-5 w-5 text-gray-600" />
+                  )}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel>
+                  <div className="flex flex-col space-y-1">
+                    <p className="font-medium text-sm">{userName}</p>
+                    <p className="text-xs text-gray-500">{userEmail}</p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => navigate('/')}>
+                  <LayoutGrid className="h-4 w-4 ml-2" />
+                  <span>الموقع الرئيسي</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/dashboard')}>
+                  <User className="h-4 w-4 ml-2" />
+                  <span>لوحة تحكم المستخدم</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => navigate('/profile')}>
+                  <Settings className="h-4 w-4 ml-2" />
+                  <span>إدارة الملف الشخصي</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-red-600 hover:text-red-700 hover:bg-red-50">
+                  <LogOut className="h-4 w-4 ml-2" />
+                  <span>تسجيل الخروج</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>

@@ -14,6 +14,7 @@ import Contact from "@/pages/Contact";
 import SignIn from "@/pages/SignIn";
 import SignUp from "@/pages/SignUp";
 import Dashboard from "@/pages/Dashboard";
+import UserProfile from "@/pages/UserProfile";
 import NotFound from "@/pages/NotFound";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import AdminDashboard from "@/pages/AdminDashboard";
@@ -85,6 +86,11 @@ function App() {
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/profile" element={
+            <ProtectedRoute>
+              <UserProfile />
             </ProtectedRoute>
           } />
           
