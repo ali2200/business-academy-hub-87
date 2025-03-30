@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -33,6 +33,7 @@ const formSchema = z.object({
 const SignIn = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
   
   // Initialize form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -42,6 +43,72 @@ const SignIn = () => {
       password: "",
     },
   });
+
+  // Create admin user function
+  const createAdminUser = async () => {
+    try {
+      setIsRegistering(true);
+      
+      // Check if the user already exists
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('email', 'ali@ali.com')
+        .single();
+
+      if (existingUser) {
+        // User exists, just log in
+        form.setValue('email', 'ali@ali.com');
+        form.setValue('password', '016513066');
+        toast.info("تم تعبئة بيانات المدير تلقائيًا، اضغط على تسجيل الدخول");
+        setIsRegistering(false);
+        return;
+      }
+      
+      // Register the admin user
+      const { data, error } = await supabase.auth.signUp({
+        email: 'ali@ali.com',
+        password: '016513066',
+        options: {
+          data: {
+            first_name: 'Ali',
+            last_name: 'Admin',
+            is_admin: true,
+          }
+        }
+      });
+      
+      if (error) {
+        toast.error(error.message || "حدث خطأ أثناء تسجيل حساب المدير");
+        console.error("خطأ في تسجيل حساب المدير:", error);
+        setIsRegistering(false);
+        return;
+      }
+      
+      // Set admin status directly in profiles table
+      if (data?.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ is_admin: true })
+          .eq('id', data.user.id);
+          
+        if (profileError) {
+          console.error("خطأ في تحديث صلاحيات المدير:", profileError);
+        }
+      }
+      
+      // Auto-fill credentials
+      form.setValue('email', 'ali@ali.com');
+      form.setValue('password', '016513066');
+      
+      toast.success("تم إنشاء حساب المدير بنجاح. يمكنك تسجيل الدخول الآن");
+    } catch (err) {
+      console.error("خطأ غير متوقع:", err);
+      toast.error("حدث خطأ غير متوقع أثناء إنشاء حساب المدير");
+    } finally {
+      setIsRegistering(false);
+    }
+  };
 
   // Form submission handler
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -189,6 +256,20 @@ const SignIn = () => {
                     <span>تسجيل الدخول</span>
                     <ArrowRight className="mr-2 h-4 w-4" />
                   </>
+                )}
+              </Button>
+              
+              <Button 
+                type="button" 
+                variant="outline"
+                className="w-full mt-2"
+                disabled={isLoading || isRegistering}
+                onClick={createAdminUser}
+              >
+                {isRegistering ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <span>إنشاء حساب المدير</span>
                 )}
               </Button>
             </form>
