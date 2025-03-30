@@ -1,123 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Star, BookOpen, Filter } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { Search, Star, BookOpen, Filter, Loader2 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Slider } from "@/components/ui/slider";
-
-// Mock data for books
-const BOOKS = [
-  {
-    id: 1,
-    title: 'أسرار البيع الناجح',
-    author: 'د. أحمد محمد',
-    cover: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=1974&auto=format&fit=crop',
-    price: 199,
-    rating: 4.8,
-    reviewCount: 124,
-    description: 'كتاب شامل يكشف أسرار وتقنيات البيع الاحترافي ومهارات الإقناع والتفاوض',
-    pages: 280,
-    category: 'مبيعات',
-    isBestseller: true
-  },
-  {
-    id: 2,
-    title: 'استراتيجيات التسويق الحديثة',
-    author: 'م. سارة أحمد',
-    cover: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?q=80&w=2730&auto=format&fit=crop',
-    price: 229,
-    rating: 4.6,
-    reviewCount: 87,
-    description: 'دليلك الشامل لاستراتيجيات التسويق الرقمي والتقليدي لنمو الأعمال في السوق المصري',
-    pages: 320,
-    category: 'تسويق',
-    isNew: true
-  },
-  {
-    id: 3,
-    title: 'من الصفر إلى المليون',
-    author: 'م. محمد علي',
-    cover: 'https://images.unsplash.com/photo-1589998059171-988d887df646?q=80&w=1776&auto=format&fit=crop',
-    price: 249,
-    rating: 4.9,
-    reviewCount: 156,
-    description: 'رحلة من الصفر لبناء مشروع ناجح وتحقيق الثروة في السوق المصري',
-    pages: 350,
-    category: 'ريادة أعمال',
-    isBestseller: true
-  },
-  {
-    id: 4,
-    title: 'قواعد الإدارة الناجحة',
-    author: 'د. أمير حسن',
-    cover: 'https://images.unsplash.com/photo-1585521551452-b228136cc626?q=80&w=1974&auto=format&fit=crop',
-    price: 179,
-    rating: 4.5,
-    reviewCount: 68,
-    description: 'كتاب يشرح أسس ومبادئ الإدارة الناجحة وكيفية تطبيقها في الشركات والمؤسسات',
-    pages: 240,
-    category: 'إدارة',
-    isNew: true
-  },
-  {
-    id: 5,
-    title: 'فن التفاوض في عالم الأعمال',
-    author: 'د. سامي حسن',
-    cover: 'https://images.unsplash.com/photo-1495446815901-a7297e633e8d?q=80&w=2070&auto=format&fit=crop',
-    price: 159,
-    rating: 4.7,
-    reviewCount: 93,
-    description: 'تعلم أساسيات وتقنيات التفاوض الناجح في مختلف المواقف التجارية',
-    pages: 220,
-    category: 'مبيعات',
-    isBestseller: true
-  },
-  {
-    id: 6,
-    title: 'إدارة المشاريع الصغيرة',
-    author: 'م. خالد أحمد',
-    cover: 'https://images.unsplash.com/photo-1535905557558-afc4877a26fc?q=80&w=1974&auto=format&fit=crop',
-    price: 189,
-    rating: 4.4,
-    reviewCount: 57,
-    description: 'دليل عملي لإدارة المشاريع الصغيرة من الفكرة إلى التنفيذ والنجاح',
-    pages: 260,
-    category: 'ريادة أعمال',
-    isNew: true
-  },
-  {
-    id: 7,
-    title: 'أسرار التسويق الرقمي',
-    author: 'د. سارة أحمد',
-    cover: 'https://images.unsplash.com/photo-1618365908648-e71bd5716cba?q=80&w=2070&auto=format&fit=crop',
-    price: 219,
-    rating: 4.9,
-    reviewCount: 112,
-    description: 'دليلك الشامل للتسويق الرقمي عبر مختلف المنصات بخطوات عملية واضحة',
-    pages: 310,
-    category: 'تسويق',
-    isBestseller: true
-  },
-  {
-    id: 8,
-    title: 'كيف تبني علامة تجارية ناجحة',
-    author: 'أ. هاني محمود',
-    cover: 'https://images.unsplash.com/photo-1519811170192-85eacae209da?q=80&w=2070&auto=format&fit=crop',
-    price: 239,
-    rating: 4.6,
-    reviewCount: 78,
-    description: 'خطوات بناء علامة تجارية قوية ومؤثرة في السوق من الصفر',
-    pages: 290,
-    category: 'تسويق',
-    isNew: true
-  }
-];
+import { supabase } from "@/integrations/supabase/client";
 
 // Categories
 const CATEGORIES = ['الكل', 'مبيعات', 'تسويق', 'إدارة', 'ريادة أعمال', 'تطوير ذاتي'];
@@ -126,8 +19,31 @@ const Books = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('الكل');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 300]);
-  const [filteredBooks, setFilteredBooks] = useState(BOOKS);
+  const [filteredBooks, setFilteredBooks] = useState<any[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+
+  // Fetch books from Supabase
+  const { data: books, isLoading, error } = useQuery({
+    queryKey: ['books'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('books')
+        .select('*')
+        .eq('status', 'published')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        console.error('Error fetching books:', error);
+        throw error;
+      }
+      
+      return data || [];
+    },
+    refetchInterval: 30000, // Refetch every 30 seconds
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    staleTime: 10000, // Data becomes stale after 10 seconds
+  });
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -135,14 +51,19 @@ const Books = () => {
 
   // Apply filters
   useEffect(() => {
-    let result = BOOKS;
+    if (!books) {
+      setFilteredBooks([]);
+      return;
+    }
+
+    let result = [...books];
 
     // Search filter
     if (searchTerm) {
       result = result.filter(book => 
-        book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        book.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        book.author.toLowerCase().includes(searchTerm.toLowerCase())
+        book.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        book.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        book.author?.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
@@ -157,7 +78,7 @@ const Books = () => {
     );
 
     setFilteredBooks(result);
-  }, [searchTerm, selectedCategory, priceRange]);
+  }, [books, searchTerm, selectedCategory, priceRange]);
 
   // Observer for scroll animations
   useEffect(() => {
@@ -290,7 +211,16 @@ const Books = () => {
             
             {/* Books grid */}
             <div className="lg:w-3/4">
-              {filteredBooks.length > 0 ? (
+              {isLoading ? (
+                <div className="flex justify-center items-center py-16">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : error ? (
+                <div className="text-center py-16 bg-white rounded-xl shadow-sm">
+                  <h3 className="text-xl font-bold mb-2 text-red-500">حدث خطأ</h3>
+                  <p className="text-gray-600">لم نتمكن من تحميل الكتب، يرجى المحاولة مرة أخرى</p>
+                </div>
+              ) : filteredBooks.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                   {filteredBooks.map((book, index) => (
                     <BookCard key={book.id} book={book} index={index} />
@@ -313,20 +243,33 @@ const Books = () => {
 };
 
 type BookCardProps = {
-  book: typeof BOOKS[0];
+  book: any;
   index: number;
 };
 
 const BookCard = ({ book, index }: BookCardProps) => {
+  // Determine if book is new based on creation date (within last 30 days)
+  const isNew = new Date(book.created_at).getTime() > Date.now() - 30 * 24 * 60 * 60 * 1000;
+  
+  // Determine if book is bestseller (simple logic based on purchases count)
+  const isBestseller = book.purchases_count && book.purchases_count > 50;
+
+  // Fallback rating information
+  const rating = 4.7;
+  const reviewCount = 85;
+
   return (
     <Card className="overflow-hidden border-none shadow-card hover:shadow-hover transition-all duration-500 card-hover reveal-on-scroll" style={{ animationDelay: `${index * 0.1}s` }}>
       <div className="relative group">
         {/* Cover image with overlay */}
         <div className="relative h-[320px] overflow-hidden">
           <img 
-            src={book.cover} 
+            src={book.cover_url || `https://source.unsplash.com/random/600x900?book,${book.id}`} 
             alt={book.title} 
             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = "/placeholder.svg";
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-6">
             <Link to={`/books/${book.id}`}>
@@ -339,12 +282,12 @@ const BookCard = ({ book, index }: BookCardProps) => {
         
         {/* Badges */}
         <div className="absolute top-3 right-3 flex flex-col gap-2">
-          {book.isBestseller && (
+          {isBestseller && (
             <span className="bg-secondary text-white text-xs px-3 py-1 rounded-full">
               الأكثر مبيعًا
             </span>
           )}
-          {book.isNew && (
+          {isNew && (
             <span className="bg-green-500 text-white text-xs px-3 py-1 rounded-full">
               جديد
             </span>
@@ -363,26 +306,26 @@ const BookCard = ({ book, index }: BookCardProps) => {
               <Star 
                 key={i} 
                 size={16}
-                className={i < Math.floor(book.rating) ? "fill-yellow-400" : "fill-gray-300"}
+                className={i < Math.floor(rating) ? "fill-yellow-400" : "fill-gray-300"}
               />
             ))}
           </div>
-          <span className="text-sm font-medium">{book.rating}</span>
-          <span className="text-xs text-gray-500">({book.reviewCount} تقييم)</span>
+          <span className="text-sm font-medium">{rating}</span>
+          <span className="text-xs text-gray-500">({reviewCount} تقييم)</span>
         </div>
         
         {/* Book details */}
         <div className="flex justify-center text-sm text-gray-500 mb-3">
           <div className="flex items-center">
             <BookOpen size={16} className="ml-1" />
-            <span>{book.pages} صفحة</span>
+            <span>{book.pages || 250} صفحة</span>
           </div>
         </div>
       </CardContent>
       
       <CardFooter className="p-4 pt-0 flex justify-between items-center border-t border-gray-100">
         <div>
-          <span className="text-secondary font-bold text-xl">{book.price} ج.م</span>
+          <span className="text-secondary font-bold text-xl">{book.price} {book.currency}</span>
         </div>
         <Link to={`/books/${book.id}`}>
           <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white transition-all">
