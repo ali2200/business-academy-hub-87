@@ -28,6 +28,7 @@ import AdminSignIn from "@/pages/AdminSignIn";
 import UsersManagement from "@/pages/UsersManagement";
 import MediaManagement from "@/pages/MediaManagement";
 import PagesManagement from "@/pages/PagesManagement";
+import ArticlesManagement from "@/pages/ArticlesManagement";
 import Settings from "@/pages/Settings";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -170,7 +171,7 @@ function App() {
           {/* Articles management routes */}
           <Route path="/articles-management" element={
             <AdminRoute>
-              <ContentManagement tab="articles" />
+              <ArticlesManagement />
             </AdminRoute>
           } />
           

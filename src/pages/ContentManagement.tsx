@@ -61,7 +61,6 @@ import {
 } from "@/components/ui/pagination";
 import { supabase } from "@/integrations/supabase/client";
 
-// Define the content item type
 interface ContentItem {
   id: string;
   section: string;
@@ -78,6 +77,7 @@ interface ContentManagementProps {
 
 const ADMIN_TABS = [
   { id: 'website-content', label: 'محتوى الموقع', icon: <PenTool className="h-4 w-4" /> },
+  { id: 'articles', label: 'المقالات', icon: <PenTool className="h-4 w-4" /> },
   { id: 'pages', label: 'الصفحات', icon: <File className="h-4 w-4" /> },
   { id: 'media', label: 'الوسائط', icon: <Image className="h-4 w-4" /> },
 ];
@@ -95,7 +95,6 @@ const ContentManagement = ({ tab }: ContentManagementProps) => {
   const [selectedItem, setSelectedItem] = useState<ContentItem | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   
-  // Form state for new content
   const [newContent, setNewContent] = useState({
     section: '',
     key: '',
@@ -103,7 +102,6 @@ const ContentManagement = ({ tab }: ContentManagementProps) => {
     content_type: 'text' as 'text' | 'image' | 'video' | 'link'
   });
 
-  // Set active tab based on URL path or query param or prop
   useEffect(() => {
     if (tab && ADMIN_TABS.some(t => t.id === tab)) {
       setActiveTab(tab);
@@ -114,13 +112,11 @@ const ContentManagement = ({ tab }: ContentManagementProps) => {
     const lastSegment = pathSegments[pathSegments.length - 1];
     
     if (lastSegment === 'content-management') {
-      // Default to website-content when on the main route
       setActiveTab('website-content');
     } else if (ADMIN_TABS.some(t => t.id === lastSegment)) {
       setActiveTab(lastSegment);
     }
     
-    // Also check for query params if needed
     const params = new URLSearchParams(location.search);
     const tabParam = params.get('tab');
     if (tabParam && ADMIN_TABS.some(t => t.id === tabParam)) {
@@ -128,7 +124,6 @@ const ContentManagement = ({ tab }: ContentManagementProps) => {
     }
   }, [location, tab]);
 
-  // Load content from Supabase
   useEffect(() => {
     const fetchContent = async () => {
       if (activeTab !== 'website-content') return;
@@ -158,7 +153,6 @@ const ContentManagement = ({ tab }: ContentManagementProps) => {
     fetchContent();
   }, [activeTab, refreshTrigger]);
 
-  // Filter content based on search term and active tab
   const filteredContent = contentItems.filter(item => {
     const matchesSearch = 
       item.key.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -172,10 +166,8 @@ const ContentManagement = ({ tab }: ContentManagementProps) => {
     return item.section === activeTab && matchesSearch;
   });
 
-  // Get unique sections for tabs
   const sections = Array.from(new Set(contentItems.map(item => item.section)));
 
-  // Handle adding new content
   const handleAddContent = async () => {
     try {
       const { data, error } = await supabase
@@ -202,7 +194,6 @@ const ContentManagement = ({ tab }: ContentManagementProps) => {
     }
   };
 
-  // Handle updating content
   const handleUpdateContent = async () => {
     if (!selectedItem) return;
     
@@ -231,7 +222,6 @@ const ContentManagement = ({ tab }: ContentManagementProps) => {
     }
   };
 
-  // Handle deleting content
   const handleDeleteContent = async () => {
     if (!selectedItem) return;
     
@@ -254,15 +244,12 @@ const ContentManagement = ({ tab }: ContentManagementProps) => {
     }
   };
 
-  // Handle tab change
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    // Update the URL without a full page reload
     const newUrl = `/content-management/${value}`;
     window.history.pushState({}, '', newUrl);
   };
 
-  // Render content type icon
   const renderContentTypeIcon = (type: 'text' | 'image' | 'video' | 'link') => {
     switch (type) {
       case 'image':
@@ -277,7 +264,6 @@ const ContentManagement = ({ tab }: ContentManagementProps) => {
     }
   };
 
-  // Render page header
   const renderPageHeader = () => {
     const tabData = ADMIN_TABS.find(tab => tab.id === activeTab);
     
@@ -306,11 +292,23 @@ const ContentManagement = ({ tab }: ContentManagementProps) => {
     );
   };
 
-  // Render appropriate content for the active tab
   const renderTabContent = () => {
     switch (activeTab) {
       case 'website-content':
         return renderWebsiteContentTab();
+      case 'articles':
+        return (
+          <div className="mt-4">
+            <Button className="mb-4" onClick={() => navigate('/articles-management')}>
+              فتح إدارة المقالات التفصيلية
+            </Button>
+            <iframe 
+              src="/articles-management" 
+              className="w-full min-h-[600px] border border-gray-200 rounded-lg"
+              title="إدارة المقالات"
+            />
+          </div>
+        );
       case 'pages':
         return (
           <div className="mt-4">
@@ -342,7 +340,6 @@ const ContentManagement = ({ tab }: ContentManagementProps) => {
     }
   };
 
-  // Render website content tab
   const renderWebsiteContentTab = () => {
     return (
       <div>
@@ -545,7 +542,6 @@ const ContentManagement = ({ tab }: ContentManagementProps) => {
         </Card>
       </div>
 
-      {/* Add Content Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -613,7 +609,6 @@ const ContentManagement = ({ tab }: ContentManagementProps) => {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Content Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
@@ -689,7 +684,6 @@ const ContentManagement = ({ tab }: ContentManagementProps) => {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Content Dialog */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>

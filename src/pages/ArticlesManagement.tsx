@@ -14,13 +14,14 @@ import {
   X,
   AlertCircle,
   FileCode,
-  Upload
+  Upload,
+  Calendar
 } from 'lucide-react';
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
   DropdownMenu,
@@ -40,13 +41,16 @@ import {
   DialogClose
 } from "@/components/ui/dialog";
 import { 
-  Pagination, 
-  PaginationContent, 
-  PaginationItem, 
-  PaginationLink, 
-  PaginationNext, 
-  PaginationPrevious 
-} from "@/components/ui/pagination";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { 
   Table, 
   TableBody, 
@@ -56,6 +60,8 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 
 type ArticleStatus = "published" | "draft" | "review";
@@ -89,15 +95,16 @@ const ArticlesManagement = () => {
   const [selectedArticle, setSelectedArticle] = useState<ArticleItem | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [activeTab, setActiveTab] = useState('editor');
   
-  // Form state for adding/editing articles
+  // Article editor state
   const [articleForm, setArticleForm] = useState({
     title: '',
     slug: '',
     content: '',
     excerpt: '',
     status: 'draft' as ArticleStatus,
-    tags: [],
+    tags: [] as string[],
     featured_image: ''
   });
   
@@ -147,7 +154,8 @@ const ArticlesManagement = () => {
           }
           return {
             ...article,
-            status
+            status,
+            author: article.author || 'غير معروف'
           } as ArticleItem;
         })
       );
@@ -162,16 +170,12 @@ const ArticlesManagement = () => {
   };
 
   const filteredArticles = articles.filter(article => {
-    const matchesSearch = 
-      article.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      article.slug?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (article.author && article.author.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    if (statusFilter) {
-      return matchesSearch && article.status === statusFilter;
-    }
-    
-    return matchesSearch;
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      article.title?.toLowerCase().includes(searchLower) ||
+      article.slug?.toLowerCase().includes(searchLower) ||
+      (article.author && article.author.toLowerCase().includes(searchLower))
+    );
   });
 
   const toggleArticleSelection = (articleId: string) => {
@@ -214,6 +218,7 @@ const ArticlesManagement = () => {
       tags: article.tags || [],
       featured_image: article.featured_image || ''
     });
+    setActiveTab('editor');
     setIsEditDialogOpen(true);
   };
 
@@ -422,11 +427,11 @@ const ArticlesManagement = () => {
   const getStatusBadge = (status: ArticleStatus) => {
     switch (status) {
       case 'published':
-        return <Badge className="bg-green-500 hover:bg-green-600">منشور</Badge>;
+        return <Badge className="bg-green-100 text-green-800 border-green-200">منشور</Badge>;
       case 'draft':
-        return <Badge variant="secondary">مسودة</Badge>;
+        return <Badge className="bg-gray-100 text-gray-800 border-gray-200">مسودة</Badge>;
       case 'review':
-        return <Badge variant="outline" className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-300">مراجعة</Badge>;
+        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">مراجعة</Badge>;
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -452,6 +457,9 @@ const ArticlesManagement = () => {
         </header>
 
         <Card className="mb-8">
+          <CardHeader className="pb-3">
+            <CardTitle>جميع المقالات</CardTitle>
+          </CardHeader>
           <CardContent className="p-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
               <div className="flex flex-wrap gap-2">
@@ -474,7 +482,6 @@ const ArticlesManagement = () => {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      size="sm"
                       className="flex items-center gap-2"
                       disabled={selectedArticles.length === 0}
                     >
@@ -486,15 +493,15 @@ const ArticlesManagement = () => {
                     <DropdownMenuLabel>الإجراءات الجماعية</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => handleBulkStatusChange('published')}>
-                      <Check className="h-4 w-4 mr-2" />
+                      <Check className="h-4 w-4 ml-2" />
                       نشر المحدد
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleBulkStatusChange('draft')}>
-                      <AlertCircle className="h-4 w-4 mr-2" />
+                      <AlertCircle className="h-4 w-4 ml-2" />
                       تحويل إلى مسودة
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleBulkStatusChange('review')}>
-                      <Eye className="h-4 w-4 mr-2" />
+                      <Eye className="h-4 w-4 ml-2" />
                       إرسال للمراجعة
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
@@ -502,7 +509,7 @@ const ArticlesManagement = () => {
                       onClick={handleBulkDelete}
                       className="text-red-600"
                     >
-                      <Trash2 className="h-4 w-4 mr-2" />
+                      <Trash2 className="h-4 w-4 ml-2" />
                       حذف المحدد
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -520,7 +527,7 @@ const ArticlesManagement = () => {
                 <div className="relative w-full sm:w-64">
                   <Search className="absolute right-3 top-2.5 h-4 w-4 text-gray-400" />
                   <Input
-                    placeholder="بحث في المقالات..."
+                    placeholder="البحث عن مقال..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pr-10"
@@ -530,7 +537,6 @@ const ArticlesManagement = () => {
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      size="sm"
                       className="flex items-center gap-2"
                     >
                       <Filter className="h-4 w-4" />
@@ -576,20 +582,21 @@ const ArticlesManagement = () => {
                     <TableHead>التاريخ</TableHead>
                     <TableHead>المشاهدات</TableHead>
                     <TableHead>الحالة</TableHead>
-                    <TableHead className="text-left">الإجراءات</TableHead>
+                    <TableHead className="text-right">الإجراءات</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
                       <TableCell colSpan={9} className="text-center py-8">
-                        جاري التحميل...
+                        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-4"></div>
+                        <p className="text-gray-500">جاري التحميل...</p>
                       </TableCell>
                     </TableRow>
                   ) : filteredArticles.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="text-center py-8">
-                        لا توجد مقالات متاحة
+                      <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                        {searchTerm ? 'لا توجد نتائج للبحث' : 'لا توجد مقالات بعد'}
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -624,7 +631,10 @@ const ArticlesManagement = () => {
                           </div>
                         </TableCell>
                         <TableCell>
-                          {new Date(article.created_at).toLocaleDateString('ar-EG')}
+                          <div className="flex items-center text-sm text-gray-500">
+                            <Calendar className="h-3.5 w-3.5 ml-1" />
+                            {new Date(article.created_at).toLocaleDateString('ar-EG')}
+                          </div>
                         </TableCell>
                         <TableCell>{article.views_count || 0}</TableCell>
                         <TableCell>
@@ -636,7 +646,7 @@ const ArticlesManagement = () => {
                               variant="ghost"
                               size="icon"
                               title="عرض"
-                              onClick={() => navigate(`/articles/${article.slug}`)}
+                              onClick={() => window.open(`/articles/${article.slug}`, '_blank')}
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
@@ -648,14 +658,30 @@ const ArticlesManagement = () => {
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="حذف"
-                              onClick={() => openDeleteDialog(article)}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-700">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>حذف المقالة</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    هل أنت متأكد من حذف هذه المقالة؟ لا يمكن التراجع عن هذا الإجراء.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>إلغاء</AlertDialogCancel>
+                                  <AlertDialogAction 
+                                    onClick={() => handleDeleteArticle()}
+                                    className="bg-red-500 text-white hover:bg-red-600"
+                                  >
+                                    حذف المقالة
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -665,26 +691,16 @@ const ArticlesManagement = () => {
               </Table>
             </div>
             
-            <Pagination className="mt-4">
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious href="#" />
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationLink href="#" isActive>1</PaginationLink>
-                </PaginationItem>
-                <PaginationItem>
-                  <PaginationNext href="#" />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
+            <div className="mt-4 text-center text-sm text-gray-500">
+              قائمة بجميع المقالات في المدونة
+            </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Add Article Dialog */}
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
             <DialogTitle>إضافة مقال جديد</DialogTitle>
             <DialogDescription>
@@ -692,110 +708,105 @@ const ArticlesManagement = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <label htmlFor="title" className="text-sm font-medium">
-                عنوان المقال *
-              </label>
-              <Input
-                id="title"
-                name="title"
-                value={articleForm.title}
-                onChange={handleTitleChange}
-                placeholder="أدخل عنوان المقال"
-                required
-              />
-            </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="mb-4">
+              <TabsTrigger value="editor">محرر المقال</TabsTrigger>
+              <TabsTrigger value="settings">إعدادات المقال</TabsTrigger>
+            </TabsList>
             
-            <div className="grid gap-2">
-              <label htmlFor="slug" className="text-sm font-medium">
-                الرابط الدائم *
-              </label>
-              <Input
-                id="slug"
-                name="slug"
-                value={articleForm.slug}
-                onChange={handleInputChange}
-                placeholder="مثال: my-article-title"
-                required
-              />
-              <p className="text-xs text-gray-500">
-                سيظهر المقال على الرابط: /articles/{articleForm.slug}
-              </p>
-            </div>
+            <TabsContent value="editor" className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="title">عنوان المقال *</Label>
+                <Input
+                  id="title"
+                  name="title"
+                  value={articleForm.title}
+                  onChange={handleTitleChange}
+                  placeholder="أدخل عنوان المقال"
+                  required
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="content">محتوى المقال *</Label>
+                <Textarea
+                  id="content"
+                  name="content"
+                  value={articleForm.content}
+                  onChange={handleInputChange}
+                  placeholder="أدخل محتوى المقال"
+                  rows={12}
+                  required
+                />
+              </div>
+            </TabsContent>
             
-            <div className="grid gap-2">
-              <label htmlFor="content" className="text-sm font-medium">
-                محتوى المقال *
-              </label>
-              <Textarea
-                id="content"
-                name="content"
-                value={articleForm.content}
-                onChange={handleInputChange}
-                placeholder="أدخل محتوى المقال"
-                rows={8}
-                required
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <label htmlFor="excerpt" className="text-sm font-medium">
-                مقتطف المقال
-              </label>
-              <Textarea
-                id="excerpt"
-                name="excerpt"
-                value={articleForm.excerpt}
-                onChange={handleInputChange}
-                placeholder="مقتطف قصير يظهر في القوائم وصفحات البحث"
-                rows={2}
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <label htmlFor="tags" className="text-sm font-medium">
-                التصنيفات
-              </label>
-              <Input
-                id="tags"
-                name="tags"
-                value={articleForm.tags.join(', ')}
-                onChange={handleTagsChange}
-                placeholder="أدخل التصنيفات مفصولة بفواصل (مثال: تعليم, تكنولوجيا)"
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <label htmlFor="featured_image" className="text-sm font-medium">
-                رابط الصورة المميزة
-              </label>
-              <Input
-                id="featured_image"
-                name="featured_image"
-                value={articleForm.featured_image}
-                onChange={handleInputChange}
-                placeholder="أدخل رابط الصورة المميزة"
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <label htmlFor="status" className="text-sm font-medium">
-                حالة المقال
-              </label>
-              <select
-                id="status"
-                name="status"
-                value={articleForm.status}
-                onChange={(e) => setArticleForm(prev => ({ ...prev, status: e.target.value as ArticleStatus }))}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="draft">مسودة</option>
-                <option value="review">مراجعة</option>
-                <option value="published">منشور</option>
-              </select>
-            </div>
-          </div>
+            <TabsContent value="settings" className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="slug">الرابط الدائم *</Label>
+                <Input
+                  id="slug"
+                  name="slug"
+                  value={articleForm.slug}
+                  onChange={handleInputChange}
+                  placeholder="مثال: my-article-title"
+                  required
+                />
+                <p className="text-xs text-gray-500">
+                  سيظهر المقال على الرابط: /articles/{articleForm.slug}
+                </p>
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="excerpt">مقتطف المقال</Label>
+                <Textarea
+                  id="excerpt"
+                  name="excerpt"
+                  value={articleForm.excerpt}
+                  onChange={handleInputChange}
+                  placeholder="مقتطف قصير يظهر في القوائم وصفحات البحث"
+                  rows={2}
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="tags">التصنيفات</Label>
+                <Input
+                  id="tags"
+                  name="tags"
+                  value={articleForm.tags.join(', ')}
+                  onChange={handleTagsChange}
+                  placeholder="أدخل التصنيفات مفصولة بفواصل (مثال: تعليم, تكنولوجيا)"
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="featured_image">رابط الصورة المميزة</Label>
+                <Input
+                  id="featured_image"
+                  name="featured_image"
+                  value={articleForm.featured_image}
+                  onChange={handleInputChange}
+                  placeholder="أدخل رابط الصورة المميزة"
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="status">حالة المقال</Label>
+                <select
+                  id="status"
+                  name="status"
+                  value={articleForm.status}
+                  onChange={(e) => setArticleForm(prev => ({ ...prev, status: e.target.value as ArticleStatus }))}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="draft">مسودة</option>
+                  <option value="review">مراجعة</option>
+                  <option value="published">منشور</option>
+                </select>
+              </div>
+            </TabsContent>
+          </Tabs>
           
           <DialogFooter>
             <DialogClose asChild>
@@ -808,7 +819,7 @@ const ArticlesManagement = () => {
 
       {/* Edit Article Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="sm:max-w-[800px]">
           <DialogHeader>
             <DialogTitle>تعديل المقال</DialogTitle>
             <DialogDescription>
@@ -816,136 +827,111 @@ const ArticlesManagement = () => {
             </DialogDescription>
           </DialogHeader>
           
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <label htmlFor="edit-title" className="text-sm font-medium">
-                عنوان المقال *
-              </label>
-              <Input
-                id="edit-title"
-                name="title"
-                value={articleForm.title}
-                onChange={handleTitleChange}
-                placeholder="أدخل عنوان المقال"
-                required
-              />
-            </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="mb-4">
+              <TabsTrigger value="editor">محرر المقال</TabsTrigger>
+              <TabsTrigger value="settings">إعدادات المقال</TabsTrigger>
+            </TabsList>
             
-            <div className="grid gap-2">
-              <label htmlFor="edit-slug" className="text-sm font-medium">
-                الرابط الدائم *
-              </label>
-              <Input
-                id="edit-slug"
-                name="slug"
-                value={articleForm.slug}
-                onChange={handleInputChange}
-                placeholder="مثال: my-article-title"
-                required
-              />
-              <p className="text-xs text-gray-500">
-                سيظهر المقال على الرابط: /articles/{articleForm.slug}
-              </p>
-            </div>
+            <TabsContent value="editor" className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-title">عنوان المقال *</Label>
+                <Input
+                  id="edit-title"
+                  name="title"
+                  value={articleForm.title}
+                  onChange={handleTitleChange}
+                  placeholder="أدخل عنوان المقال"
+                  required
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="edit-content">محتوى المقال *</Label>
+                <Textarea
+                  id="edit-content"
+                  name="content"
+                  value={articleForm.content}
+                  onChange={handleInputChange}
+                  placeholder="أدخل محتوى المقال"
+                  rows={12}
+                  required
+                />
+              </div>
+            </TabsContent>
             
-            <div className="grid gap-2">
-              <label htmlFor="edit-content" className="text-sm font-medium">
-                محتوى المقال *
-              </label>
-              <Textarea
-                id="edit-content"
-                name="content"
-                value={articleForm.content}
-                onChange={handleInputChange}
-                placeholder="أدخل محتوى المقال"
-                rows={8}
-                required
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <label htmlFor="edit-excerpt" className="text-sm font-medium">
-                مقتطف المقال
-              </label>
-              <Textarea
-                id="edit-excerpt"
-                name="excerpt"
-                value={articleForm.excerpt}
-                onChange={handleInputChange}
-                placeholder="مقتطف قصير يظهر في القوائم وصفحات البحث"
-                rows={2}
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <label htmlFor="edit-tags" className="text-sm font-medium">
-                التصنيفات
-              </label>
-              <Input
-                id="edit-tags"
-                name="tags"
-                value={articleForm.tags.join(', ')}
-                onChange={handleTagsChange}
-                placeholder="أدخل التصنيفات مفصولة بفواصل (مثال: تعليم, تكنولوجيا)"
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <label htmlFor="edit-featured_image" className="text-sm font-medium">
-                رابط الصورة المميزة
-              </label>
-              <Input
-                id="edit-featured_image"
-                name="featured_image"
-                value={articleForm.featured_image}
-                onChange={handleInputChange}
-                placeholder="أدخل رابط الصورة المميزة"
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <label htmlFor="edit-status" className="text-sm font-medium">
-                حالة المقال
-              </label>
-              <select
-                id="edit-status"
-                name="status"
-                value={articleForm.status}
-                onChange={(e) => setArticleForm(prev => ({ ...prev, status: e.target.value as ArticleStatus }))}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <option value="draft">مسودة</option>
-                <option value="review">مراجعة</option>
-                <option value="published">منشور</option>
-              </select>
-            </div>
-          </div>
+            <TabsContent value="settings" className="space-y-4">
+              <div className="grid gap-2">
+                <Label htmlFor="edit-slug">الرابط الدائم *</Label>
+                <Input
+                  id="edit-slug"
+                  name="slug"
+                  value={articleForm.slug}
+                  onChange={handleInputChange}
+                  placeholder="مثال: my-article-title"
+                  required
+                />
+                <p className="text-xs text-gray-500">
+                  سيظهر المقال على الرابط: /articles/{articleForm.slug}
+                </p>
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="edit-excerpt">مقتطف المقال</Label>
+                <Textarea
+                  id="edit-excerpt"
+                  name="excerpt"
+                  value={articleForm.excerpt}
+                  onChange={handleInputChange}
+                  placeholder="مقتطف قصير يظهر في القوائم وصفحات البحث"
+                  rows={2}
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="edit-tags">التصنيفات</Label>
+                <Input
+                  id="edit-tags"
+                  name="tags"
+                  value={articleForm.tags.join(', ')}
+                  onChange={handleTagsChange}
+                  placeholder="أدخل التصنيفات مفصولة بفواصل (مثال: تعليم, تكنولوجيا)"
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="edit-featured_image">رابط الصورة المميزة</Label>
+                <Input
+                  id="edit-featured_image"
+                  name="featured_image"
+                  value={articleForm.featured_image}
+                  onChange={handleInputChange}
+                  placeholder="أدخل رابط الصورة المميزة"
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="edit-status">حالة المقال</Label>
+                <select
+                  id="edit-status"
+                  name="status"
+                  value={articleForm.status}
+                  onChange={(e) => setArticleForm(prev => ({ ...prev, status: e.target.value as ArticleStatus }))}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="draft">مسودة</option>
+                  <option value="review">مراجعة</option>
+                  <option value="published">منشور</option>
+                </select>
+              </div>
+            </TabsContent>
+          </Tabs>
           
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline">إلغاء</Button>
             </DialogClose>
             <Button onClick={handleUpdateArticle}>حفظ التغييرات</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Article Dialog */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle>حذف المقال</DialogTitle>
-            <DialogDescription>
-              هل أنت متأكد من حذف هذا المقال؟ هذا الإجراء لا يمكن التراجع عنه.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">إلغاء</Button>
-            </DialogClose>
-            <Button variant="destructive" onClick={handleDeleteArticle}>
-              حذف
-            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -962,9 +948,7 @@ const ArticlesManagement = () => {
           
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <label htmlFor="html-title" className="text-sm font-medium">
-                عنوان المقال *
-              </label>
+              <Label htmlFor="html-title">عنوان المقال *</Label>
               <Input
                 id="html-title"
                 value={htmlTitle}
@@ -975,9 +959,7 @@ const ArticlesManagement = () => {
             </div>
             
             <div className="grid gap-2">
-              <label htmlFor="html-content" className="text-sm font-medium">
-                محتوى HTML *
-              </label>
+              <Label htmlFor="html-content">محتوى HTML *</Label>
               <Textarea
                 id="html-content"
                 value={htmlContent}
