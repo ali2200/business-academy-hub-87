@@ -156,16 +156,21 @@ const Navbar = () => {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <div className="flex overflow-hidden rounded-full shadow-md">
-              <Link to="/signin" className="group">
-                <div className="bg-primary hover:bg-white text-white hover:text-primary transition-all duration-300 px-4 py-2 rounded-r-full font-hacen flex items-center">
-                  <span className="group-hover:font-semibold">تسجيل الدخول</span>
-                </div>
-              </Link>
-              <Link to="/signup" className="group">
-                <div className="bg-white hover:bg-primary text-primary hover:text-white transition-all duration-300 px-4 py-2 rounded-l-full font-hacen flex items-center">
-                  <span className="group-hover:font-semibold">إنشاء حساب</span>
-                </div>
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex overflow-hidden rounded-full shadow-md">
+                <Link to="/signin" className="group">
+                  <div className="bg-primary hover:bg-white text-white hover:text-primary transition-all duration-300 px-4 py-2 rounded-r-full font-hacen flex items-center">
+                    <span className="group-hover:font-semibold">تسجيل الدخول</span>
+                  </div>
+                </Link>
+                <Link to="/signup" className="group">
+                  <div className="bg-white hover:bg-primary text-primary hover:text-white transition-all duration-300 px-4 py-2 rounded-l-full font-hacen flex items-center">
+                    <span className="group-hover:font-semibold">إنشاء حساب</span>
+                  </div>
+                </Link>
+              </div>
+              <Link to="/admin-signin" className="text-xs text-amber-200 hover:text-amber-100 transition-colors duration-200">
+                دخول المسؤولين
               </Link>
             </div>
           )}
@@ -364,6 +369,12 @@ const MobileNavLinks = ({
                 <Button variant="outline" className="w-full text-white border-white hover:bg-white hover:text-primary">
                   <span className="font-hacen">إنشاء حساب</span>
                 </Button>
+              </Link>
+            </SheetClose>
+            
+            <SheetClose asChild>
+              <Link to="/admin-signin" className="block w-full text-center text-amber-200 hover:text-amber-100 mt-2">
+                دخول المسؤولين
               </Link>
             </SheetClose>
           </div>

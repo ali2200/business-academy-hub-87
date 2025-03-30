@@ -24,6 +24,7 @@ import CourseEdit from "@/pages/CourseEdit";
 import CoursesManagement from "@/pages/CoursesManagement";
 import BooksManagement from "@/pages/BooksManagement";
 import AdminRoute from "@/components/AdminRoute";
+import AdminSignIn from "@/pages/AdminSignIn";
 import { supabase } from "@/integrations/supabase/client";
 
 function App() {
@@ -81,6 +82,7 @@ function App() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
+          <Route path="/admin-signin" element={<AdminSignIn />} />
           
           {/* Protected User Routes */}
           <Route path="/dashboard" element={

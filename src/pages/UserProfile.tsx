@@ -1,51 +1,93 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, UploadCloud, Save, ArrowRight, Key, Mail, User as UserIcon, LogOut } from "lucide-react";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
+import { Separator } from "@/components/ui/separator";
+import { ArrowLeft, Save, LogOut, Lock, Eye, EyeOff, User, Mail, Phone } from 'lucide-react';
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from 'date-fns';
+
+const profileFormSchema = z.object({
+  displayName: z.string().min(2, {
+    message: "الاسم يجب أن يكون على الأقل حرفين.",
+  }),
+  firstName: z.string().optional(),
+  lastName: z.string().optional(),
+  email: z.string().email({
+    message: "يرجى إدخال بريد إلكتروني صحيح.",
+  }).optional(),
+  phone: z.string().optional(),
+});
+
+const passwordFormSchema = z.object({
+  currentPassword: z.string().min(6, {
+    message: "كلمة المرور يجب أن تكون على الأقل 6 أحرف.",
+  }),
+  newPassword: z.string().min(6, {
+    message: "كلمة المرور الجديدة يجب أن تكون على الأقل 6 أحرف.",
+  }),
+  confirmPassword: z.string().min(6, {
+    message: "تأكيد كلمة المرور يجب أن يكون على الأقل 6 أحرف.",
+  }),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "كلمات المرور غير متطابقة",
+  path: ["confirmPassword"],
+});
 
 const UserProfile = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
-  
-  // Form states
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [displayName, setDisplayName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [avatarUrl, setAvatarUrl] = useState('');
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  
-  // Password update states
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  
+  const [loading, setLoading] = useState(true);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [createdAt, setCreatedAt] = useState<string>('');
+
+  const profileForm = useForm<z.infer<typeof profileFormSchema>>({
+    resolver: zodResolver(profileFormSchema),
+    defaultValues: {
+      displayName: "",
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+    },
+  });
+
+  const passwordForm = useForm<z.infer<typeof passwordFormSchema>>({
+    resolver: zodResolver(passwordFormSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
   useEffect(() => {
-    const getProfile = async () => {
-      setLoading(true);
+    const fetchUserData = async () => {
       try {
-        // Get current session
+        setLoading(true);
+        
+        // Get current auth session
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session) {
-          toast.error("يجب تسجيل الدخول للوصول إلى صفحة الملف الشخصي");
+          toast.error("يجب تسجيل الدخول للوصول إلى ملفك الشخصي");
           navigate('/signin');
           return;
         }
         
+        // Store user data
         setUser(session.user);
         
         // Get user profile
@@ -57,153 +99,116 @@ const UserProfile = () => {
         
         if (profileError) {
           console.error("Error fetching profile:", profileError);
-          toast.error("حدث خطأ أثناء تحميل بيانات الملف الشخصي");
+          toast.error("حدث خطأ أثناء جلب بيانات الملف الشخصي");
           return;
         }
         
         setProfile(profileData);
         
+        // Format created_at date
+        if (profileData.created_at) {
+          try {
+            // Parse the ISO date string and format it
+            const date = new Date(profileData.created_at);
+            setCreatedAt(format(date, 'yyyy-MM-dd'));
+          } catch (error) {
+            console.error("Error formatting date:", error);
+            setCreatedAt('غير معروف');
+          }
+        }
+        
         // Set form values
-        setFirstName(profileData?.first_name || '');
-        setLastName(profileData?.last_name || '');
-        setDisplayName(profileData?.display_name || '');
-        setPhone(profileData?.phone || '');
-        setAvatarUrl(profileData?.avatar_url || '');
+        profileForm.reset({
+          displayName: profileData.display_name || "",
+          firstName: profileData.first_name || "",
+          lastName: profileData.last_name || "",
+          email: session.user.email || "",
+          phone: profileData.phone || "",
+        });
         
       } catch (error) {
-        console.error("Unexpected error:", error);
-        toast.error("حدث خطأ غير متوقع");
+        console.error("Error in fetchUserData:", error);
+        toast.error("حدث خطأ أثناء جلب بيانات المستخدم");
       } finally {
         setLoading(false);
       }
     };
     
-    getProfile();
-  }, [navigate]);
-  
-  const handleProfileUpdate = async () => {
+    fetchUserData();
+  }, [navigate, profileForm]);
+
+  const onProfileSubmit = async (values: z.infer<typeof profileFormSchema>) => {
     try {
-      setUpdating(true);
-      
-      // Upload avatar if selected
-      let finalAvatarUrl = avatarUrl;
-      
-      if (avatarFile) {
-        // First check if avatars bucket exists
-        const { data: buckets } = await supabase.storage.listBuckets();
-        
-        const avatarsBucketExists = buckets?.some(bucket => bucket.id === 'avatars');
-        
-        // Create bucket if it doesn't exist
-        if (!avatarsBucketExists) {
-          await supabase.storage.createBucket('avatars', { public: true });
-        }
-        
-        // Upload new avatar
-        const fileName = `${user.id}-${Date.now()}`;
-        const { data: uploadData, error: uploadError } = await supabase.storage
-          .from('avatars')
-          .upload(fileName, avatarFile, { upsert: true });
-        
-        if (uploadError) {
-          console.error("Error uploading avatar:", uploadError);
-          toast.error("فشل تحميل الصورة الشخصية");
-        } else {
-          // Get public URL
-          const { data: urlData } = supabase.storage
-            .from('avatars')
-            .getPublicUrl(fileName);
-          
-          finalAvatarUrl = urlData.publicUrl;
-        }
-      }
+      setSavingProfile(true);
       
       // Update profile in database
-      const { error: updateError } = await supabase
+      const { error } = await supabase
         .from('profiles')
         .update({
-          first_name: firstName,
-          last_name: lastName,
-          display_name: displayName || `${firstName} ${lastName}`,
-          phone,
-          avatar_url: finalAvatarUrl,
-          updated_at: new Date()
+          display_name: values.displayName,
+          first_name: values.firstName,
+          last_name: values.lastName,
+          phone: values.phone,
         })
         .eq('id', user.id);
       
-      if (updateError) {
-        console.error("Error updating profile:", updateError);
-        toast.error("فشل تحديث الملف الشخصي");
+      if (error) {
+        console.error("Error updating profile:", error);
+        toast.error("حدث خطأ أثناء تحديث الملف الشخصي");
         return;
       }
       
       toast.success("تم تحديث الملف الشخصي بنجاح");
-      
     } catch (error) {
-      console.error("Unexpected error during update:", error);
-      toast.error("حدث خطأ غير متوقع أثناء التحديث");
+      console.error("Error in onProfileSubmit:", error);
+      toast.error("حدث خطأ غير متوقع أثناء تحديث الملف الشخصي");
     } finally {
-      setUpdating(false);
+      setSavingProfile(false);
     }
   };
-  
-  const handlePasswordUpdate = async () => {
+
+  const onPasswordSubmit = async (values: z.infer<typeof passwordFormSchema>) => {
     try {
-      setUpdating(true);
+      setSavingPassword(true);
       
-      // Validate passwords
-      if (newPassword !== confirmPassword) {
-        toast.error("كلمة المرور الجديدة وتأكيدها غير متطابقين");
-        return;
-      }
+      // First verify current password by signing in
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: values.currentPassword,
+      });
       
-      if (newPassword.length < 6) {
-        toast.error("كلمة المرور الجديدة يجب أن تكون 6 أحرف على الأقل");
+      if (signInError) {
+        toast.error("كلمة المرور الحالية غير صحيحة");
         return;
       }
       
       // Update password
-      const { error } = await supabase.auth.updateUser({ 
-        password: newPassword 
+      const { error } = await supabase.auth.updateUser({
+        password: values.newPassword,
       });
       
       if (error) {
         console.error("Error updating password:", error);
-        toast.error("فشل تحديث كلمة المرور");
+        toast.error("حدث خطأ أثناء تحديث كلمة المرور");
         return;
       }
       
-      // Reset password fields
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
+      // Reset password form
+      passwordForm.reset({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: "",
+      });
       
       toast.success("تم تحديث كلمة المرور بنجاح");
-      
     } catch (error) {
-      console.error("Unexpected error updating password:", error);
+      console.error("Error in onPasswordSubmit:", error);
       toast.error("حدث خطأ غير متوقع أثناء تحديث كلمة المرور");
     } finally {
-      setUpdating(false);
+      setSavingPassword(false);
     }
   };
-  
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setAvatarFile(file);
-      
-      // Show preview
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          setAvatarUrl(event.target.result as string);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-  
+
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -215,7 +220,7 @@ const UserProfile = () => {
       toast.error("حدث خطأ أثناء تسجيل الخروج");
     }
   };
-  
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -226,233 +231,273 @@ const UserProfile = () => {
       </div>
     );
   }
-  
+
   return (
-    <>
-      <Navbar />
-      <div className="min-h-screen bg-gray-50 pt-24 pb-12">
-        <div className="container mx-auto px-4">
-          <div className="max-w-5xl mx-auto">
-            <header className="mb-8">
-              <h1 className="text-3xl font-bold text-primary">إدارة الملف الشخصي</h1>
-              <p className="text-gray-600">تعديل وتحديث بيانات حسابك الشخصي</p>
-            </header>
-            
-            <div className="flex flex-col md:flex-row gap-6">
-              {/* Sidebar */}
-              <div className="w-full md:w-64">
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex flex-col items-center space-y-4 py-6">
-                      <Avatar className="h-24 w-24">
-                        <AvatarImage src={avatarUrl} alt={displayName || `${firstName} ${lastName}`} />
-                        <AvatarFallback>{firstName?.charAt(0) || ''}{lastName?.charAt(0) || ''}</AvatarFallback>
-                      </Avatar>
-                      <div className="text-center">
-                        <h3 className="font-medium text-lg">{displayName || `${firstName} ${lastName}`}</h3>
-                        <p className="text-sm text-gray-500">{user?.email}</p>
+    <div className="min-h-screen bg-gray-50 pt-20 pb-12 px-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">الملف الشخصي</h1>
+            <p className="text-gray-600">إدارة بيانات حسابك الشخصي</p>
+          </div>
+          <Button
+            variant="ghost"
+            className="flex items-center"
+            onClick={() => navigate('/dashboard')}
+          >
+            <ArrowLeft className="ml-2 h-4 w-4" />
+            العودة للوحة التحكم
+          </Button>
+        </div>
+
+        {/* Main Content */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Profile Info */}
+          <Card className="col-span-2">
+            <CardHeader>
+              <CardTitle>المعلومات الشخصية</CardTitle>
+              <CardDescription>تحديث البيانات الشخصية لحسابك</CardDescription>
+            </CardHeader>
+            <Separator />
+            <CardContent className="pt-6">
+              <form onSubmit={profileForm.handleSubmit(onProfileSubmit)}>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">الاسم الأول</Label>
+                      <div className="relative">
+                        <Input
+                          id="firstName"
+                          placeholder="الاسم الأول"
+                          className="pl-10"
+                          {...profileForm.register("firstName")}
+                        />
+                        <User className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
                       </div>
                     </div>
-                    
-                    <div className="space-y-2 mt-4">
-                      <Button variant="outline" className="w-full justify-between" onClick={() => navigate('/dashboard')}>
-                        <span>لوحة التحكم</span>
-                        <ArrowRight className="h-4 w-4 ml-2" />
-                      </Button>
-                      
-                      <Button variant="outline" className="w-full justify-between text-red-600 hover:text-red-700 hover:bg-red-50" onClick={handleLogout}>
-                        <span>تسجيل الخروج</span>
-                        <LogOut className="h-4 w-4 ml-2" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-              
-              {/* Main Content */}
-              <div className="flex-1">
-                <Card>
-                  <Tabs defaultValue="info">
-                    <CardHeader>
-                      <div className="flex items-center justify-between">
-                        <CardTitle>معلومات الحساب</CardTitle>
-                        <TabsList>
-                          <TabsTrigger value="info" className="flex items-center gap-1">
-                            <UserIcon className="h-4 w-4" />
-                            <span>البيانات الشخصية</span>
-                          </TabsTrigger>
-                          <TabsTrigger value="security" className="flex items-center gap-1">
-                            <Key className="h-4 w-4" />
-                            <span>الأمان</span>
-                          </TabsTrigger>
-                        </TabsList>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">اسم العائلة</Label>
+                      <div className="relative">
+                        <Input
+                          id="lastName"
+                          placeholder="اسم العائلة"
+                          className="pl-10"
+                          {...profileForm.register("lastName")}
+                        />
+                        <User className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
                       </div>
-                      <CardDescription>
-                        تعديل وتحديث معلومات حسابك الشخصي
-                      </CardDescription>
-                    </CardHeader>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="displayName">اسم العرض</Label>
+                    <div className="relative">
+                      <Input
+                        id="displayName"
+                        placeholder="الاسم الذي سيظهر للآخرين"
+                        className="pl-10"
+                        {...profileForm.register("displayName")}
+                      />
+                      <User className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+                    </div>
+                    {profileForm.formState.errors.displayName && (
+                      <p className="text-red-500 text-sm">{profileForm.formState.errors.displayName.message}</p>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="email">البريد الإلكتروني</Label>
+                    <div className="relative">
+                      <Input
+                        id="email"
+                        placeholder="البريد الإلكتروني"
+                        className="pl-10 bg-gray-50"
+                        readOnly
+                        disabled
+                        {...profileForm.register("email")}
+                      />
+                      <Mail className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+                    </div>
+                    <p className="text-xs text-gray-500">لا يمكن تغيير البريد الإلكتروني</p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">رقم الهاتف</Label>
+                    <div className="relative">
+                      <Input
+                        id="phone"
+                        placeholder="رقم الهاتف"
+                        className="pl-10"
+                        {...profileForm.register("phone")}
+                      />
+                      <Phone className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+                    </div>
+                  </div>
+                  
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={savingProfile}
+                  >
+                    {savingProfile ? (
+                      <span className="flex items-center">
+                        <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        جاري الحفظ...
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center">
+                        <Save className="ml-2 h-4 w-4" />
+                        حفظ التغييرات
+                      </span>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Account Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle>معلومات الحساب</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">نوع الحساب</p>
+                    <p className="text-base font-medium">
+                      {profile?.is_admin ? "مسؤول" : "مستخدم عادي"}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-500">تاريخ الإنشاء</p>
+                    <p className="text-base font-medium">{createdAt}</p>
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-center border-t pt-6">
+                <Button 
+                  variant="destructive" 
+                  className="w-full flex items-center justify-center"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="ml-2 h-4 w-4" />
+                  تسجيل الخروج
+                </Button>
+              </CardFooter>
+            </Card>
+
+            {/* Change Password */}
+            <Card>
+              <CardHeader>
+                <CardTitle>تغيير كلمة المرور</CardTitle>
+              </CardHeader>
+              <Separator />
+              <CardContent className="pt-6">
+                <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)}>
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="currentPassword">كلمة المرور الحالية</Label>
+                      <div className="relative">
+                        <Input
+                          id="currentPassword"
+                          type={showCurrentPassword ? "text" : "password"}
+                          className="pl-10"
+                          {...passwordForm.register("currentPassword")}
+                        />
+                        <Lock className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+                        <button
+                          type="button"
+                          className="absolute left-3 top-2.5 text-gray-400 hover:text-gray-600"
+                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        >
+                          {showCurrentPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
+                      </div>
+                      {passwordForm.formState.errors.currentPassword && (
+                        <p className="text-red-500 text-sm">{passwordForm.formState.errors.currentPassword.message}</p>
+                      )}
+                    </div>
                     
-                    <TabsContent value="info">
-                      <CardContent>
-                        <div className="space-y-6">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                              <Label htmlFor="firstName">الاسم الأول</Label>
-                              <Input 
-                                id="firstName" 
-                                value={firstName}
-                                onChange={(e) => setFirstName(e.target.value)}
-                                placeholder="أدخل الاسم الأول"
-                              />
-                            </div>
-                            
-                            <div className="space-y-2">
-                              <Label htmlFor="lastName">الاسم الأخير</Label>
-                              <Input 
-                                id="lastName" 
-                                value={lastName}
-                                onChange={(e) => setLastName(e.target.value)}
-                                placeholder="أدخل الاسم الأخير"
-                              />
-                            </div>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label htmlFor="displayName">اسم العرض</Label>
-                            <Input 
-                              id="displayName" 
-                              value={displayName}
-                              onChange={(e) => setDisplayName(e.target.value)}
-                              placeholder="اسم العرض (سيظهر للمستخدمين الآخرين)"
-                            />
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label htmlFor="email">البريد الإلكتروني</Label>
-                            <Input 
-                              id="email" 
-                              value={user?.email || ''}
-                              disabled
-                              className="bg-gray-100"
-                            />
-                            <p className="text-xs text-gray-500">لا يمكن تغيير البريد الإلكتروني</p>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label htmlFor="phone">رقم الهاتف</Label>
-                            <Input 
-                              id="phone" 
-                              value={phone}
-                              onChange={(e) => setPhone(e.target.value)}
-                              placeholder="أدخل رقم الهاتف"
-                            />
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label htmlFor="avatar">الصورة الشخصية</Label>
-                            <div className="flex items-center space-x-4 rtl:space-x-reverse">
-                              <Avatar className="h-16 w-16">
-                                <AvatarImage src={avatarUrl} />
-                                <AvatarFallback>{firstName?.charAt(0) || ''}{lastName?.charAt(0) || ''}</AvatarFallback>
-                              </Avatar>
-                              <div className="flex-1">
-                                <Input 
-                                  id="avatar" 
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={handleAvatarChange}
-                                  className="block w-full text-sm file:mr-4 file:py-2 file:px-4
-                                  file:rounded-full file:border-0 file:text-sm file:font-semibold
-                                  file:bg-primary-50 file:text-primary hover:file:bg-primary-100"
-                                />
-                                <p className="text-xs text-gray-500 mt-1">يفضل صورة مربعة بحجم 200×200 بكسل</p>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                      
-                      <CardFooter className="flex justify-end">
-                        <Button onClick={handleProfileUpdate} disabled={updating}>
-                          {updating ? (
-                            <>
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent ml-2"></div>
-                              جاري الحفظ...
-                            </>
-                          ) : (
-                            <>
-                              <Save className="h-4 w-4 ml-2" />
-                              حفظ التغييرات
-                            </>
-                          )}
-                        </Button>
-                      </CardFooter>
-                    </TabsContent>
+                    <div className="space-y-2">
+                      <Label htmlFor="newPassword">كلمة المرور الجديدة</Label>
+                      <div className="relative">
+                        <Input
+                          id="newPassword"
+                          type={showNewPassword ? "text" : "password"}
+                          className="pl-10"
+                          {...passwordForm.register("newPassword")}
+                        />
+                        <Lock className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+                        <button
+                          type="button"
+                          className="absolute left-3 top-2.5 text-gray-400 hover:text-gray-600"
+                          onClick={() => setShowNewPassword(!showNewPassword)}
+                        >
+                          {showNewPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
+                      </div>
+                      {passwordForm.formState.errors.newPassword && (
+                        <p className="text-red-500 text-sm">{passwordForm.formState.errors.newPassword.message}</p>
+                      )}
+                    </div>
                     
-                    <TabsContent value="security">
-                      <CardContent>
-                        <div className="space-y-6">
-                          <div className="space-y-2">
-                            <Label htmlFor="currentPassword">كلمة المرور الحالية</Label>
-                            <Input 
-                              id="currentPassword" 
-                              type="password"
-                              value={currentPassword}
-                              onChange={(e) => setCurrentPassword(e.target.value)}
-                              placeholder="أدخل كلمة المرور الحالية"
-                            />
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label htmlFor="newPassword">كلمة المرور الجديدة</Label>
-                            <Input 
-                              id="newPassword" 
-                              type="password"
-                              value={newPassword}
-                              onChange={(e) => setNewPassword(e.target.value)}
-                              placeholder="أدخل كلمة المرور الجديدة"
-                            />
-                            <p className="text-xs text-gray-500">يجب أن تكون كلمة المرور 6 أحرف على الأقل</p>
-                          </div>
-                          
-                          <div className="space-y-2">
-                            <Label htmlFor="confirmPassword">تأكيد كلمة المرور الجديدة</Label>
-                            <Input 
-                              id="confirmPassword" 
-                              type="password"
-                              value={confirmPassword}
-                              onChange={(e) => setConfirmPassword(e.target.value)}
-                              placeholder="أدخل تأكيد كلمة المرور الجديدة"
-                            />
-                          </div>
-                        </div>
-                      </CardContent>
-                      
-                      <CardFooter className="flex justify-end">
-                        <Button onClick={handlePasswordUpdate} disabled={updating || !newPassword || !confirmPassword}>
-                          {updating ? (
-                            <>
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent ml-2"></div>
-                              جاري التحديث...
-                            </>
-                          ) : (
-                            <>
-                              <Key className="h-4 w-4 ml-2" />
-                              تحديث كلمة المرور
-                            </>
-                          )}
-                        </Button>
-                      </CardFooter>
-                    </TabsContent>
-                  </Tabs>
-                </Card>
-              </div>
-            </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="confirmPassword">تأكيد كلمة المرور</Label>
+                      <div className="relative">
+                        <Input
+                          id="confirmPassword"
+                          type={showConfirmPassword ? "text" : "password"}
+                          className="pl-10"
+                          {...passwordForm.register("confirmPassword")}
+                        />
+                        <Lock className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
+                        <button
+                          type="button"
+                          className="absolute left-3 top-2.5 text-gray-400 hover:text-gray-600"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        >
+                          {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
+                      </div>
+                      {passwordForm.formState.errors.confirmPassword && (
+                        <p className="text-red-500 text-sm">{passwordForm.formState.errors.confirmPassword.message}</p>
+                      )}
+                    </div>
+                    
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={savingPassword}
+                    >
+                      {savingPassword ? (
+                        <span className="flex items-center">
+                          <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          جاري الحفظ...
+                        </span>
+                      ) : (
+                        <span className="flex items-center justify-center">
+                          <Save className="ml-2 h-4 w-4" />
+                          تحديث كلمة المرور
+                        </span>
+                      )}
+                    </Button>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>
-      <Footer />
-    </>
+    </div>
   );
 };
 
