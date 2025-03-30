@@ -49,17 +49,30 @@ const CoursesManagement = () => {
       }
       
       // التحقق من وجود الحاويات المطلوبة
-      const courseImagesBucketExists = buckets.some(bucket => 
-        bucket.name === 'course-images'
+      // تحديث أسماء الحاويات المطلوبة
+      const courseImages1BucketExists = buckets.some(bucket => 
+        bucket.name === 'course_images'
       );
       
-      const courseVideosBucketExists = buckets.some(bucket => 
-        bucket.name === 'course-videos'
+      const courseVideos1BucketExists = buckets.some(bucket => 
+        bucket.name === 'course_videos'
+      );
+
+      const courseImages2BucketExists = buckets.some(bucket => 
+        bucket.name === 'Course Images'
       );
       
-      console.log('حالة الحاويات - course-images:', courseImagesBucketExists, 'course-videos:', courseVideosBucketExists);
+      const courseVideos2BucketExists = buckets.some(bucket => 
+        bucket.name === 'Course Videos'
+      );
       
-      if (!courseImagesBucketExists || !courseVideosBucketExists) {
+      console.log('حالة الحاويات - course_images:', courseImages1BucketExists, 
+                  'course_videos:', courseVideos1BucketExists,
+                  'Course Images:', courseImages2BucketExists,
+                  'Course Videos:', courseVideos2BucketExists);
+      
+      if (!courseImages1BucketExists && !courseImages2BucketExists || 
+          !courseVideos1BucketExists && !courseVideos2BucketExists) {
         setStorageError('حاويات التخزين المطلوبة غير موجودة، يجب التأكد من وجود حاويات لصور وفيديوهات الدورات');
       } else {
         setStorageError(null);
@@ -77,39 +90,69 @@ const CoursesManagement = () => {
     try {
       setIsCreatingBuckets(true);
       
-      // إنشاء حاوية course-images
-      console.log('جاري إنشاء حاوية course-images...');
+      // إنشاء حاوية course_images
+      console.log('جاري إنشاء حاوية course_images...');
       const { data: imagesBucket, error: imagesError } = await supabase.storage.createBucket(
-        'course-images', 
+        'course_images', 
         { public: true }
       );
       
       if (imagesError && !imagesError.message.includes('already exists')) {
-        console.error('خطأ في إنشاء حاوية course-images:', imagesError);
+        console.error('خطأ في إنشاء حاوية course_images:', imagesError);
         toast.error('فشل إنشاء حاوية صور الدورات');
         return;
       } else {
-        console.log('تم إنشاء أو التأكد من وجود حاوية course-images بنجاح');
+        console.log('تم إنشاء أو التأكد من وجود حاوية course_images بنجاح');
       }
       
-      // إنشاء حاوية course-videos
-      console.log('جاري إنشاء حاوية course-videos...');
+      // إنشاء حاوية course_videos
+      console.log('جاري إنشاء حاوية course_videos...');
       const { data: videosBucket, error: videosError } = await supabase.storage.createBucket(
-        'course-videos', 
+        'course_videos', 
         { public: true }
       );
       
       if (videosError && !videosError.message.includes('already exists')) {
-        console.error('خطأ في إنشاء حاوية course-videos:', videosError);
+        console.error('خطأ في إنشاء حاوية course_videos:', videosError);
         toast.error('فشل إنشاء حاوية فيديوهات الدورات');
         return;
       } else {
-        console.log('تم إنشاء أو التأكد من وجود حاوية course-videos بنجاح');
+        console.log('تم إنشاء أو التأكد من وجود حاوية course_videos بنجاح');
+      }
+      
+      // إنشاء حاوية Course Images
+      console.log('جاري إنشاء حاوية Course Images...');
+      const { data: images2Bucket, error: images2Error } = await supabase.storage.createBucket(
+        'Course Images', 
+        { public: true }
+      );
+      
+      if (images2Error && !images2Error.message.includes('already exists')) {
+        console.error('خطأ في إنشاء حاوية Course Images:', images2Error);
+        toast.error('فشل إنشاء حاوية صور الدورات الثانية');
+        return;
+      } else {
+        console.log('تم إنشاء أو التأكد من وجود حاوية Course Images بنجاح');
+      }
+      
+      // إنشاء حاوية Course Videos
+      console.log('جاري إنشاء حاوية Course Videos...');
+      const { data: videos2Bucket, error: videos2Error } = await supabase.storage.createBucket(
+        'Course Videos', 
+        { public: true }
+      );
+      
+      if (videos2Error && !videos2Error.message.includes('already exists')) {
+        console.error('خطأ في إنشاء حاوية Course Videos:', videos2Error);
+        toast.error('فشل إنشاء حاوية فيديوهات الدورات الثانية');
+        return;
+      } else {
+        console.log('تم إنشاء أو التأكد من وجود حاوية Course Videos بنجاح');
       }
       
       // تحديث الوصول العام للحاويات
       console.log('جاري تحديث إعدادات الوصول للحاويات...');
-      for (const bucketId of ['course-images', 'course-videos']) {
+      for (const bucketId of ['course_images', 'course_videos', 'Course Images', 'Course Videos']) {
         const { error: policyError } = await supabase.storage.updateBucket(
           bucketId,
           { public: true }
