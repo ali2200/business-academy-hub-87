@@ -27,6 +27,7 @@ const BooksManagement = () => {
         return;
       }
       
+      // استخدم نفس أسماء الحاويات بدقة، مع علامة الشرطة
       const bookCoversBucketExists = buckets?.some(bucket => bucket.id === 'book-covers');
       const bookFilesBucketExists = buckets?.some(bucket => bucket.id === 'book-files');
       
@@ -48,7 +49,7 @@ const BooksManagement = () => {
     try {
       setIsCreatingBuckets(true);
       
-      // Create book-covers bucket if it doesn't exist
+      // إنشاء حاوية book-covers إذا لم تكن موجودة
       const { data: coversBucket, error: coversError } = await supabase.storage.createBucket(
         'book-covers', 
         { public: true }
@@ -60,7 +61,7 @@ const BooksManagement = () => {
         return;
       }
       
-      // Create book-files bucket if it doesn't exist
+      // إنشاء حاوية book-files إذا لم تكن موجودة
       const { data: filesBucket, error: filesError } = await supabase.storage.createBucket(
         'book-files', 
         { public: true }
@@ -72,7 +73,7 @@ const BooksManagement = () => {
         return;
       }
       
-      // Update public access for buckets
+      // تحديث الوصول العام للحاويات
       for (const bucketId of ['book-covers', 'book-files']) {
         const { error: policyError } = await supabase.storage.updateBucket(
           bucketId,
@@ -85,7 +86,7 @@ const BooksManagement = () => {
       }
       
       toast.success('تم إنشاء حاويات التخزين بنجاح');
-      // Re-check buckets
+      // إعادة التحقق من الحاويات
       await checkStorageBuckets();
     } catch (err) {
       console.error('Error creating storage buckets:', err);

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -57,7 +56,6 @@ const CoursesManagement = () => {
     try {
       setIsCreatingBuckets(true);
       
-      // Create course-images bucket if it doesn't exist
       const { data: imagesBucket, error: imagesError } = await supabase.storage.createBucket(
         'course-images', 
         { public: true }
@@ -69,7 +67,6 @@ const CoursesManagement = () => {
         return;
       }
       
-      // Create course-videos bucket if it doesn't exist
       const { data: videosBucket, error: videosError } = await supabase.storage.createBucket(
         'course-videos', 
         { public: true }
@@ -81,7 +78,6 @@ const CoursesManagement = () => {
         return;
       }
       
-      // Update public access for buckets
       for (const bucketId of ['course-images', 'course-videos']) {
         const { error: policyError } = await supabase.storage.updateBucket(
           bucketId,
@@ -94,7 +90,6 @@ const CoursesManagement = () => {
       }
       
       toast.success('تم إنشاء حاويات التخزين بنجاح');
-      // Re-check buckets
       await checkStorageBuckets();
     } catch (err) {
       console.error('Error creating storage buckets:', err);
@@ -105,7 +100,6 @@ const CoursesManagement = () => {
   };
   
   useEffect(() => {
-    // التحقق من وجود حاويات التخزين عند تحميل الصفحة
     checkStorageBuckets();
   }, []);
   

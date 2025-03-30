@@ -243,12 +243,13 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
       
       console.log('Available buckets:', buckets);
       
-      // التحقق مما إذا كانت حاوية course-images موجودة
+      // التحقق مما إذا كانت حاوية course-images موجودة (بالضبط كما هو الاسم، مع مراعاة الحساسية لحالة الأحرف)
       const courseImagesBucketExists = buckets.some(bucket => bucket.id === 'course-images');
       
       if (!courseImagesBucketExists) {
         console.error('Error: course-images bucket does not exist');
         toast.error('حاوية التخزين غير موجودة، يرجى التواصل مع مسؤول النظام');
+        toast.error('تأكد من إنشاء حاوية باسم course-images بالضبط (مع الشرطة وليس الشرطة السفلية)');
         setUploadingImage(false);
         return;
       }
@@ -310,12 +311,13 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
       
       console.log('Available buckets:', buckets);
       
-      // التحقق مما إذا كانت حاوية course-videos موجودة
+      // التحقق مما إذا كانت حاوية course-videos موجودة (بالضبط كما هو الاسم، مع مراعاة الحساسية لحالة الأحرف)
       const courseVideosBucketExists = buckets.some(bucket => bucket.id === 'course-videos');
       
       if (!courseVideosBucketExists) {
         console.error('Error: course-videos bucket does not exist');
         toast.error('حاوية التخزين غير موجودة، يرجى التواصل مع مسؤول النظام');
+        toast.error('تأكد من إنشاء حاوية باسم course-videos بالضبط (مع الشرطة وليس الشرطة السفلية)');
         setUploading(false);
         return;
       }
