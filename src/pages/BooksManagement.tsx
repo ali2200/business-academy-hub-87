@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
@@ -27,8 +28,13 @@ const BooksManagement = () => {
       }
       
       // التحقق من وجود الحاويات المطلوبة باستخدام الأسماء المتوافقة مع سوبربيز
-      const bookCoversBucketExists = buckets?.some(bucket => bucket.id === 'book-covers');
-      const bookFilesBucketExists = buckets?.some(bucket => bucket.id === 'book-files');
+      const bookCoversBucketExists = buckets?.some(bucket => 
+        bucket.id === 'book-covers'
+      );
+      
+      const bookFilesBucketExists = buckets?.some(bucket => 
+        bucket.id === 'book-files'
+      );
       
       if (!bookCoversBucketExists || !bookFilesBucketExists) {
         setStorageError('حاويات التخزين المطلوبة غير موجودة، يجب التأكد من وجود حاويات لأغلفة وملفات الكتب');
@@ -81,6 +87,8 @@ const BooksManagement = () => {
         
         if (policyError) {
           console.error(`Error updating policy for ${bucketId}:`, policyError);
+        } else {
+          console.log(`Successfully updated policy for ${bucketId}`);
         }
       }
       
