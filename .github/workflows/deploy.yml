@@ -31,4 +31,4 @@ jobs:
           username: u598338404.lightsategrey-mandrill-613667.hostingersite.com
           password: ${{ secrets.FTP_PASSWORD }}
           server-dir: /public_html/
-          local-dir: dist
+          local-dir: dist/
