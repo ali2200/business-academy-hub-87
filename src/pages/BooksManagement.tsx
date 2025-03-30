@@ -17,24 +17,38 @@ const BooksManagement = () => {
   const checkStorageBuckets = async () => {
     try {
       setIsCheckingStorage(true);
+      
+      // تسجيل عملية التحقق في السجل
+      console.log('بدء التحقق من حاويات التخزين...');
+      
+      // الحصول على قائمة الحاويات المتاحة
       const { data: buckets, error } = await supabase.storage.listBuckets();
       
-      console.log('Available buckets:', buckets);
-      
       if (error) {
-        console.error('Error checking storage buckets:', error);
+        console.error('خطأ في الحصول على قائمة الحاويات:', error);
         setStorageError('حدث خطأ أثناء التحقق من حاويات التخزين');
         return;
       }
       
+      // تسجيل الحاويات المتاحة
+      console.log('الحاويات المتاحة:', buckets);
+      
+      if (!buckets || buckets.length === 0) {
+        console.log('لا توجد حاويات متاحة');
+        setStorageError('لا توجد حاويات تخزين متاحة، يرجى إنشاء الحاويات المطلوبة');
+        return;
+      }
+      
       // التحقق من وجود الحاويات المطلوبة
-      const bookCoversBucketExists = buckets?.some(bucket => 
-        bucket.id === 'book-covers'
+      const bookCoversBucketExists = buckets.some(bucket => 
+        bucket.name === 'book-covers'
       );
       
-      const bookFilesBucketExists = buckets?.some(bucket => 
-        bucket.id === 'book-files'
+      const bookFilesBucketExists = buckets.some(bucket => 
+        bucket.name === 'book-files'
       );
+      
+      console.log('حالة الحاويات - book-covers:', bookCoversBucketExists, 'book-files:', bookFilesBucketExists);
       
       if (!bookCoversBucketExists || !bookFilesBucketExists) {
         setStorageError('حاويات التخزين المطلوبة غير موجودة، يجب التأكد من وجود حاويات لأغلفة وملفات الكتب');
@@ -43,7 +57,7 @@ const BooksManagement = () => {
         toast.success('تم التحقق من حاويات التخزين بنجاح');
       }
     } catch (err) {
-      console.error('Unexpected error checking storage:', err);
+      console.error('خطأ غير متوقع أثناء التحقق من حاويات التخزين:', err);
       setStorageError('حدث خطأ غير متوقع أثناء التحقق من حاويات التخزين');
     } finally {
       setIsCheckingStorage(false);
@@ -55,34 +69,37 @@ const BooksManagement = () => {
       setIsCreatingBuckets(true);
       
       // إنشاء حاوية book-covers
+      console.log('جاري إنشاء حاوية book-covers...');
       const { data: coversBucket, error: coversError } = await supabase.storage.createBucket(
         'book-covers', 
         { public: true }
       );
       
       if (coversError && !coversError.message.includes('already exists')) {
-        console.error('Error creating book-covers bucket:', coversError);
+        console.error('خطأ في إنشاء حاوية book-covers:', coversError);
         toast.error('فشل إنشاء حاوية أغلفة الكتب');
         return;
       } else {
-        console.log('Successfully created or confirmed book-covers bucket');
+        console.log('تم إنشاء أو التأكد من وجود حاوية book-covers بنجاح');
       }
       
       // إنشاء حاوية book-files
+      console.log('جاري إنشاء حاوية book-files...');
       const { data: filesBucket, error: filesError } = await supabase.storage.createBucket(
         'book-files', 
         { public: true }
       );
       
       if (filesError && !filesError.message.includes('already exists')) {
-        console.error('Error creating book-files bucket:', filesError);
+        console.error('خطأ في إنشاء حاوية book-files:', filesError);
         toast.error('فشل إنشاء حاوية ملفات الكتب');
         return;
       } else {
-        console.log('Successfully created or confirmed book-files bucket');
+        console.log('تم إنشاء أو التأكد من وجود حاوية book-files بنجاح');
       }
       
       // تحديث الوصول العام للحاويات
+      console.log('جاري تحديث إعدادات الوصول للحاويات...');
       for (const bucketId of ['book-covers', 'book-files']) {
         const { error: policyError } = await supabase.storage.updateBucket(
           bucketId,
@@ -90,9 +107,9 @@ const BooksManagement = () => {
         );
         
         if (policyError) {
-          console.error(`Error updating policy for ${bucketId}:`, policyError);
+          console.error(`خطأ في تحديث سياسة الوصول لـ ${bucketId}:`, policyError);
         } else {
-          console.log(`Successfully updated policy for ${bucketId}`);
+          console.log(`تم تحديث سياسة الوصول لـ ${bucketId} بنجاح`);
         }
       }
       
@@ -100,7 +117,7 @@ const BooksManagement = () => {
       // إعادة التحقق من الحاويات
       await checkStorageBuckets();
     } catch (err) {
-      console.error('Error creating storage buckets:', err);
+      console.error('خطأ في إنشاء حاويات التخزين:', err);
       toast.error('حدث خطأ أثناء إنشاء حاويات التخزين');
     } finally {
       setIsCreatingBuckets(false);

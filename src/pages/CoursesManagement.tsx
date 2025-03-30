@@ -26,24 +26,38 @@ const CoursesManagement = () => {
   const checkStorageBuckets = async () => {
     try {
       setIsCheckingStorage(true);
+      
+      // تسجيل عملية التحقق في السجل
+      console.log('بدء التحقق من حاويات التخزين للدورات...');
+      
+      // الحصول على قائمة الحاويات المتاحة
       const { data: buckets, error } = await supabase.storage.listBuckets();
       
-      console.log('Available buckets:', buckets);
-      
       if (error) {
-        console.error('Error checking storage buckets:', error);
+        console.error('خطأ في الحصول على قائمة الحاويات:', error);
         setStorageError('حدث خطأ أثناء التحقق من حاويات التخزين');
         return;
       }
       
+      // تسجيل الحاويات المتاحة
+      console.log('الحاويات المتاحة:', buckets);
+      
+      if (!buckets || buckets.length === 0) {
+        console.log('لا توجد حاويات متاحة');
+        setStorageError('لا توجد حاويات تخزين متاحة، يرجى إنشاء الحاويات المطلوبة');
+        return;
+      }
+      
       // التحقق من وجود الحاويات المطلوبة
-      const courseImagesBucketExists = buckets?.some(bucket => 
-        bucket.id === 'course-images'
+      const courseImagesBucketExists = buckets.some(bucket => 
+        bucket.name === 'course-images'
       );
       
-      const courseVideosBucketExists = buckets?.some(bucket => 
-        bucket.id === 'course-videos'
+      const courseVideosBucketExists = buckets.some(bucket => 
+        bucket.name === 'course-videos'
       );
+      
+      console.log('حالة الحاويات - course-images:', courseImagesBucketExists, 'course-videos:', courseVideosBucketExists);
       
       if (!courseImagesBucketExists || !courseVideosBucketExists) {
         setStorageError('حاويات التخزين المطلوبة غير موجودة، يجب التأكد من وجود حاويات لصور وفيديوهات الدورات');
@@ -52,7 +66,7 @@ const CoursesManagement = () => {
         toast.success('تم التحقق من حاويات التخزين بنجاح');
       }
     } catch (err) {
-      console.error('Unexpected error checking storage:', err);
+      console.error('خطأ غير متوقع أثناء التحقق من حاويات التخزين:', err);
       setStorageError('حدث خطأ غير متوقع أثناء التحقق من حاويات التخزين');
     } finally {
       setIsCheckingStorage(false);
@@ -64,34 +78,37 @@ const CoursesManagement = () => {
       setIsCreatingBuckets(true);
       
       // إنشاء حاوية course-images
+      console.log('جاري إنشاء حاوية course-images...');
       const { data: imagesBucket, error: imagesError } = await supabase.storage.createBucket(
         'course-images', 
         { public: true }
       );
       
       if (imagesError && !imagesError.message.includes('already exists')) {
-        console.error('Error creating course-images bucket:', imagesError);
+        console.error('خطأ في إنشاء حاوية course-images:', imagesError);
         toast.error('فشل إنشاء حاوية صور الدورات');
         return;
       } else {
-        console.log('Successfully created or confirmed course-images bucket');
+        console.log('تم إنشاء أو التأكد من وجود حاوية course-images بنجاح');
       }
       
       // إنشاء حاوية course-videos
+      console.log('جاري إنشاء حاوية course-videos...');
       const { data: videosBucket, error: videosError } = await supabase.storage.createBucket(
         'course-videos', 
         { public: true }
       );
       
       if (videosError && !videosError.message.includes('already exists')) {
-        console.error('Error creating course-videos bucket:', videosError);
+        console.error('خطأ في إنشاء حاوية course-videos:', videosError);
         toast.error('فشل إنشاء حاوية فيديوهات الدورات');
         return;
       } else {
-        console.log('Successfully created or confirmed course-videos bucket');
+        console.log('تم إنشاء أو التأكد من وجود حاوية course-videos بنجاح');
       }
       
       // تحديث الوصول العام للحاويات
+      console.log('جاري تحديث إعدادات الوصول للحاويات...');
       for (const bucketId of ['course-images', 'course-videos']) {
         const { error: policyError } = await supabase.storage.updateBucket(
           bucketId,
@@ -99,9 +116,9 @@ const CoursesManagement = () => {
         );
         
         if (policyError) {
-          console.error(`Error updating policy for ${bucketId}:`, policyError);
+          console.error(`خطأ في تحديث سياسة الوصول لـ ${bucketId}:`, policyError);
         } else {
-          console.log(`Successfully updated policy for ${bucketId}`);
+          console.log(`تم تحديث سياسة الوصول لـ ${bucketId} بنجاح`);
         }
       }
       
@@ -109,7 +126,7 @@ const CoursesManagement = () => {
       // إعادة التحقق من الحاويات
       await checkStorageBuckets();
     } catch (err) {
-      console.error('Error creating storage buckets:', err);
+      console.error('خطأ في إنشاء حاويات التخزين:', err);
       toast.error('حدث خطأ أثناء إنشاء حاويات التخزين');
     } finally {
       setIsCreatingBuckets(false);
