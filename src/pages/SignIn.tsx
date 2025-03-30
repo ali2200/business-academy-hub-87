@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -33,8 +33,6 @@ const formSchema = z.object({
 const SignIn = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [isConfirmingEmail, setIsConfirmingEmail] = useState(false);
   
   // Initialize form
   const form = useForm<z.infer<typeof formSchema>>({
@@ -44,141 +42,6 @@ const SignIn = () => {
       password: "",
     },
   });
-
-  // Create admin user function with automatic email confirmation
-  const createAdminUser = async () => {
-    try {
-      setIsRegistering(true);
-      
-      // Check if the user already exists
-      const { data: existingUser, error: fetchError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('email', 'ali@ali.com')
-        .single();
-
-      if (fetchError && fetchError.code !== 'PGRST116') { // PGRST116 is "Not found" error
-        toast.error("حدث خطأ أثناء التحقق من وجود المستخدم");
-        console.error("خطأ في البحث عن المستخدم:", fetchError);
-        setIsRegistering(false);
-        return;
-      }
-
-      if (existingUser) {
-        form.setValue('email', 'ali@ali.com');
-        form.setValue('password', '016513066');
-        toast.info("تم تعبئة بيانات المدير تلقائيًا، اضغط على تسجيل الدخول");
-        
-        // Try to update admin status again just to be sure
-        const { error: updateError } = await supabase
-          .from('profiles')
-          .update({ is_admin: true })
-          .eq('email', 'ali@ali.com');
-        
-        if (updateError) {
-          console.error("خطأ في تحديث صلاحيات المدير:", updateError);
-        }
-        
-        setIsRegistering(false);
-        
-        // Try to confirm email directly using Supabase admin functions
-        await confirmAdminEmail();
-        return;
-      }
-      
-      // Register the admin user
-      const { data, error } = await supabase.auth.signUp({
-        email: 'ali@ali.com',
-        password: '016513066',
-        options: {
-          data: {
-            first_name: 'Ali',
-            last_name: 'Admin',
-            is_admin: true,
-          }
-        }
-      });
-      
-      if (error) {
-        toast.error(error.message || "حدث خطأ أثناء تسجيل حساب المدير");
-        console.error("خطأ في تسجيل حساب المدير:", error);
-        setIsRegistering(false);
-        return;
-      }
-      
-      // Set admin status directly in profiles table
-      if (data?.user) {
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ is_admin: true })
-          .eq('id', data.user.id);
-          
-        if (profileError) {
-          console.error("خطأ في تحديث صلاحيات المدير:", profileError);
-        }
-      }
-      
-      // Auto-fill credentials
-      form.setValue('email', 'ali@ali.com');
-      form.setValue('password', '016513066');
-      
-      toast.success("تم إنشاء حساب المدير بنجاح. يمكنك تسجيل الدخول الآن");
-
-      // Try to confirm email directly
-      await confirmAdminEmail();
-    } catch (err) {
-      console.error("خطأ غير متوقع:", err);
-      toast.error("حدث خطأ غير متوقع أثناء إنشاء حساب المدير");
-    } finally {
-      setIsRegistering(false);
-    }
-  };
-
-  // Function to confirm admin email automatically
-  const confirmAdminEmail = async () => {
-    try {
-      setIsConfirmingEmail(true);
-      toast.info("جاري تأكيد البريد الإلكتروني للمدير...");
-
-      // First try to sign in to get the user
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: 'ali@ali.com',
-        password: '016513066',
-      });
-      
-      // If we can sign in, that means the email is already confirmed
-      if (!signInError && signInData.user) {
-        toast.success("تم تأكيد البريد الإلكتروني بنجاح");
-        setIsConfirmingEmail(false);
-        return;
-      }
-
-      // Try a direct approach - this won't work for regular users but we can try
-      if (signInError && signInError.message?.includes("Email not confirmed")) {
-        // Attempt to sign up again with the same credentials
-        // This is a workaround that sometimes works
-        const { error: signUpError } = await supabase.auth.signUp({
-          email: 'ali@ali.com',
-          password: '016513066',
-          options: {
-            emailRedirectTo: window.location.origin + '/admin-dashboard',
-          }
-        });
-        
-        if (!signUpError) {
-          toast.info("تم إرسال رابط التأكيد. يرجى تأكيد البريد الإلكتروني");
-        } else {
-          console.error("خطأ في إعادة تسجيل المستخدم:", signUpError);
-        }
-        
-        toast.info("قم بالاتصال بمسؤول قاعدة البيانات لتأكيد البريد الإلكتروني من لوحة تحكم Supabase");
-      }
-    } catch (err) {
-      console.error("خطأ في تأكيد البريد الإلكتروني:", err);
-    } finally {
-      setIsConfirmingEmail(false);
-    }
-  };
 
   // Form submission handler
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
@@ -192,13 +55,6 @@ const SignIn = () => {
       });
       
       if (error) {
-        // If the error is about email confirmation, offer to auto-confirm for admin
-        if (error.message?.includes("Email not confirmed") && values.email === 'ali@ali.com') {
-          toast.error("البريد الإلكتروني غير مؤكد. سيتم محاولة تأكيده تلقائياً.");
-          await confirmAdminEmail();
-          return;
-        }
-        
         toast.error(error.message || "حدث خطأ أثناء تسجيل الدخول");
         console.error("خطأ في تسجيل الدخول:", error);
         return;
@@ -246,7 +102,7 @@ const SignIn = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
           <Link to="/" className="mx-auto mb-4 block">
-            <img src="/images/logo.svg" alt="بيزنس أكاديمي" className="h-12 mx-auto" />
+            <img src="/lovable-uploads/3b2734a9-07b7-4ecc-b0cd-eb2671429612.png" alt="بيزنس أكاديمي" className="h-12 mx-auto" />
           </Link>
           <CardTitle className="text-2xl font-bold">تسجيل الدخول</CardTitle>
           <CardDescription>
@@ -265,14 +121,14 @@ const SignIn = () => {
                     <FormLabel>البريد الإلكتروني</FormLabel>
                     <FormControl>
                       <div className="relative">
+                        <User className="absolute right-3 top-3 h-5 w-5 text-gray-400 pointer-events-none" />
                         <Input 
                           placeholder="your.email@example.com" 
                           type="email" 
-                          className="pl-10" 
+                          className="pr-10" 
                           {...field} 
-                          disabled={isLoading || isRegistering || isConfirmingEmail}
+                          disabled={isLoading}
                         />
-                        <User className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -288,13 +144,13 @@ const SignIn = () => {
                     <FormLabel>كلمة المرور</FormLabel>
                     <FormControl>
                       <div className="relative">
+                        <KeyRound className="absolute right-3 top-3 h-5 w-5 text-gray-400 pointer-events-none" />
                         <Input 
                           type="password" 
-                          className="pl-10" 
+                          className="pr-10" 
                           {...field} 
-                          disabled={isLoading || isRegistering || isConfirmingEmail}
+                          disabled={isLoading}
                         />
-                        <KeyRound className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -324,7 +180,7 @@ const SignIn = () => {
               <Button 
                 type="submit" 
                 className="w-full flex items-center justify-center"
-                disabled={isLoading || isRegistering || isConfirmingEmail}
+                disabled={isLoading}
               >
                 {isLoading ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -333,34 +189,6 @@ const SignIn = () => {
                     <span>تسجيل الدخول</span>
                     <ArrowRight className="mr-2 h-4 w-4" />
                   </>
-                )}
-              </Button>
-              
-              <Button 
-                type="button" 
-                variant="outline"
-                className="w-full mt-2"
-                disabled={isLoading || isRegistering || isConfirmingEmail}
-                onClick={createAdminUser}
-              >
-                {isRegistering || isConfirmingEmail ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <span>إنشاء وتأكيد حساب المدير</span>
-                )}
-              </Button>
-              
-              <Button 
-                type="button" 
-                variant="link"
-                className="w-full mt-1 text-amber-600 hover:text-amber-800"
-                disabled={isLoading || isRegistering || isConfirmingEmail}
-                onClick={confirmAdminEmail}
-              >
-                {isConfirmingEmail ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <span>تأكيد البريد الإلكتروني للمدير</span>
                 )}
               </Button>
             </form>

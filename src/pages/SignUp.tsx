@@ -68,7 +68,7 @@ const SignUp = () => {
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
           <Link to="/" className="mx-auto mb-4 block">
-            <img src="/images/logo.svg" alt="بيزنس أكاديمي" className="h-12 mx-auto" />
+            <img src="/lovable-uploads/3b2734a9-07b7-4ecc-b0cd-eb2671429612.png" alt="بيزنس أكاديمي" className="h-12 mx-auto" />
           </Link>
           <CardTitle className="text-2xl font-bold">إنشاء حساب جديد</CardTitle>
           <CardDescription>
@@ -87,12 +87,12 @@ const SignUp = () => {
                     <FormLabel>الاسم</FormLabel>
                     <FormControl>
                       <div className="relative">
+                        <User className="absolute right-3 top-3 h-5 w-5 text-gray-400 pointer-events-none" />
                         <Input 
                           placeholder="محمد أحمد" 
-                          className="pl-10" 
+                          className="pr-10" 
                           {...field} 
                         />
-                        <User className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -108,13 +108,13 @@ const SignUp = () => {
                     <FormLabel>البريد الإلكتروني</FormLabel>
                     <FormControl>
                       <div className="relative">
+                        <Mail className="absolute right-3 top-3 h-5 w-5 text-gray-400 pointer-events-none" />
                         <Input 
                           placeholder="your.email@example.com" 
                           type="email" 
-                          className="pl-10" 
+                          className="pr-10" 
                           {...field} 
                         />
-                        <Mail className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -130,12 +130,12 @@ const SignUp = () => {
                     <FormLabel>كلمة المرور</FormLabel>
                     <FormControl>
                       <div className="relative">
+                        <KeyRound className="absolute right-3 top-3 h-5 w-5 text-gray-400 pointer-events-none" />
                         <Input 
                           type="password" 
-                          className="pl-10" 
+                          className="pr-10" 
                           {...field} 
                         />
-                        <KeyRound className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
                       </div>
                     </FormControl>
                     <FormMessage />
@@ -151,12 +151,12 @@ const SignUp = () => {
                     <FormLabel>تأكيد كلمة المرور</FormLabel>
                     <FormControl>
                       <div className="relative">
+                        <KeyRound className="absolute right-3 top-3 h-5 w-5 text-gray-400 pointer-events-none" />
                         <Input 
                           type="password" 
-                          className="pl-10" 
+                          className="pr-10" 
                           {...field} 
                         />
-                        <KeyRound className="absolute right-3 top-2.5 h-5 w-5 text-gray-400" />
                       </div>
                     </FormControl>
                     <FormMessage />
