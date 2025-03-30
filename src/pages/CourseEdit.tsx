@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
@@ -142,6 +141,8 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
   const [isNewCourse, setIsNewCourse] = useState(!courseId);
   const [tempCourseId, setTempCourseId] = useState<string | null>(null);
   const [isUrlInput, setIsUrlInput] = useState(false);
+  const [isImageUrlInput, setIsImageUrlInput] = useState(false);
+  const [imageDirectUrl, setImageDirectUrl] = useState<string>('');
 
   const form = useForm<CourseForm>({
     resolver: zodResolver(courseFormSchema),
@@ -313,7 +314,6 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
       
       console.log('Available buckets:', buckets);
       
-      // تحقق من الحاويات المتاحة
       let bucketName = '';
       
       if (buckets.some(bucket => bucket.name === 'course_videos')) {
@@ -393,7 +393,6 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
 
   const toggleUploadMethod = () => {
     setIsUrlInput(!isUrlInput);
-    // إعادة تعيين قيم الفيديو عند التبديل
     if (isUrlInput) {
       setFileUrl(null);
       setFileName(null);
@@ -415,18 +414,32 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
     });
   };
 
+  const toggleImageUploadMethod = () => {
+    setIsImageUrlInput(!isImageUrlInput);
+    if (!isImageUrlInput) {
+      setImageUrl(null);
+    } else {
+      setImageDirectUrl('');
+    }
+  };
+
+  const handleImageUrlInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value;
+    setImageDirectUrl(url);
+    setImageUrl(url);
+  };
+
   const saveCourse = useMutation({
     mutationFn: async (courseData: CourseForm) => {
       const courseToSave = {
         ...courseData,
-        title: courseData.title,          // Make sure title is explicitly included
-        instructor: courseData.instructor, // Make sure instructor is explicitly included
-        price: courseData.price,          // Make sure price is explicitly included
+        title: courseData.title,
+        instructor: courseData.instructor,
+        price: courseData.price,
         image_url: imageUrl
       };
       
       if (courseId || tempCourseId) {
-        // Update existing course
         const { data, error } = await supabase
           .from('courses')
           .update(courseToSave)
@@ -436,10 +449,9 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
         if (error) throw error;
         return data;
       } else {
-        // Create new course
         const { data, error } = await supabase
           .from('courses')
-          .insert(courseToSave)  // No need for array here, since we're providing all required fields
+          .insert(courseToSave)
           .select();
         
         if (error) throw error;
@@ -448,13 +460,10 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
     },
     onSuccess: (data) => {
       if (!courseId && data && data.length > 0) {
-        // For a new course
         const newCourseId = data[0].id;
         setTempCourseId(newCourseId);
         
         if (activeTab === 'lessons') {
-          // If we're on the lessons tab, update URL but don't navigate
-          // This prevents losing the current tab state
           window.history.replaceState(null, '', `/courses-management/${newCourseId}/lessons`);
         } else {
           navigate(`/courses-management/${newCourseId}`);
@@ -585,7 +594,6 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
     });
     setFileUrl(lesson.video_url);
     setFileName(lesson.video_file_name);
-    // التحقق مما إذا كانت الـ URL خارجية
     setIsUrlInput(!(lesson.video_url || '').includes('supabase'));
     setIsEditDialogOpen(true);
   };
@@ -680,33 +688,73 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>صورة الدورة</Label>
-                      <div {...getImageRootProps()} className="border-dashed border-2 rounded-md p-4 cursor-pointer">
-                        <input {...getImageInputProps()} />
-                        {uploadingImage ? (
-                          <div className="flex items-center justify-center">
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            <span>جاري الرفع...</span>
-                          </div>
-                        ) : imageUrl ? (
-                          <div className="flex flex-col items-center gap-4">
-                            <img src={imageUrl} alt="صورة الدورة" className="max-h-48 rounded-md object-cover" />
-                            <Button variant="outline" size="sm" onClick={() => setImageUrl(null)}>
-                              تغيير الصورة
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col items-center justify-center py-4">
-                            <ImageIcon className="h-10 w-10 text-gray-400" />
-                            <p className="text-gray-500 mt-2">
-                              {isImageDragActive ? "أفلت الصورة هنا..." : "اسحب صورة أو انقر لاختيار ملف"}
-                            </p>
-                            <p className="text-xs text-gray-400 mt-1">
-                              يفضل صورة بأبعاد 16:9
-                            </p>
-                          </div>
-                        )}
+                      <div className="flex justify-between items-center">
+                        <Label>صورة الدورة</Label>
+                        <Button variant="outline" size="sm" type="button" onClick={toggleImageUploadMethod}>
+                          {isImageUrlInput ? <Upload className="h-4 w-4 ml-1" /> : <LinkIcon className="h-4 w-4 ml-1" />}
+                          {isImageUrlInput ? 'رفع صورة' : 'إضافة رابط'}
+                        </Button>
                       </div>
+                      
+                      {isImageUrlInput ? (
+                        <div className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="image_url_input">رابط الصورة</Label>
+                            <Input 
+                              id="image_url_input"
+                              placeholder="https://example.com/image.jpg"
+                              value={imageDirectUrl}
+                              onChange={handleImageUrlInput}
+                            />
+                            <p className="text-xs text-gray-500">
+                              أدخل عنوان URL للصورة من أي موقع على الإنترنت
+                            </p>
+                          </div>
+                          
+                          {imageUrl && (
+                            <div className="flex flex-col items-center gap-4 mt-4">
+                              <img src={imageUrl} alt="صورة الدورة" className="max-h-48 rounded-md object-cover" 
+                                onError={() => {
+                                  toast.error("تعذر تحميل الصورة من الرابط المحدد");
+                                }}
+                              />
+                              <Button variant="outline" size="sm" onClick={() => {
+                                setImageUrl(null);
+                                setImageDirectUrl('');
+                              }}>
+                                تغيير الصورة
+                              </Button>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div {...getImageRootProps()} className="border-dashed border-2 rounded-md p-4 cursor-pointer">
+                          <input {...getImageInputProps()} />
+                          {uploadingImage ? (
+                            <div className="flex items-center justify-center">
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              <span>جاري الرفع...</span>
+                            </div>
+                          ) : imageUrl ? (
+                            <div className="flex flex-col items-center gap-4">
+                              <img src={imageUrl} alt="صورة الدورة" className="max-h-48 rounded-md object-cover" />
+                              <Button variant="outline" size="sm" onClick={() => setImageUrl(null)}>
+                                تغيير الصورة
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center justify-center py-4">
+                              <ImageIcon className="h-10 w-10 text-gray-400" />
+                              <p className="text-gray-500 mt-2">
+                                {isImageDragActive ? "أفلت الصورة هنا..." : "اسحب صورة أو انقر لاختيار ملف"}
+                              </p>
+                              <p className="text-xs text-gray-400 mt-1">
+                                يفضل صورة بأبعاد 16:9
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     <FormField
