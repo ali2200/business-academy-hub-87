@@ -27,7 +27,7 @@ const BooksManagement = () => {
         return;
       }
       
-      // التحقق من وجود الحاويات المطلوبة باستخدام الأسماء المتوافقة مع سوبربيز
+      // التحقق من وجود الحاويات المطلوبة
       const bookCoversBucketExists = buckets?.some(bucket => 
         bucket.id === 'book-covers'
       );
@@ -54,7 +54,7 @@ const BooksManagement = () => {
     try {
       setIsCreatingBuckets(true);
       
-      // إنشاء حاوية book-covers باستخدام الاسم المتوافق مع سوبربيز
+      // إنشاء حاوية book-covers
       const { data: coversBucket, error: coversError } = await supabase.storage.createBucket(
         'book-covers', 
         { public: true }
@@ -64,9 +64,11 @@ const BooksManagement = () => {
         console.error('Error creating book-covers bucket:', coversError);
         toast.error('فشل إنشاء حاوية أغلفة الكتب');
         return;
+      } else {
+        console.log('Successfully created or confirmed book-covers bucket');
       }
       
-      // إنشاء حاوية book-files باستخدام الاسم المتوافق مع سوبربيز
+      // إنشاء حاوية book-files
       const { data: filesBucket, error: filesError } = await supabase.storage.createBucket(
         'book-files', 
         { public: true }
@@ -76,6 +78,8 @@ const BooksManagement = () => {
         console.error('Error creating book-files bucket:', filesError);
         toast.error('فشل إنشاء حاوية ملفات الكتب');
         return;
+      } else {
+        console.log('Successfully created or confirmed book-files bucket');
       }
       
       // تحديث الوصول العام للحاويات

@@ -63,7 +63,7 @@ const CoursesManagement = () => {
     try {
       setIsCreatingBuckets(true);
       
-      // Creating course-images bucket
+      // إنشاء حاوية course-images
       const { data: imagesBucket, error: imagesError } = await supabase.storage.createBucket(
         'course-images', 
         { public: true }
@@ -73,9 +73,11 @@ const CoursesManagement = () => {
         console.error('Error creating course-images bucket:', imagesError);
         toast.error('فشل إنشاء حاوية صور الدورات');
         return;
+      } else {
+        console.log('Successfully created or confirmed course-images bucket');
       }
       
-      // Creating course-videos bucket
+      // إنشاء حاوية course-videos
       const { data: videosBucket, error: videosError } = await supabase.storage.createBucket(
         'course-videos', 
         { public: true }
@@ -85,6 +87,8 @@ const CoursesManagement = () => {
         console.error('Error creating course-videos bucket:', videosError);
         toast.error('فشل إنشاء حاوية فيديوهات الدورات');
         return;
+      } else {
+        console.log('Successfully created or confirmed course-videos bucket');
       }
       
       // تحديث الوصول العام للحاويات
