@@ -37,6 +37,7 @@ const CoursesManagement = () => {
       }
       
       // التحقق من وجود الحاويات المطلوبة (باستخدام الأسماء الموجودة في سوبربيز)
+      // استخدام الأسماء الدقيقة كما هي في Supabase
       const courseImagesBucketExists = buckets?.some(bucket => 
         bucket.id === 'course_images' || bucket.id === 'Course Images');
       
@@ -61,7 +62,7 @@ const CoursesManagement = () => {
     try {
       setIsCreatingBuckets(true);
       
-      // إنشاء حاوية course_images (باستخدام الشرطة السفلية)
+      // إنشاء حاوية course_images (استخدام الاسم الدقيق كما هو متوقع في الكود)
       const { data: coversBucket, error: coversError } = await supabase.storage.createBucket(
         'course_images', 
         { public: true }
@@ -73,7 +74,7 @@ const CoursesManagement = () => {
         return;
       }
       
-      // إنشاء حاوية course_videos (باستخدام الشرطة السفلية)
+      // إنشاء حاوية course_videos (استخدام الاسم الدقيق كما هو متوقع في الكود)
       const { data: filesBucket, error: filesError } = await supabase.storage.createBucket(
         'course_videos', 
         { public: true }

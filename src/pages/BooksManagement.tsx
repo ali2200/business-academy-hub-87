@@ -28,6 +28,7 @@ const BooksManagement = () => {
       }
       
       // التحقق من وجود الحاويات المطلوبة (باستخدام الأسماء الموجودة في سوبربيز)
+      // استخدام الأسماء الدقيقة كما هي في Supabase
       const bookCoversBucketExists = buckets?.some(bucket => 
         bucket.id === 'book_covers' || bucket.id === 'Book Covers');
       const bookFilesBucketExists = buckets?.some(bucket => 
@@ -51,7 +52,7 @@ const BooksManagement = () => {
     try {
       setIsCreatingBuckets(true);
       
-      // إنشاء حاوية book_covers (باستخدام الشرطة السفلية)
+      // إنشاء حاوية book_covers (استخدام الاسم الدقيق كما هو متوقع في الكود)
       const { data: coversBucket, error: coversError } = await supabase.storage.createBucket(
         'book_covers', 
         { public: true }
@@ -63,7 +64,7 @@ const BooksManagement = () => {
         return;
       }
       
-      // إنشاء حاوية book_files (باستخدام الشرطة السفلية)
+      // إنشاء حاوية book_files (استخدام الاسم الدقيق كما هو متوقع في الكود)
       const { data: filesBucket, error: filesError } = await supabase.storage.createBucket(
         'book_files', 
         { public: true }
