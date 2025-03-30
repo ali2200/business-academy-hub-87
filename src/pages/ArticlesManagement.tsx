@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -942,3 +943,53 @@ const ArticlesManagement = () => {
             <DialogTitle>استيراد مقال HTML</DialogTitle>
             <DialogDescription>
               أدخل عنوان المقال ثم قم بلصق كود HTML للمقال.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="grid gap-2">
+              <Label htmlFor="html-title">عنوان المقال *</Label>
+              <Input
+                id="html-title"
+                value={htmlTitle}
+                onChange={(e) => setHtmlTitle(e.target.value)}
+                placeholder="أدخل عنوان المقال"
+                required
+              />
+            </div>
+            
+            <div className="grid gap-2">
+              <Label htmlFor="html-content">كود HTML *</Label>
+              <Textarea
+                id="html-content"
+                value={htmlContent}
+                onChange={(e) => setHtmlContent(e.target.value)}
+                placeholder="ألصق كود HTML هنا"
+                rows={12}
+                required
+                dir="ltr"
+                className="font-mono text-sm"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">إلغاء</Button>
+            </DialogClose>
+            <Button 
+              onClick={handleImportHtml}
+              disabled={!htmlContent || !htmlTitle}
+              className="flex items-center gap-2"
+            >
+              <Upload className="h-4 w-4" />
+              استيراد المقال
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default ArticlesManagement;
