@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
@@ -75,6 +76,7 @@ import {
   FileText, 
   ImageIcon, 
   Loader2, 
+  Link as LinkIcon,
   Plus, 
   RefreshCw, 
   Trash2, 
@@ -139,6 +141,7 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [isNewCourse, setIsNewCourse] = useState(!courseId);
   const [tempCourseId, setTempCourseId] = useState<string | null>(null);
+  const [isUrlInput, setIsUrlInput] = useState(false);
 
   const form = useForm<CourseForm>({
     resolver: zodResolver(courseFormSchema),
@@ -298,7 +301,7 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
     setUploading(true);
 
     try {
-      console.log('Trying to upload file to bucket: course-videos');
+      console.log('Trying to upload file to bucket: course_videos');
       
       const { data: buckets, error: bucketsError } = await supabase.storage
         .listBuckets();
@@ -310,11 +313,14 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
       
       console.log('Available buckets:', buckets);
       
-      const bucketName = 'course-videos';
+      // تحقق من الحاويات المتاحة
+      let bucketName = '';
       
-      const courseVideosBucket = buckets.find(bucket => bucket.id === 'course-videos');
-      
-      if (!courseVideosBucket) {
+      if (buckets.some(bucket => bucket.name === 'course_videos')) {
+        bucketName = 'course_videos';
+      } else if (buckets.some(bucket => bucket.name === 'Course Videos')) {
+        bucketName = 'Course Videos';
+      } else {
         console.error('Error: course videos bucket does not exist');
         toast.error('حاوية تخزين الفيديوهات غير موجودة، يرجى إنشاء حاوية لفيديوهات الدورات من صفحة إدارة الدورات');
         setUploading(false);
@@ -382,6 +388,30 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
     setLessonData({
       ...lessonData,
       [name]: numValue
+    });
+  };
+
+  const toggleUploadMethod = () => {
+    setIsUrlInput(!isUrlInput);
+    // إعادة تعيين قيم الفيديو عند التبديل
+    if (isUrlInput) {
+      setFileUrl(null);
+      setFileName(null);
+      setLessonData({
+        ...lessonData,
+        video_url: '',
+        video_file_name: ''
+      });
+    }
+  };
+
+  const handleDirectUrlInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const url = e.target.value;
+    setFileUrl(url);
+    setLessonData({
+      ...lessonData,
+      video_url: url,
+      video_file_name: url.split('/').pop() || 'external-video'
     });
   };
 
@@ -555,6 +585,8 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
     });
     setFileUrl(lesson.video_url);
     setFileName(lesson.video_file_name);
+    // التحقق مما إذا كانت الـ URL خارجية
+    setIsUrlInput(!(lesson.video_url || '').includes('supabase'));
     setIsEditDialogOpen(true);
   };
 
@@ -1049,41 +1081,63 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="video_url">رابط الفيديو</Label>
-                <div {...getRootProps()} className="border-dashed border-2 rounded-md p-4 cursor-pointer">
-                  <input {...getInputProps()} />
-                  {uploading ? (
-                    <div className="flex items-center justify-center">
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      <span>جاري الرفع...</span>
-                    </div>
-                  ) : fileUrl ? (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <Video className="mr-2 h-4 w-4" />
-                        <span>{fileName}</span>
-                      </div>
-                      <Button variant="outline" size="sm" onClick={() => {
-                        setFileUrl(null);
-                        setFileName(null);
-                        setLessonData({
-                          ...lessonData,
-                          video_url: '',
-                          video_file_name: ''
-                        });
-                      }}>
-                        تغيير
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center">
-                      <Upload className="h-6 w-6 text-gray-500" />
-                      <p className="text-gray-500">
-                        {isDragActive ? "أفلت الملف هنا..." : "إضغط أو اسحب الملف لرفعه"}
-                      </p>
-                    </div>
-                  )}
+                <div className="flex justify-between mb-2">
+                  <Label htmlFor="video_url">فيديو الدرس</Label>
+                  <Button variant="outline" size="sm" type="button" onClick={toggleUploadMethod}>
+                    {isUrlInput ? <Upload className="h-4 w-4 ml-1" /> : <LinkIcon className="h-4 w-4 ml-1" />}
+                    {isUrlInput ? 'رفع ملف' : 'إضافة رابط'}
+                  </Button>
                 </div>
+                
+                {isUrlInput ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="video_url_input">رابط الفيديو الخارجي</Label>
+                    <Input 
+                      id="video_url_input"
+                      placeholder="https://example.com/video.mp4"
+                      value={fileUrl || ''}
+                      onChange={handleDirectUrlInput}
+                    />
+                    <p className="text-xs text-gray-500">
+                      يمكنك إضافة روابط من YouTube أو Vimeo أو أي منصة فيديو أخرى
+                    </p>
+                  </div>
+                ) : (
+                  <div {...getRootProps()} className="border-dashed border-2 rounded-md p-4 cursor-pointer">
+                    <input {...getInputProps()} />
+                    {uploading ? (
+                      <div className="flex items-center justify-center">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <span>جاري الرفع...</span>
+                      </div>
+                    ) : fileUrl ? (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <Video className="mr-2 h-4 w-4" />
+                          <span>{fileName}</span>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={() => {
+                          setFileUrl(null);
+                          setFileName(null);
+                          setLessonData({
+                            ...lessonData,
+                            video_url: '',
+                            video_file_name: ''
+                          });
+                        }}>
+                          تغيير
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-4">
+                        <Upload className="h-6 w-6 text-gray-500" />
+                        <p className="text-gray-500 mt-2">
+                          {isDragActive ? "أفلت الملف هنا..." : "إضغط أو اسحب الملف لرفعه"}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             
@@ -1167,41 +1221,63 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
               </div>
               
               <div className="space-y-2">
-                <Label htmlFor="edit-video_url">رابط الفيديو</Label>
-                <div {...getRootProps()} className="border-dashed border-2 rounded-md p-4 cursor-pointer">
-                  <input {...getInputProps()} />
-                  {uploading ? (
-                    <div className="flex items-center justify-center">
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      <span>جاري الرفع...</span>
-                    </div>
-                  ) : fileUrl ? (
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <Video className="mr-2 h-4 w-4" />
-                        <span>{fileName}</span>
-                      </div>
-                      <Button variant="outline" size="sm" onClick={() => {
-                        setFileUrl(null);
-                        setFileName(null);
-                        setLessonData({
-                          ...lessonData,
-                          video_url: '',
-                          video_file_name: ''
-                        });
-                      }}>
-                        تغيير
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center">
-                      <Upload className="h-6 w-6 text-gray-500" />
-                      <p className="text-gray-500">
-                        {isDragActive ? "أفلت الملف هنا..." : "إضغط أو اسحب الملف لرفعه"}
-                      </p>
-                    </div>
-                  )}
+                <div className="flex justify-between mb-2">
+                  <Label htmlFor="edit-video_url">فيديو الدرس</Label>
+                  <Button variant="outline" size="sm" type="button" onClick={toggleUploadMethod}>
+                    {isUrlInput ? <Upload className="h-4 w-4 ml-1" /> : <LinkIcon className="h-4 w-4 ml-1" />}
+                    {isUrlInput ? 'رفع ملف' : 'إضافة رابط'}
+                  </Button>
                 </div>
+                
+                {isUrlInput ? (
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-video_url_input">رابط الفيديو الخارجي</Label>
+                    <Input 
+                      id="edit-video_url_input"
+                      placeholder="https://example.com/video.mp4"
+                      value={fileUrl || ''}
+                      onChange={handleDirectUrlInput}
+                    />
+                    <p className="text-xs text-gray-500">
+                      يمكنك إضافة روابط من YouTube أو Vimeo أو أي منصة فيديو أخرى
+                    </p>
+                  </div>
+                ) : (
+                  <div {...getRootProps()} className="border-dashed border-2 rounded-md p-4 cursor-pointer">
+                    <input {...getInputProps()} />
+                    {uploading ? (
+                      <div className="flex items-center justify-center">
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        <span>جاري الرفع...</span>
+                      </div>
+                    ) : fileUrl ? (
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center">
+                          <Video className="mr-2 h-4 w-4" />
+                          <span>{fileName}</span>
+                        </div>
+                        <Button variant="outline" size="sm" onClick={() => {
+                          setFileUrl(null);
+                          setFileName(null);
+                          setLessonData({
+                            ...lessonData,
+                            video_url: '',
+                            video_file_name: ''
+                          });
+                        }}>
+                          تغيير
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center justify-center py-4">
+                        <Upload className="h-6 w-6 text-gray-500" />
+                        <p className="text-gray-500 mt-2">
+                          {isDragActive ? "أفلت الملف هنا..." : "إضغط أو اسحب الملف لرفعه"}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
             
