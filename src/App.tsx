@@ -25,6 +25,10 @@ import CoursesManagement from "@/pages/CoursesManagement";
 import BooksManagement from "@/pages/BooksManagement";
 import AdminRoute from "@/components/AdminRoute";
 import AdminSignIn from "@/pages/AdminSignIn";
+import UsersManagement from "@/pages/UsersManagement";
+import MediaManagement from "@/pages/MediaManagement";
+import PagesManagement from "@/pages/PagesManagement";
+import Settings from "@/pages/Settings";
 import { supabase } from "@/integrations/supabase/client";
 
 function App() {
@@ -152,14 +156,14 @@ function App() {
           {/* Media management routes */}
           <Route path="/media-management" element={
             <AdminRoute>
-              <ContentManagement tab="media" />
+              <MediaManagement />
             </AdminRoute>
           } />
           
           {/* Pages management routes */}
           <Route path="/pages-management" element={
             <AdminRoute>
-              <ContentManagement tab="pages" />
+              <PagesManagement />
             </AdminRoute>
           } />
           
@@ -167,6 +171,20 @@ function App() {
           <Route path="/articles-management" element={
             <AdminRoute>
               <ContentManagement tab="articles" />
+            </AdminRoute>
+          } />
+          
+          {/* Users management routes */}
+          <Route path="/users-management" element={
+            <AdminRoute>
+              <UsersManagement />
+            </AdminRoute>
+          } />
+          
+          {/* Settings routes */}
+          <Route path="/settings" element={
+            <AdminRoute>
+              <Settings />
             </AdminRoute>
           } />
           

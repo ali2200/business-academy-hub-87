@@ -1,314 +1,374 @@
 
-import React, { useState } from 'react';
-import { 
-  Image as ImageIcon,
-  Video,
-  File,
-  PlusCircle,
-  Trash2,
-  Search,
-  Copy,
-  Layout,
-  FileText,
-  Settings,
-  Home
-} from 'lucide-react';
-import { toast } from "sonner";
-
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
+import { UploadCloud, Image, FileVideo, File, RefreshCw, Search, Eye, Trash2, Edit, Download, Link as LinkIcon } from 'lucide-react';
+import { supabase } from "@/integrations/supabase/client";
+import { useDropzone } from 'react-dropzone';
+import { v4 as uuidv4 } from 'uuid';
 
-// Mock data for media files
-const MOCK_MEDIA = [
-  {
-    id: "1",
-    type: "image",
-    name: "hero-image.jpg",
-    url: "https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=2070&auto=format&fit=crop",
-    size: "512 KB",
-    dimensions: "1920 × 1080",
-    uploadDate: "15 أبريل 2023"
-  },
-  {
-    id: "2",
-    type: "image",
-    name: "product-1.jpg",
-    url: "https://images.unsplash.com/photo-1557838923-2985c318be48?q=80&w=2069&auto=format&fit=crop",
-    size: "324 KB",
-    dimensions: "1600 × 900",
-    uploadDate: "20 مايو 2023"
-  },
-  {
-    id: "3",
-    type: "image",
-    name: "team-photo.jpg",
-    url: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?q=80&w=2070&auto=format&fit=crop",
-    size: "728 KB",
-    dimensions: "2048 × 1152",
-    uploadDate: "10 يونيو 2023"
-  },
-  {
-    id: "4",
-    type: "video",
-    name: "product-demo.mp4",
-    url: "https://example.com/videos/product-demo.mp4",
-    size: "5.2 MB",
-    dimensions: "1280 × 720",
-    uploadDate: "5 يوليو 2023"
-  },
-  {
-    id: "5",
-    type: "document",
-    name: "price-list.pdf",
-    url: "https://example.com/documents/price-list.pdf",
-    size: "1.1 MB",
-    dimensions: "",
-    uploadDate: "8 يوليو 2023"
-  }
-];
+interface MediaFile {
+  id: string;
+  name: string;
+  bucket: string;
+  url: string;
+  type: string;
+  size: number;
+  created_at: string;
+}
 
 const MediaManagement = () => {
-  const [mediaItems, setMediaItems] = useState(MOCK_MEDIA);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  const [activeTab, setActiveTab] = useState('all');
-
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("images");
+  const [files, setFiles] = useState<MediaFile[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isUploading, setIsUploading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  useEffect(() => {
+    loadMediaFiles();
+  }, [activeTab]);
+  
+  const loadMediaFiles = async () => {
+    setIsLoading(true);
+    try {
+      let bucket = '';
+      switch (activeTab) {
+        case 'images':
+          bucket = 'book-covers';
+          break;
+        case 'videos':
+          bucket = 'course-videos';
+          break;
+        case 'documents':
+          bucket = 'book-files';
+          break;
+        default:
+          bucket = 'book-covers';
+      }
+      
+      // List files in the selected bucket
+      const { data, error } = await supabase.storage.from(bucket).list();
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (!data) {
+        setFiles([]);
+        return;
+      }
+      
+      // Filter out folders
+      const fileObjects = data.filter(item => !item.id.endsWith('/'));
+      
+      // Create URL for each file
+      const mediaFiles: MediaFile[] = await Promise.all(
+        fileObjects.map(async (file) => {
+          const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(file.name);
+          return {
+            id: file.id,
+            name: file.name,
+            bucket,
+            url: urlData.publicUrl,
+            type: getFileType(file.name),
+            size: file.metadata?.size || 0,
+            created_at: file.created_at,
+          };
+        })
+      );
+      
+      setFiles(mediaFiles);
+    } catch (error) {
+      console.error('Error loading media files:', error);
+      toast.error('حدث خطأ أثناء تحميل ملفات الوسائط');
+    } finally {
+      setIsLoading(false);
+    }
   };
-
-  const handleDelete = (id: string) => {
-    if (!confirm('هل أنت متأكد من حذف هذا الملف؟')) return;
+  
+  const getFileType = (filename: string) => {
+    const extension = filename.split('.').pop()?.toLowerCase() || '';
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(extension)) {
+      return 'image';
+    } else if (['mp4', 'webm', 'mov', 'avi'].includes(extension)) {
+      return 'video';
+    } else if (['pdf', 'doc', 'docx', 'txt', 'xlsx', 'xls', 'ppt', 'pptx'].includes(extension)) {
+      return 'document';
+    }
+    return 'other';
+  };
+  
+  const onDrop = async (acceptedFiles: File[]) => {
+    if (acceptedFiles.length === 0) {
+      return;
+    }
     
-    const updatedMedia = mediaItems.filter(item => item.id !== id);
-    setMediaItems(updatedMedia);
-    toast.success('تم حذف الملف بنجاح');
+    setIsUploading(true);
+    
+    try {
+      let bucket = '';
+      switch (activeTab) {
+        case 'images':
+          bucket = 'book-covers';
+          break;
+        case 'videos':
+          bucket = 'course-videos';
+          break;
+        case 'documents':
+          bucket = 'book-files';
+          break;
+        default:
+          bucket = 'book-covers';
+      }
+      
+      // Upload each file
+      const uploadPromises = acceptedFiles.map(async (file) => {
+        // Create unique filename
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${uuidv4()}.${fileExt}`;
+        
+        const { error } = await supabase.storage
+          .from(bucket)
+          .upload(fileName, file);
+        
+        if (error) throw error;
+        return fileName;
+      });
+      
+      await Promise.all(uploadPromises);
+      toast.success('تم رفع الملفات بنجاح');
+      
+      // Reload files list
+      loadMediaFiles();
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      toast.error('حدث خطأ أثناء رفع الملفات');
+    } finally {
+      setIsUploading(false);
+    }
   };
-
-  const handleCopyUrl = (url: string) => {
+  
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+  
+  const deleteFile = async (fileName: string, bucket: string) => {
+    try {
+      const { error } = await supabase.storage.from(bucket).remove([fileName]);
+      
+      if (error) throw error;
+      
+      toast.success('تم حذف الملف بنجاح');
+      
+      // Update local state
+      setFiles(files.filter(file => file.name !== fileName));
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      toast.error('حدث خطأ أثناء حذف الملف');
+    }
+  };
+  
+  const copyToClipboard = (url: string) => {
     navigator.clipboard.writeText(url);
     toast.success('تم نسخ الرابط إلى الحافظة');
   };
-
-  const handleSelectItem = (id: string) => {
-    if (selectedItems.includes(id)) {
-      setSelectedItems(selectedItems.filter(itemId => itemId !== id));
-    } else {
-      setSelectedItems([...selectedItems, id]);
-    }
-  };
-
-  const handleBulkDelete = () => {
-    if (!selectedItems.length) return;
-    if (!confirm(`هل أنت متأكد من حذف ${selectedItems.length} ملف/ملفات؟`)) return;
-    
-    const updatedMedia = mediaItems.filter(item => !selectedItems.includes(item.id));
-    setMediaItems(updatedMedia);
-    setSelectedItems([]);
-    toast.success('تم حذف الملفات المحددة بنجاح');
-  };
-
-  const filteredMedia = mediaItems.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = activeTab === 'all' || item.type === activeTab;
-    return matchesSearch && matchesType;
-  });
-
-  const getMediaIcon = (type: string) => {
-    switch (type) {
-      case 'image': return <ImageIcon className="h-8 w-8 text-blue-500" />;
-      case 'video': return <Video className="h-8 w-8 text-purple-500" />;
-      case 'document': return <File className="h-8 w-8 text-orange-500" />;
-      default: return <File className="h-8 w-8 text-gray-500" />;
-    }
+  
+  const filteredFiles = files.filter(file => 
+    file.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   return (
-    <div className="min-h-screen bg-[#f0f0f1] rtl">
-      {/* WordPress-like Admin Header */}
-      <header className="bg-[#1d2327] text-white py-2 px-4 flex items-center justify-between">
-        <div className="flex items-center space-x-4 rtl:space-x-reverse">
-          <span className="text-2xl">أ</span>
-          <div className="flex items-center space-x-2 rtl:space-x-reverse">
-            <Button variant="ghost" className="text-white hover:text-gray-200 p-1">
-              <PlusCircle className="h-4 w-4 ml-1" />
-              <span>جديد</span>
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8">
+      <div className="max-w-7xl mx-auto">
+        <header className="mb-8">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-primary">إدارة الوسائط</h1>
+              <p className="text-gray-600 mt-1">إدارة ملفات الصور والفيديو والمستندات</p>
+            </div>
+            <Button
+              onClick={() => navigate('/admin-dashboard')}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              العودة للوحة التحكم
             </Button>
           </div>
-        </div>
-        <div className="flex items-center space-x-4 rtl:space-x-reverse">
-          <Button variant="ghost" className="text-white hover:text-gray-200 p-1">
-            <Home className="h-4 w-4 ml-1" />
-            <span>زيارة الموقع</span>
-          </Button>
-        </div>
-      </header>
-
-      {/* WordPress-like Admin Body */}
-      <div className="flex h-[calc(100vh-48px)]">
-        {/* Sidebar */}
-        <div className="bg-[#1d2327] text-white w-64 flex-shrink-0">
-          <div className="p-4">
-            <ul className="space-y-1">
-              <li>
-                <Button variant="ghost" className="w-full justify-start text-white hover:bg-[#2c3338]">
-                  <Layout className="h-5 w-5 ml-2" />
-                  <span>لوحة التحكم</span>
-                </Button>
-              </li>
-              <li>
-                <Button variant="ghost" className="w-full justify-start text-white hover:bg-[#2c3338]">
-                  <FileText className="h-5 w-5 ml-2" />
-                  <span>الصفحات</span>
-                </Button>
-              </li>
-              <li>
-                <Button variant="ghost" className="w-full justify-start bg-[#2271b1] hover:bg-[#135e96]">
-                  <ImageIcon className="h-5 w-5 ml-2" />
-                  <span>الوسائط</span>
-                </Button>
-              </li>
-              <li>
-                <Button variant="ghost" className="w-full justify-start text-white hover:bg-[#2c3338]">
-                  <Settings className="h-5 w-5 ml-2" />
-                  <span>إدارة المحتوى</span>
-                </Button>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="flex-1 overflow-auto p-6">
-          <div className="flex justify-between items-center mb-6">
-            <div>
-              <h1 className="text-2xl font-bold">مكتبة الوسائط</h1>
-              <p className="text-gray-500">عرض وإدارة الصور والفيديوهات والملفات</p>
-            </div>
-            <div>
-              <Button>
-                <PlusCircle className="ml-2 h-4 w-4" />
-                إضافة ملفات جديدة
-              </Button>
-            </div>
-          </div>
-
-          <Card className="shadow-sm">
-            <CardContent className="p-6">
-              <div className="mb-6 flex items-center justify-between">
-                <div className="relative w-64">
-                  <Search className="absolute right-3 top-2.5 h-4 w-4 text-gray-400" />
-                  <Input
-                    placeholder="بحث في الوسائط..."
-                    className="pl-3 pr-10"
-                    value={searchTerm}
-                    onChange={handleSearch}
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  {selectedItems.length > 0 && (
-                    <Button variant="destructive" onClick={handleBulkDelete}>
-                      <Trash2 className="ml-2 h-4 w-4" />
-                      حذف المحدد ({selectedItems.length})
+        </header>
+        
+        <Tabs defaultValue="images" value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid grid-cols-3 mb-6">
+            <TabsTrigger value="images" className="flex items-center gap-2">
+              <Image className="h-4 w-4" />
+              الصور
+            </TabsTrigger>
+            <TabsTrigger value="videos" className="flex items-center gap-2">
+              <FileVideo className="h-4 w-4" />
+              الفيديوهات
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="flex items-center gap-2">
+              <File className="h-4 w-4" />
+              المستندات
+            </TabsTrigger>
+          </TabsList>
+          
+          {['images', 'videos', 'documents'].map((tabValue) => (
+            <TabsContent key={tabValue} value={tabValue}>
+              <Card>
+                <CardHeader className="pb-4">
+                  <div className="flex justify-between items-center">
+                    <CardTitle>
+                      {tabValue === 'images' && 'الصور'}
+                      {tabValue === 'videos' && 'الفيديوهات'}
+                      {tabValue === 'documents' && 'المستندات'}
+                    </CardTitle>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={loadMediaFiles}
+                      disabled={isLoading}
+                    >
+                      <RefreshCw className={`h-4 w-4 ml-1 ${isLoading ? 'animate-spin' : ''}`} />
+                      تحديث
                     </Button>
-                  )}
-                </div>
-              </div>
-
-              <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="mb-6 bg-[#f0f0f1] border-b border-gray-200 p-0 rounded-none w-full justify-start overflow-x-auto">
-                  <TabsTrigger value="all" className="py-3 px-4 rounded-none data-[state=active]:bg-white data-[state=active]:border-t-2 data-[state=active]:border-t-[#2271b1] data-[state=active]:shadow-none">
-                    الكل
-                  </TabsTrigger>
-                  <TabsTrigger value="image" className="py-3 px-4 rounded-none data-[state=active]:bg-white data-[state=active]:border-t-2 data-[state=active]:border-t-[#2271b1] data-[state=active]:shadow-none">
-                    صور
-                  </TabsTrigger>
-                  <TabsTrigger value="video" className="py-3 px-4 rounded-none data-[state=active]:bg-white data-[state=active]:border-t-2 data-[state=active]:border-t-[#2271b1] data-[state=active]:shadow-none">
-                    فيديوهات
-                  </TabsTrigger>
-                  <TabsTrigger value="document" className="py-3 px-4 rounded-none data-[state=active]:bg-white data-[state=active]:border-t-2 data-[state=active]:border-t-[#2271b1] data-[state=active]:shadow-none">
-                    مستندات
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent value={activeTab} className="mt-0">
-                  <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                    {filteredMedia.length > 0 ? (
-                      filteredMedia.map((item) => (
-                        <div 
-                          key={item.id} 
-                          className={`relative border rounded-md overflow-hidden group hover:border-blue-500 ${
-                            selectedItems.includes(item.id) ? 'ring-2 ring-blue-500 border-blue-500' : ''
-                          }`}
-                          onClick={() => handleSelectItem(item.id)}
-                        >
-                          <div className="absolute top-2 right-2 z-10">
-                            <input 
-                              type="checkbox" 
-                              checked={selectedItems.includes(item.id)}
-                              onChange={() => {}}
-                              className="h-4 w-4 rounded border-gray-300"
-                            />
-                          </div>
-                          <div className="aspect-square bg-gray-100 flex items-center justify-center">
-                            {item.type === 'image' ? (
-                              <img 
-                                src={item.url} 
-                                alt={item.name} 
-                                className="h-full w-full object-cover"
-                              />
-                            ) : (
-                              <div className="flex flex-col items-center">
-                                {getMediaIcon(item.type)}
-                                <span className="mt-2 text-sm text-gray-600">{item.name}</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="p-3 bg-white">
-                            <h3 className="text-sm font-medium truncate">{item.name}</h3>
-                            <div className="text-xs text-gray-500 mt-1">{item.size}</div>
-                            
-                            <div className="flex space-x-2 rtl:space-x-reverse mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="h-8 w-8 p-0"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCopyUrl(item.url);
-                                }}
-                              >
-                                <Copy className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                className="h-8 w-8 p-0 text-red-500 hover:text-red-600"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDelete(item.id);
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="col-span-full text-center py-10">
-                        <ImageIcon className="h-10 w-10 mx-auto text-gray-400" />
-                        <p className="mt-4 text-gray-500">لم يتم العثور على ملفات</p>
+                  </div>
+                  <CardDescription>
+                    {tabValue === 'images' && 'رفع وإدارة الصور المستخدمة في الموقع'}
+                    {tabValue === 'videos' && 'رفع وإدارة فيديوهات الدورات'}
+                    {tabValue === 'documents' && 'رفع وإدارة ملفات الكتب والمستندات'}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="mb-6">
+                    <div className="relative">
+                      <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="البحث عن ملف..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pr-9"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div 
+                    {...getRootProps()} 
+                    className={`border-2 border-dashed rounded-lg p-6 text-center mb-6 transition-colors ${
+                      isDragActive ? 'border-primary bg-primary/5' : 'border-gray-300 hover:border-primary'
+                    }`}
+                  >
+                    <input {...getInputProps()} />
+                    <UploadCloud className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+                    <p className="text-gray-600">اسحب وأفلت الملفات هنا، أو انقر للتصفح</p>
+                    <p className="text-gray-400 text-sm mt-1">
+                      {tabValue === 'images' && 'الصيغ المدعومة: JPG, PNG, GIF, SVG'}
+                      {tabValue === 'videos' && 'الصيغ المدعومة: MP4, WEBM, MOV'}
+                      {tabValue === 'documents' && 'الصيغ المدعومة: PDF, DOCX, XLSX, PPTX'}
+                    </p>
+                    {isUploading && (
+                      <div className="mt-2">
+                        <div className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-primary border-r-transparent mr-2"></div>
+                        <span className="text-sm text-gray-500">جاري رفع الملفات...</span>
                       </div>
                     )}
                   </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </div>
+                  
+                  {isLoading ? (
+                    <div className="text-center py-8">
+                      <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-primary border-r-transparent mb-4"></div>
+                      <p className="text-gray-500">جاري تحميل الملفات...</p>
+                    </div>
+                  ) : filteredFiles.length === 0 ? (
+                    <div className="text-center py-8 border rounded-lg">
+                      <File className="h-12 w-12 mx-auto text-gray-400 mb-2" />
+                      <p className="text-gray-500">
+                        {searchQuery ? 'لا توجد نتائج للبحث' : 'لا توجد ملفات بعد'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {filteredFiles.map((file) => (
+                        <Card key={file.id} className="overflow-hidden">
+                          <div className="relative h-40 bg-gray-100 flex items-center justify-center">
+                            {file.type === 'image' ? (
+                              <img 
+                                src={file.url} 
+                                alt={file.name} 
+                                className="h-full w-full object-contain p-2" 
+                              />
+                            ) : file.type === 'video' ? (
+                              <div className="flex flex-col items-center justify-center text-gray-500">
+                                <FileVideo className="h-12 w-12" />
+                                <span className="mt-1 text-sm">ملف فيديو</span>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center justify-center text-gray-500">
+                                <File className="h-12 w-12" />
+                                <span className="mt-1 text-sm">مستند</span>
+                              </div>
+                            )}
+                          </div>
+                          <CardContent className="pt-4 pb-2">
+                            <p className="font-medium truncate" title={file.name}>{file.name}</p>
+                            <div className="flex justify-between items-center text-sm text-gray-500 mt-1">
+                              <span>{formatFileSize(file.size)}</span>
+                              <span>{new Date(file.created_at).toLocaleDateString('ar-EG')}</span>
+                            </div>
+                          </CardContent>
+                          <CardFooter className="flex justify-between pt-0">
+                            <div className="flex items-center gap-1">
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => window.open(file.url, '_blank')}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => copyToClipboard(file.url)}
+                              >
+                                <LinkIcon className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => window.open(file.url, '_blank')}
+                              >
+                                <Download className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="text-red-500 hover:text-red-700"
+                              onClick={() => deleteFile(file.name, file.bucket)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </CardFooter>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          ))}
+        </Tabs>
       </div>
     </div>
   );
