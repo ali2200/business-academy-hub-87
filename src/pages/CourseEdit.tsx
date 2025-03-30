@@ -230,7 +230,7 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
     setUploadingImage(true);
 
     try {
-      console.log('Trying to upload image to bucket: course_images');
+      console.log('Trying to upload image to bucket: course-images');
       
       const { data: buckets, error: bucketsError } = await supabase.storage
         .listBuckets();
@@ -242,25 +242,15 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
       
       console.log('Available buckets:', buckets);
       
-      let bucketName = 'course_images';
+      const bucketName = 'course-images';
       
-      const courseImagesBucket = buckets.find(bucket => 
-        bucket.id === 'course_images');
+      const courseImagesBucket = buckets.find(bucket => bucket.id === 'course-images');
       
-      if (courseImagesBucket) {
-        bucketName = 'course_images';
-      } else {
-        const alternativeBucket = buckets.find(bucket => 
-          bucket.id === 'Course Images');
-        
-        if (alternativeBucket) {
-          bucketName = 'Course Images';
-        } else {
-          console.error('Error: course images bucket does not exist');
-          toast.error('حاوية تخزين الصور غير موجودة، يرجى إنشاء حاوية لصور الدورات من صفحة إدارة الدورات');
-          setUploadingImage(false);
-          return;
-        }
+      if (!courseImagesBucket) {
+        console.error('Error: course images bucket does not exist');
+        toast.error('حاوية تخزين الصور غير موجودة، يرجى إنشاء حاوية لصور الدورات من صفحة إدارة الدورات');
+        setUploadingImage(false);
+        return;
       }
 
       console.log(`Using bucket: ${bucketName} for upload`);
@@ -308,7 +298,7 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
     setUploading(true);
 
     try {
-      console.log('Trying to upload file to bucket: course_videos');
+      console.log('Trying to upload file to bucket: course-videos');
       
       const { data: buckets, error: bucketsError } = await supabase.storage
         .listBuckets();
@@ -320,25 +310,15 @@ const CourseEdit: React.FC<CourseEditProps> = ({ defaultTab = 'details' }) => {
       
       console.log('Available buckets:', buckets);
       
-      let bucketName = 'course_videos';
+      const bucketName = 'course-videos';
       
-      const courseVideosBucket = buckets.find(bucket => 
-        bucket.id === 'course_videos');
+      const courseVideosBucket = buckets.find(bucket => bucket.id === 'course-videos');
       
-      if (courseVideosBucket) {
-        bucketName = 'course_videos';
-      } else {
-        const alternativeBucket = buckets.find(bucket => 
-          bucket.id === 'Course Videos');
-        
-        if (alternativeBucket) {
-          bucketName = 'Course Videos';
-        } else {
-          console.error('Error: course videos bucket does not exist');
-          toast.error('حاوية تخزين الفيديوهات غير موجودة، يرجى إنشاء حاوية لفيديوهات الدورات من صفحة إدارة الدورات');
-          setUploading(false);
-          return;
-        }
+      if (!courseVideosBucket) {
+        console.error('Error: course videos bucket does not exist');
+        toast.error('حاوية تخزين الفيديوهات غير موجودة، يرجى إنشاء حاوية لفيديوهات الدورات من صفحة إدارة الدورات');
+        setUploading(false);
+        return;
       }
 
       console.log(`Using bucket: ${bucketName} for upload`);
