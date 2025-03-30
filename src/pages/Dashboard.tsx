@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Menu, X, Home, BookOpen, ShoppingCart, Settings, LogOut, Play, Award, Book, Clock, Check, Info, Edit, FileText, Video, Save, Plus, Trash2, School } from 'lucide-react';
@@ -123,7 +122,7 @@ const Dashboard = () => {
           console.error("Error fetching enrolled courses:", coursesError);
         } else if (coursesData) {
           // Fetch lesson progress for each course
-          const enhancedCourses = await Promise.all(coursesData.map(async (enrollment) => {
+          const enhancedCoursesData = await Promise.all(coursesData.map(async (enrollment) => {
             // Get all lessons for this course
             const { data: lessonsData, error: lessonsError } = await supabase
               .from('lessons')
@@ -192,7 +191,21 @@ const Dashboard = () => {
             };
           }));
           
-          setEnrolledCourses(enhancedCourses);
+          setEnrolledCourses(enhancedCoursesData);
+          
+          // Fetch certificates for completed courses
+          if (enhancedCoursesData) {
+            const completedCourses = enhancedCoursesData.filter(course => course.progress === 100);
+            
+            const certificatesData = completedCourses.map(course => ({
+              id: course.id,
+              courseTitle: course.title,
+              issueDate: new Date(course.enrollmentDate).toLocaleDateString('ar-EG'),
+              certificate: 'https://images.unsplash.com/photo-1589330694653-ded6df03f754?q=80&w=1935&auto=format&fit=crop'
+            }));
+            
+            setCertificates(certificatesData);
+          }
         }
         
         // Fetch purchased books
@@ -251,20 +264,6 @@ const Dashboard = () => {
               setPurchasedBooks(formattedBooks);
             }
           }
-        }
-        
-        // Fetch certificates for completed courses
-        if (enhancedCourses) {
-          const completedCourses = enhancedCourses.filter(course => course.progress === 100);
-          
-          const certificatesData = completedCourses.map(course => ({
-            id: course.id,
-            courseTitle: course.title,
-            issueDate: new Date(course.enrollmentDate).toLocaleDateString('ar-EG'),
-            certificate: 'https://images.unsplash.com/photo-1589330694653-ded6df03f754?q=80&w=1935&auto=format&fit=crop'
-          }));
-          
-          setCertificates(certificatesData);
         }
         
       } catch (err) {
@@ -808,205 +807,3 @@ const Dashboard = () => {
                             {feature.icon === "award" && <Award className="w-5 h-5 text-primary" />}
                             {feature.icon === "info" && <Info className="w-5 h-5 text-primary" />}
                           </div>
-                          <div>
-                            <h3 className="text-lg font-medium text-primary mb-1">{feature.title}</h3>
-                            <p className="text-gray-600">{feature.description}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
-      </main>
-    </div>
-  );
-};
-
-type NavItemProps = {
-  icon: React.FC<any>;
-  label: string;
-  href: string;
-  active: boolean;
-  onClick: () => void;
-};
-
-const NavItem = ({ icon: Icon, label, href, active, onClick }: NavItemProps) => (
-  <li>
-    <Link
-      to={href}
-      className={`flex items-center py-3 px-4 rounded-lg transition-colors ${
-        active 
-          ? 'bg-primary text-white' 
-          : 'text-gray-600 hover:bg-gray-100'
-      }`}
-      onClick={onClick}
-    >
-      <Icon size={20} className="ml-3" />
-      <span>{label}</span>
-    </Link>
-  </li>
-);
-
-type CourseCardProps = {
-  course: {
-    id: string;
-    title: string;
-    image: string;
-    instructor: string;
-    progress: number;
-    totalLessons: number;
-    completedLessons: number;
-    lastAccessed: string;
-    certificate: boolean;
-  };
-  onContinue: () => void;
-};
-
-const CourseCard = ({ course, onContinue }: CourseCardProps) => (
-  <Card className="overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all">
-    <div className="relative h-40 overflow-hidden">
-      <img 
-        src={course.image} 
-        alt={course.title} 
-        className="w-full h-full object-cover"
-      />
-      {course.certificate && (
-        <div className="absolute top-2 right-2">
-          <Badge className="bg-green-500 hover:bg-green-600">
-            <Award size={14} className="ml-1" />
-            شهادة مكتملة
-          </Badge>
-        </div>
-      )}
-    </div>
-    
-    <CardHeader className="p-4 pb-0">
-      <h3 className="text-lg font-bold text-primary mb-1">{course.title}</h3>
-      <p className="text-sm text-gray-500">المدرب: {course.instructor}</p>
-    </CardHeader>
-    
-    <CardContent className="p-4">
-      <div className="mb-2 flex justify-between items-center">
-        <span className="text-sm text-gray-600">تقدمك</span>
-        <span className="text-sm font-medium">{course.progress}%</span>
-      </div>
-      <Progress value={course.progress} className="h-2 mb-4" />
-      
-      <div className="grid grid-cols-2 gap-2 mb-4">
-        <div className="bg-gray-50 p-2 rounded text-center">
-          <div className="text-primary font-semibold">{course.completedLessons}</div>
-          <div className="text-xs text-gray-500">دروس مكتملة</div>
-        </div>
-        <div className="bg-gray-50 p-2 rounded text-center">
-          <div className="text-primary font-semibold">{course.totalLessons}</div>
-          <div className="text-xs text-gray-500">إجمالي الدروس</div>
-        </div>
-      </div>
-      
-      <div className="text-xs text-gray-500 flex items-center">
-        <Clock size={14} className="ml-1" />
-        آخر نشاط: {course.lastAccessed}
-      </div>
-    </CardContent>
-    
-    <CardFooter className="p-4 pt-0">
-      <Button 
-        className="w-full bg-secondary hover:bg-secondary-light flex items-center justify-center"
-        onClick={onContinue}
-      >
-        <Play size={18} className="ml-2" />
-        {course.progress === 100 ? 'مراجعة الدورة' : 'متابعة التعلم'}
-      </Button>
-    </CardFooter>
-  </Card>
-);
-
-type BookCardProps = {
-  book: {
-    id: string;
-    title: string;
-    cover: string;
-    author: string;
-    purchaseDate: string;
-    pages: number;
-    readPages: number;
-  };
-  onRead: () => void;
-};
-
-const BookCard = ({ book, onRead }: BookCardProps) => (
-  <Card className="overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all">
-    <div className="flex">
-      <div className="w-1/3 p-4">
-        <img 
-          src={book.cover} 
-          alt={book.title} 
-          className="w-full h-auto object-cover aspect-[3/4] rounded-lg shadow-sm"
-        />
-      </div>
-      
-      <div className="w-2/3 p-4">
-        <h3 className="text-lg font-bold text-primary mb-1">{book.title}</h3>
-        <p className="text-sm text-gray-500 mb-3">{book.author}</p>
-        
-        <div className="mb-2">
-          <div className="flex justify-between text-xs text-gray-600 mb-1">
-            <span>تقدم القراءة</span>
-            <span>{Math.round((book.readPages / book.pages) * 100)}%</span>
-          </div>
-          <Progress value={(book.readPages / book.pages) * 100} className="h-1 mb-2" />
-          <div className="text-xs text-gray-500">
-            {book.readPages} من {book.pages} صفحة
-          </div>
-        </div>
-        
-        <div className="text-xs text-gray-500 mb-3">
-          تاريخ الشراء: {book.purchaseDate}
-        </div>
-      </div>
-    </div>
-    
-    <CardFooter className="p-4 pt-0 flex justify-between gap-2">
-      <Button 
-        variant="outline" 
-        className="flex-1 border-gray-300 text-sm"
-      >
-        تحميل PDF
-      </Button>
-      <Button 
-        className="flex-1 bg-primary hover:bg-primary-light text-sm"
-        onClick={onRead}
-      >
-        متابعة القراءة
-      </Button>
-    </CardFooter>
-  </Card>
-);
-
-type EmptyStateProps = {
-  title: string;
-  description: string;
-  buttonText: string;
-  buttonHref: string;
-};
-
-const EmptyState = ({ title, description, buttonText, buttonHref }: EmptyStateProps) => (
-  <div className="text-center py-16 bg-gray-50 rounded-xl">
-    <div className="mx-auto w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-      <Info size={24} className="text-gray-400" />
-    </div>
-    <h3 className="text-xl font-bold mb-2 text-primary">{title}</h3>
-    <p className="text-gray-600 mb-6">{description}</p>
-    <Link to={buttonHref}>
-      <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white">
-        {buttonText}
-      </Button>
-    </Link>
-  </div>
-);
-
-export default Dashboard;

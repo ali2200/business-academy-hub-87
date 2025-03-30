@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -74,7 +73,7 @@ interface ArticleItem {
   excerpt?: string;
   status: ArticleStatus;
   author_id?: string;
-  author?: string;
+  author?: string; // Making this optional and explicitly adding it to the interface
   tags?: string[];
   featured_image?: string;
   views_count?: number;
@@ -155,7 +154,7 @@ const ArticlesManagement = () => {
           return {
             ...article,
             status,
-            author: article.author || 'غير معروف'
+            author: 'غير معروف'
           } as ArticleItem;
         })
       );
@@ -943,48 +942,3 @@ const ArticlesManagement = () => {
             <DialogTitle>استيراد مقال HTML</DialogTitle>
             <DialogDescription>
               أدخل عنوان المقال ثم قم بلصق كود HTML للمقال.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="html-title">عنوان المقال *</Label>
-              <Input
-                id="html-title"
-                value={htmlTitle}
-                onChange={(e) => setHtmlTitle(e.target.value)}
-                placeholder="أدخل عنوان المقال"
-                required
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="html-content">محتوى HTML *</Label>
-              <Textarea
-                id="html-content"
-                value={htmlContent}
-                onChange={(e) => setHtmlContent(e.target.value)}
-                placeholder="الصق كود HTML هنا"
-                rows={12}
-                required
-                className="font-mono text-sm"
-              />
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">إلغاء</Button>
-            </DialogClose>
-            <Button onClick={handleImportHtml} className="flex items-center gap-2">
-              <Upload className="h-4 w-4" />
-              استيراد
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
-
-export default ArticlesManagement;
