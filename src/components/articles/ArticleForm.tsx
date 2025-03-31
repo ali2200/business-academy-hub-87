@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ArticleStatus } from './ArticlesTable';
+import RichTextEditor from '@/components/RichTextEditor';
 
 interface ArticleFormData {
   title: string;
@@ -38,6 +39,7 @@ interface ArticleFormProps {
   handleInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
   handleTagsChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleStatusChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  handleContentChange: (content: string) => void;
   handleSubmit: () => void;
   submitButtonText: string;
 }
@@ -54,6 +56,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
   handleInputChange,
   handleTagsChange,
   handleStatusChange,
+  handleContentChange,
   handleSubmit,
   submitButtonText
 }) => {
@@ -61,7 +64,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[800px]">
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
@@ -75,7 +78,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
             <TabsTrigger value="settings">إعدادات المقال</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="editor" className="space-y-4">
+          <TabsContent value="editor" className="space-y-4 overflow-y-auto max-h-[60vh]">
             <div className="grid gap-2">
               <Label htmlFor={`${idPrefix}title`}>عنوان المقال *</Label>
               <Input
@@ -90,19 +93,16 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
             
             <div className="grid gap-2">
               <Label htmlFor={`${idPrefix}content`}>محتوى المقال *</Label>
-              <Textarea
-                id={`${idPrefix}content`}
-                name="content"
+              <RichTextEditor
                 value={formData.content}
-                onChange={handleInputChange}
+                onChange={handleContentChange}
                 placeholder="أدخل محتوى المقال"
-                rows={12}
-                required
+                rows={16}
               />
             </div>
           </TabsContent>
           
-          <TabsContent value="settings" className="space-y-4">
+          <TabsContent value="settings" className="space-y-4 overflow-y-auto max-h-[60vh]">
             <div className="grid gap-2">
               <Label htmlFor={`${idPrefix}slug`}>الرابط الدائم *</Label>
               <Input
@@ -150,6 +150,18 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
                 onChange={handleInputChange}
                 placeholder="أدخل رابط الصورة المميزة"
               />
+              {formData.featured_image && (
+                <div className="mt-2">
+                  <img 
+                    src={formData.featured_image} 
+                    alt="صورة المقال" 
+                    className="max-h-40 border rounded p-1"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/placeholder.svg';
+                    }}
+                  />
+                </div>
+              )}
             </div>
             
             <div className="grid gap-2">

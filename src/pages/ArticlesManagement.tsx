@@ -10,6 +10,7 @@ import ArticlesTable, { ArticleItem, ArticleStatus } from '@/components/articles
 import ArticleActions from '@/components/articles/ArticleActions';
 import ArticleForm from '@/components/articles/ArticleForm';
 import HtmlImportDialog from '@/components/articles/HtmlImportDialog';
+import ArticleViewer from '@/components/articles/ArticleViewer';
 
 const ArticlesManagement = () => {
   const navigate = useNavigate();
@@ -21,6 +22,7 @@ const ArticlesManagement = () => {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [isViewDialogOpen, setIsViewDialogOpen] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<ArticleItem | null>(null);
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -40,7 +42,6 @@ const ArticlesManagement = () => {
   // HTML import state
   const [htmlContent, setHtmlContent] = useState('');
   const [htmlTitle, setHtmlTitle] = useState('');
-  const [htmlPreview, setHtmlPreview] = useState('');
   const [previewVisible, setPreviewVisible] = useState(false);
 
   useEffect(() => {
@@ -170,10 +171,14 @@ const ArticlesManagement = () => {
     setIsEditDialogOpen(true);
   };
 
+  const openViewDialog = (article: ArticleItem) => {
+    setSelectedArticle(article);
+    setIsViewDialogOpen(true);
+  };
+
   const openImportDialog = () => {
     setHtmlContent('');
     setHtmlTitle('');
-    setHtmlPreview('');
     setPreviewVisible(false);
     setIsImportDialogOpen(true);
   };
@@ -183,6 +188,13 @@ const ArticlesManagement = () => {
     setArticleForm(prev => ({
       ...prev,
       [name]: value
+    }));
+  };
+
+  const handleContentChange = (content: string) => {
+    setArticleForm(prev => ({
+      ...prev,
+      content
     }));
   };
 
@@ -345,7 +357,6 @@ const ArticlesManagement = () => {
 
   const handleHtmlContentChange = (content: string) => {
     setHtmlContent(content);
-    setHtmlPreview(content);
     setPreviewVisible(true);
   };
 
@@ -429,6 +440,7 @@ const ArticlesManagement = () => {
               toggleArticleSelection={toggleArticleSelection}
               toggleAllArticles={toggleAllArticles}
               openEditDialog={openEditDialog}
+              openViewDialog={openViewDialog}
               handleDeleteArticle={handleDeleteArticle}
               setSelectedArticle={setSelectedArticle}
             />
@@ -449,6 +461,7 @@ const ArticlesManagement = () => {
         handleInputChange={handleInputChange}
         handleTagsChange={handleTagsChange}
         handleStatusChange={handleStatusChange}
+        handleContentChange={handleContentChange}
         handleSubmit={handleAddArticle}
         submitButtonText="إضافة المقال"
       />
@@ -466,6 +479,7 @@ const ArticlesManagement = () => {
         handleInputChange={handleInputChange}
         handleTagsChange={handleTagsChange}
         handleStatusChange={handleStatusChange}
+        handleContentChange={handleContentChange}
         handleSubmit={handleUpdateArticle}
         submitButtonText="حفظ التغييرات"
       />
@@ -481,6 +495,13 @@ const ArticlesManagement = () => {
         handleHtmlContentChange={handleHtmlContentChange}
         handleHtmlTitleChange={handleHtmlTitleChange}
         handleImportHtml={handleImportHtml}
+      />
+
+      {/* Article Viewer Dialog */}
+      <ArticleViewer
+        isOpen={isViewDialogOpen}
+        onOpenChange={setIsViewDialogOpen}
+        article={selectedArticle}
       />
     </div>
   );

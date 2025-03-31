@@ -49,6 +49,7 @@ interface ArticlesTableProps {
   toggleArticleSelection: (id: string) => void;
   toggleAllArticles: () => void;
   openEditDialog: (article: ArticleItem) => void;
+  openViewDialog: (article: ArticleItem) => void;
   handleDeleteArticle: () => void;
   setSelectedArticle: (article: ArticleItem) => void;
 }
@@ -61,6 +62,7 @@ const ArticlesTable: React.FC<ArticlesTableProps> = ({
   toggleArticleSelection,
   toggleAllArticles,
   openEditDialog,
+  openViewDialog,
   handleDeleteArticle,
   setSelectedArticle
 }) => {
@@ -161,7 +163,7 @@ const ArticlesTable: React.FC<ArticlesTableProps> = ({
                       variant="ghost"
                       size="icon"
                       title="عرض"
-                      onClick={() => window.open(`/articles/${article.slug}`, '_blank')}
+                      onClick={() => openViewDialog(article)}
                     >
                       <Eye className="h-4 w-4" />
                     </Button>
