@@ -24,17 +24,14 @@ const BookDetail = () => {
   const [isPurchased, setIsPurchased] = useState(false);
   const [averageRating, setAverageRating] = useState(0);
   const [reviewCount, setReviewCount] = useState(0);
-  
-  // Check if user has purchased the book
+
   const checkPurchaseStatus = async (bookId: string) => {
     try {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) {
-        // User not logged in
         return false;
       }
       
-      // Using RPC to check purchase status since types aren't updated
       const { data, error } = await supabase.rpc('check_book_purchase', {
         p_book_id: bookId,
         p_user_id: session.session.user.id
@@ -45,17 +42,15 @@ const BookDetail = () => {
         return false;
       }
       
-      return data; // Returns true if purchased, false otherwise
+      return data;
     } catch (err) {
       console.error('Unexpected error checking purchase status:', err);
       return false;
     }
   };
-  
-  // Get average ratings and count
+
   const fetchRatings = async (bookId: string) => {
     try {
-      // Using RPC to get ratings since types aren't updated
       const { data, error } = await supabase.rpc('get_book_rating', {
         p_book_id: bookId
       });
@@ -74,7 +69,6 @@ const BookDetail = () => {
     }
   };
 
-  // Fetch book details from Supabase
   const fetchBookDetails = async () => {
     try {
       setIsLoading(true);
@@ -104,11 +98,9 @@ const BookDetail = () => {
       
       setBook(data);
       
-      // Check if user has purchased the book
       const hasPurchased = await checkPurchaseStatus(id);
       setIsPurchased(hasPurchased);
       
-      // Get average ratings and count
       await fetchRatings(id);
     } catch (err) {
       console.error('Unexpected error:', err);
@@ -132,7 +124,6 @@ const BookDetail = () => {
 
   const handleBuy = async () => {
     try {
-      // Check if user is logged in
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) {
         toast.error("يجب تسجيل الدخول أولاً للشراء", {
@@ -144,7 +135,6 @@ const BookDetail = () => {
         return;
       }
       
-      // Check if already purchased
       if (isPurchased) {
         toast.info("لقد اشتريت هذا الكتاب بالفعل", {
           action: {
@@ -155,7 +145,6 @@ const BookDetail = () => {
         return;
       }
       
-      // Using RPC to create purchase since types aren't updated
       const { error: purchaseError } = await supabase.rpc('create_book_purchase', {
         p_book_id: id,
         p_user_id: session.session.user.id,
@@ -180,10 +169,8 @@ const BookDetail = () => {
         return;
       }
       
-      // Update purchase status
       setIsPurchased(true);
       
-      // Show success message
       toast.success("تم شراء الكتاب بنجاح", {
         description: "يمكنك الآن قراءة الكتاب كاملاً",
         action: {
@@ -196,7 +183,7 @@ const BookDetail = () => {
       toast.error("حدث خطأ غير متوقع أثناء الشراء");
     }
   };
-  
+
   const handleReadBook = () => {
     navigate(`/book-reader/${id}`);
   };
@@ -243,7 +230,6 @@ const BookDetail = () => {
     }).format(date);
   };
 
-  // Book contents
   const tableOfContents = [
     {
       title: 'الفصل الأول: مقدمة في البيع الاحترافي',
@@ -265,7 +251,6 @@ const BookDetail = () => {
     },
   ];
 
-  // What you will learn
   const benefits = [
     'تعلم أساسيات ومهارات البيع الاحترافي',
     'تطوير قدراتك في الإقناع والتفاوض',
@@ -276,7 +261,6 @@ const BookDetail = () => {
     'دراسة حالات نجاح واقعية من السوق'
   ];
 
-  // Target audience
   const targetAudience = [
     'مندوبي المبيعات الجدد',
     'رواد الأعمال وأصحاب المشاريع الصغيرة',
@@ -288,10 +272,8 @@ const BookDetail = () => {
     <div className="min-h-screen">
       <Navbar />
       
-      {/* Book Header */}
       <section className="pt-28 pb-12 bg-gradient-to-b from-primary/5 to-white relative overflow-hidden">
         <div className="container mx-auto px-4">
-          {/* Breadcrumbs */}
           <div className="flex items-center text-sm text-gray-500 mb-6">
             <Link to="/" className="hover:text-primary transition-colors">الرئيسية</Link>
             <ChevronLeft size={14} className="mx-2" />
@@ -399,7 +381,6 @@ const BookDetail = () => {
                   />
                 </div>
                 
-                {/* Floating elements */}
                 <div className="absolute -top-5 -right-5 bg-white p-3 rounded-xl shadow-lg animate-float">
                   <div className="text-center">
                     <div className="text-sm font-semibold">{book.category || 'كتاب إلكتروني'}</div>
@@ -418,11 +399,9 @@ const BookDetail = () => {
         </div>
       </section>
       
-      {/* Book Details Tabs */}
       <section className="py-12 bg-gray-50">
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Main content */}
             <div className="lg:col-span-8">
               <Tabs 
                 value={selectedTab} 
@@ -451,7 +430,7 @@ const BookDetail = () => {
                     />
                   ) : (
                     <p className="text-gray-700 mb-8 leading-relaxed">
-                      كتاب شامل لتعلم أساسيات ومهارات البيع الاحترافي وتقنيات الإقناع والتفاوض لتحسين أدائك كمندوب مبيعات وزيادة معدلات إغلاق الصفقات بنجاح.
+                      كتاب شامل لتعلم أساسيات ومهارات البيع الاحترافي وتقنيات الإقناع والتفاوض لتحسين أدائك كمندوب م��يعات وزيادة معدلات إغلاق الصفقات بنجاح.
                     </p>
                   )}
                   
@@ -506,7 +485,6 @@ const BookDetail = () => {
               </Tabs>
             </div>
             
-            {/* Book details sidebar */}
             <div className="lg:col-span-4">
               <Card className={`bg-white rounded-xl shadow-lg border-none overflow-hidden ${isSticky ? 'lg:sticky lg:top-24' : ''} transition-all`}>
                 <CardContent className="p-6">
@@ -595,7 +573,6 @@ const BookDetail = () => {
         </div>
       </section>
       
-      {/* Recommended Books Section */}
       <section className="py-16 bg-white">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold mb-10 text-center">كتب مشابهة قد تعجبك</h2>

@@ -40,13 +40,13 @@ const BookReviews = ({ bookId }: BookReviewsProps) => {
       
       // Calculate average rating
       if (data && data.length > 0) {
-        const sum = data.reduce((acc: number, review: any) => acc + review.rating, 0);
+        const sum = data.reduce((acc, review) => acc + review.rating, 0);
         setAverageRating(sum / data.length);
         setReviewsCount(data.length);
         
         // Fetch user information for each review
         const reviewsWithUserInfo = await Promise.all(
-          data.map(async (review: any) => {
+          data.map(async (review) => {
             // Fetch user profile
             const { data: profileData } = await supabase
               .from('profiles')

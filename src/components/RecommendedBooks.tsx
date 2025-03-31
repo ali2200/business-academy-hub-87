@@ -54,7 +54,7 @@ const RecommendedBooks = ({ bookId, category }: RecommendedBooksProps) => {
           } else if (similarBooks) {
             setBooks(similarBooks);
           }
-        } else if (recommendedBooks && recommendedBooks.length > 0) {
+        } else if (recommendedBooks) {
           setBooks(recommendedBooks);
         }
       } catch (err) {
@@ -113,7 +113,7 @@ const RecommendedBooks = ({ bookId, category }: RecommendedBooksProps) => {
           
           <CardFooter className="p-4 pt-0 flex justify-between items-center">
             <span className="text-secondary font-bold">{book.price} {book.currency}</span>
-            <Link to={`/book/${book.id}`}>
+            <Link to={`/books/${book.id}`}>
               <Button 
                 variant="outline" 
                 size="sm"
