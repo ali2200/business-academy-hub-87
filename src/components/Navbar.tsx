@@ -79,7 +79,7 @@ const Navbar = () => {
     }
   };
   return <header className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${isScrolled ? 'py-2 bg-white/10 backdrop-blur-md shadow-md' : 'py-3 lg:py-5 bg-white/5 backdrop-blur-sm'}`}>
-      <div className="container mx-auto px-4 flex justify-between items-center">
+      <div className="container mx-auto px-4 flex justify-between items-center bg-secondary-DEFAULT">
         {/* Logo */}
         <Link to="/" className="flex items-center animate-fade-in">
           <img src="/lovable-uploads/4307c383-57c5-4d42-abdc-1344087ec7a6.png" alt="عـــلى بتاع الـبيزنس" className="h-10 md:h-12" />
