@@ -73,6 +73,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import HtmlFileUploader from '@/components/HtmlFileUploader';
+import HtmlPreview from '@/components/HtmlPreview';
 
 type ArticleStatus = "published" | "draft" | "review";
 
@@ -407,53 +409,14 @@ const ArticlesManagement = () => {
     }
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    
-    // Check if it's an HTML file
-    if (!file.name.endsWith('.html') && !file.name.toLowerCase().endsWith('.htm')) {
-      toast.error('يرجى تحميل ملف HTML فقط (.html or .htm)');
-      return;
-    }
-    
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const content = e.target?.result as string;
-      
-      // Extract title from HTML content (from title tag if possible)
-      let title = '';
-      const titleMatch = content.match(/<title[^>]*>([^<]+)<\/title>/i);
-      if (titleMatch && titleMatch[1]) {
-        title = titleMatch[1].trim();
-      } else {
-        // Fallback: use filename without extension as title
-        title = file.name.replace(/\.(html|htm)$/i, '');
-      }
-      
-      setHtmlContent(content);
-      setHtmlTitle(title);
-      setHtmlPreview(content);
-      setPreviewVisible(true);
-      
-      toast.success('تم تحميل ملف HTML بنجاح');
-    };
-    
-    reader.onerror = () => {
-      toast.error('حدث خطأ أثناء قراءة الملف');
-    };
-    
-    reader.readAsText(file);
-  };
-
-  const handleTriggerFileInput = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleHtmlContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const content = e.target.value;
+  const handleHtmlContentChange = (content: string) => {
     setHtmlContent(content);
     setHtmlPreview(content);
+    setPreviewVisible(true);
+  };
+
+  const handleHtmlTitleChange = (title: string) => {
+    setHtmlTitle(title);
   };
 
   const handleImportHtml = async () => {
@@ -958,4 +921,29 @@ const ArticlesManagement = () => {
                   id="edit-tags"
                   name="tags"
                   value={articleForm.tags.join(', ')}
-                  onChange={handleTagsChange
+                  onChange={handleTagsChange}
+                  placeholder="أدخل التصنيفات مفصولة بفواصل (مثال: تعليم, تكنولوجيا)"
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="edit-featured_image">رابط الصورة المميزة</Label>
+                <Input
+                  id="edit-featured_image"
+                  name="featured_image"
+                  value={articleForm.featured_image}
+                  onChange={handleInputChange}
+                  placeholder="أدخل رابط الصورة المميزة"
+                />
+              </div>
+              
+              <div className="grid gap-2">
+                <Label htmlFor="edit-status">حالة المقال</Label>
+                <select
+                  id="edit-status"
+                  name="status"
+                  value={articleForm.status}
+                  onChange={(e) => setArticleForm(prev => ({ ...prev, status: e.target.value as ArticleStatus }))}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <option value="draft">مس
