@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Star, BookOpen } from 'lucide-react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,7 @@ interface RecommendedBooksProps {
 const RecommendedBooks = ({ bookId, category }: RecommendedBooksProps) => {
   const [books, setBooks] = useState<Book[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchRecommendedBooks = async () => {
@@ -75,6 +76,10 @@ const RecommendedBooks = ({ bookId, category }: RecommendedBooksProps) => {
     fetchRecommendedBooks();
   }, [bookId, category]);
 
+  const handleBookClick = (id: string) => {
+    navigate(`/book/${id}`);
+  };
+
   if (isLoading) {
     return (
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -121,15 +126,14 @@ const RecommendedBooks = ({ bookId, category }: RecommendedBooksProps) => {
           
           <CardFooter className="p-4 pt-0 flex justify-between items-center">
             <span className="text-secondary font-bold">{book.price} {book.currency}</span>
-            <Link to={`/books/${book.id}`}>
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="border-primary text-primary hover:bg-primary hover:text-white"
-              >
-                عرض
-              </Button>
-            </Link>
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="border-primary text-primary hover:bg-primary hover:text-white"
+              onClick={() => handleBookClick(book.id)}
+            >
+              عرض
+            </Button>
           </CardFooter>
         </Card>
       ))}
