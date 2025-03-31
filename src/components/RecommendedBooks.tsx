@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Star, BookOpen } from 'lucide-react';
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -47,7 +47,7 @@ const RecommendedBooks = ({ bookId, category }: RecommendedBooksProps) => {
         if (error) {
           console.error('Error fetching similar books by category:', error);
         } else if (data && data.length > 0) {
-          booksData = data;
+          booksData = data as Book[];
         } else {
           // Fallback: Get latest books if no category matches
           const { data: latestBooks, error: latestError } = await supabase
@@ -61,7 +61,7 @@ const RecommendedBooks = ({ bookId, category }: RecommendedBooksProps) => {
           if (latestError) {
             console.error('Error fetching latest books:', latestError);
           } else if (latestBooks) {
-            booksData = latestBooks;
+            booksData = latestBooks as Book[];
           }
         }
         

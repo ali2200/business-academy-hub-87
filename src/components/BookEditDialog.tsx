@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { supabase, SUPABASE_URL } from "@/integrations/supabase/client";
-import { BookOpen, Upload, FileText, X, Link, ExternalLink, CheckCircle2 } from 'lucide-react';
+import { BookOpen, Upload, FileText, X, Link, ExternalLink, CheckCircle2, Plus, Trash2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import RichTextEditor from '@/components/RichTextEditor';
 import HtmlPreview from '@/components/HtmlPreview';
@@ -45,6 +45,15 @@ interface FormData {
   currency: string;
   cover_url?: string;
   pdf_url?: string;
+  publish_date?: string;
+  availability?: string;
+  what_you_will_learn?: string[];
+  target_audience?: string[];
+  benefits?: string[];
+  table_of_contents?: {
+    chapter: string;
+    topics: string[];
+  }[];
 }
 
 const CATEGORIES = [
@@ -73,6 +82,12 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
     currency: book.currency || 'EGP',
     cover_url: book.cover_url || '',
     pdf_url: book.pdf_url || '',
+    publish_date: book.publish_date || '',
+    availability: book.availability || 'متوفر',
+    what_you_will_learn: book.what_you_will_learn || [],
+    target_audience: book.target_audience || [],
+    benefits: book.benefits || [],
+    table_of_contents: book.table_of_contents || [],
   });
   
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -93,6 +108,16 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
   const coverInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
 
+  // New inputs for list items
+  const [newLearningItem, setNewLearningItem] = useState('');
+  const [newTargetAudienceItem, setNewTargetAudienceItem] = useState('');
+  const [newBenefitItem, setNewBenefitItem] = useState('');
+  
+  // New chapter/topic inputs for table of contents
+  const [newChapter, setNewChapter] = useState('');
+  const [newTopic, setNewTopic] = useState('');
+  const [selectedChapterIndex, setSelectedChapterIndex] = useState<number | null>(null);
+
   useEffect(() => {
     if (book.cover_url) {
       const isExternalCover = !book.cover_url.includes(SUPABASE_URL);
@@ -107,6 +132,51 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
       setUseExternalPdfUrl(isExternalPdf);
       if (isExternalPdf) {
         setPdfUrl(book.pdf_url);
+      }
+    }
+    
+    // Parse JSON data if it's stored as a string
+    if (book.what_you_will_learn && typeof book.what_you_will_learn === 'string') {
+      try {
+        setFormData(prev => ({
+          ...prev,
+          what_you_will_learn: JSON.parse(book.what_you_will_learn)
+        }));
+      } catch (e) {
+        console.error('Error parsing what_you_will_learn:', e);
+      }
+    }
+    
+    if (book.target_audience && typeof book.target_audience === 'string') {
+      try {
+        setFormData(prev => ({
+          ...prev,
+          target_audience: JSON.parse(book.target_audience)
+        }));
+      } catch (e) {
+        console.error('Error parsing target_audience:', e);
+      }
+    }
+    
+    if (book.benefits && typeof book.benefits === 'string') {
+      try {
+        setFormData(prev => ({
+          ...prev,
+          benefits: JSON.parse(book.benefits)
+        }));
+      } catch (e) {
+        console.error('Error parsing benefits:', e);
+      }
+    }
+    
+    if (book.table_of_contents && typeof book.table_of_contents === 'string') {
+      try {
+        setFormData(prev => ({
+          ...prev,
+          table_of_contents: JSON.parse(book.table_of_contents)
+        }));
+      } catch (e) {
+        console.error('Error parsing table_of_contents:', e);
       }
     }
   }, [book]);
@@ -184,6 +254,115 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
       setPdfUrl('');
     }
   };
+
+  // New handlers for learning items
+  const addLearningItem = () => {
+    if (newLearningItem.trim() === '') return;
+    setFormData(prev => ({
+      ...prev,
+      what_you_will_learn: [...(prev.what_you_will_learn || []), newLearningItem.trim()]
+    }));
+    setNewLearningItem('');
+  };
+
+  const removeLearningItem = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      what_you_will_learn: prev.what_you_will_learn?.filter((_, i) => i !== index) || []
+    }));
+  };
+
+  // New handlers for target audience
+  const addTargetAudienceItem = () => {
+    if (newTargetAudienceItem.trim() === '') return;
+    setFormData(prev => ({
+      ...prev,
+      target_audience: [...(prev.target_audience || []), newTargetAudienceItem.trim()]
+    }));
+    setNewTargetAudienceItem('');
+  };
+
+  const removeTargetAudienceItem = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      target_audience: prev.target_audience?.filter((_, i) => i !== index) || []
+    }));
+  };
+
+  // New handlers for benefits
+  const addBenefitItem = () => {
+    if (newBenefitItem.trim() === '') return;
+    setFormData(prev => ({
+      ...prev,
+      benefits: [...(prev.benefits || []), newBenefitItem.trim()]
+    }));
+    setNewBenefitItem('');
+  };
+
+  const removeBenefitItem = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      benefits: prev.benefits?.filter((_, i) => i !== index) || []
+    }));
+  };
+
+  // New handlers for table of contents
+  const addChapter = () => {
+    if (newChapter.trim() === '') return;
+    setFormData(prev => ({
+      ...prev,
+      table_of_contents: [
+        ...(prev.table_of_contents || []),
+        { chapter: newChapter.trim(), topics: [] }
+      ]
+    }));
+    setNewChapter('');
+  };
+
+  const removeChapter = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      table_of_contents: prev.table_of_contents?.filter((_, i) => i !== index) || []
+    }));
+    if (selectedChapterIndex === index) {
+      setSelectedChapterIndex(null);
+    }
+  };
+
+  const addTopic = () => {
+    if (newTopic.trim() === '' || selectedChapterIndex === null) return;
+    setFormData(prev => {
+      const newTableOfContents = [...(prev.table_of_contents || [])];
+      if (newTableOfContents[selectedChapterIndex]) {
+        newTableOfContents[selectedChapterIndex] = {
+          ...newTableOfContents[selectedChapterIndex],
+          topics: [...newTableOfContents[selectedChapterIndex].topics, newTopic.trim()]
+        };
+      }
+      return {
+        ...prev,
+        table_of_contents: newTableOfContents
+      };
+    });
+    setNewTopic('');
+  };
+
+  const removeTopic = (chapterIndex: number, topicIndex: number) => {
+    setFormData(prev => {
+      const newTableOfContents = [...(prev.table_of_contents || [])];
+      if (newTableOfContents[chapterIndex]) {
+        newTableOfContents[chapterIndex] = {
+          ...newTableOfContents[chapterIndex],
+          topics: newTableOfContents[chapterIndex].topics.filter((_, i) => i !== topicIndex)
+        };
+      }
+      return {
+        ...prev,
+        table_of_contents: newTableOfContents
+      };
+    });
+  };
+  
 
   const validateForm = () => {
     if (!formData.title || !formData.author || !formData.price) {
@@ -293,6 +472,23 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
         pdfUrl = null;
       }
       
+      // Prepare extra fields as JSON if they're arrays
+      const what_you_will_learn = Array.isArray(formData.what_you_will_learn) 
+        ? JSON.stringify(formData.what_you_will_learn) 
+        : formData.what_you_will_learn;
+        
+      const target_audience = Array.isArray(formData.target_audience) 
+        ? JSON.stringify(formData.target_audience) 
+        : formData.target_audience;
+        
+      const benefits = Array.isArray(formData.benefits) 
+        ? JSON.stringify(formData.benefits) 
+        : formData.benefits;
+        
+      const table_of_contents = Array.isArray(formData.table_of_contents) 
+        ? JSON.stringify(formData.table_of_contents) 
+        : formData.table_of_contents;
+      
       const { error: updateError } = await supabase
         .from('books')
         .update({
@@ -306,6 +502,12 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
           currency: formData.currency,
           cover_url: useExternalCoverUrl ? coverUrl : coverUrl,
           pdf_url: useExternalPdfUrl ? pdfUrl : pdfUrl,
+          publish_date: formData.publish_date || null,
+          availability: formData.availability || 'متوفر',
+          what_you_will_learn,
+          target_audience,
+          benefits,
+          table_of_contents,
           updated_at: new Date().toISOString()
         })
         .eq('id', book.id);
@@ -340,6 +542,9 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
             <TabsTrigger value="details">تفاصيل الكتاب</TabsTrigger>
             <TabsTrigger value="files">الملفات</TabsTrigger>
             <TabsTrigger value="description">الوصف</TabsTrigger>
+            <TabsTrigger value="learning">ما ستتعلمه</TabsTrigger>
+            <TabsTrigger value="audience">الفئة المستهدفة</TabsTrigger>
+            <TabsTrigger value="toc">محتويات الكتاب</TabsTrigger>
           </TabsList>
           
           <TabsContent value="details" className="space-y-4">
@@ -426,6 +631,35 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
                   onChange={handleInputChange}
                   placeholder="عدد الصفحات"
                 />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="publish_date">تاريخ النشر</Label>
+                <Input
+                  id="publish_date"
+                  name="publish_date"
+                  type="text"
+                  value={formData.publish_date}
+                  onChange={handleInputChange}
+                  placeholder="مثال: ٣١ مارس ٢٠٢٥"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="availability">الإتاحة</Label>
+                <Select 
+                  value={formData.availability || "متوفر"}
+                  onValueChange={(value) => handleSelectChange('availability', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر الإتاحة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="متوفر">متوفر</SelectItem>
+                    <SelectItem value="غير متوفر">غير متوفر</SelectItem>
+                    <SelectItem value="متوفر قريباً">متوفر قريباً</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               
               <div className="space-y-2">
@@ -680,26 +914,17 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
               يمكنك استخدام تنسيق النص والصور لجعل وصف الكتاب أكثر جاذبية.
             </p>
           </TabsContent>
-        </Tabs>
-        
-        <DialogFooter>
-          <Button 
-            variant="outline" 
-            onClick={() => onOpenChange(false)}
-            disabled={isSubmitting}
-          >
-            إلغاء
-          </Button>
-          <Button 
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'جارٍ الحفظ...' : 'حفظ التغييرات'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-export default BookEditDialog;
+          
+          {/* New Tab: ما ستتعلمه (What You Will Learn) */}
+          <TabsContent value="learning" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <Label>ما ستتعلمه</Label>
+              <p className="text-xs text-gray-500">
+                أضف النقاط الرئيسية التي سيتعلمها القارئ من الكتاب
+              </p>
+            </div>
+            
+            <div className="border rounded-lg p-4 bg-gray-50">
+              <div className="space-y-3">
+                {formData.what_you_will_learn && formData.what_you_will_learn.length > 0 ? (
+                  <ul className="space-y
