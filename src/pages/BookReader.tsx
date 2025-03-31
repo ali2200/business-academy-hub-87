@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, Bookmark, BookOpen, Share, Download, Menu, X, ArrowLeft, ArrowRight } from 'lucide-react';
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -11,155 +12,145 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 import Navbar from '@/components/Navbar';
 
-// Mock book data
-const BOOK_DATA = {
-  id: '1',
-  title: 'أسرار البيع الناجح',
-  author: 'د. أحمد محمد',
-  cover: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?q=80&w=1974&auto=format&fit=crop',
-  description: 'يقدم هذا الكتاب استراتيجيات متطورة وأسرار البيع الناجح التي يستخدمها كبار المبيعات في العالم. من خلال هذا الكتاب، ستتعلم كيف تتغلب على اعتراضات العملاء وكيف تبني علاقات طويلة المدى معهم.',
-  rating: 4.7,
-  reviewsCount: 86,
-  pages: 280,
-  readPages: 145,
-  publishDate: '12 مارس 2022',
-  language: 'العربية',
-  categories: ['مبيعات', 'تسويق', 'تطوير الذات'],
-  bookmarks: [
-    { id: 1, page: 24, title: 'أساسيات البيع', note: 'مبادئ هامة للمبتدئين' },
-    { id: 2, page: 78, title: 'استراتيجيات الإقناع', note: 'تقنيات متقدمة في الإقناع' },
-    { id: 3, page: 145, title: 'التعامل مع الاعتراضات', note: 'كيفية الرد على اعتراضات العملاء' },
-  ],
-  chapters: [
-    { id: '1', title: 'مقدمة عن البيع', page: 1 },
-    { id: '2', title: 'فهم نفسية العميل', page: 15 },
-    { id: '3', title: 'بناء العلاقات مع العملاء', page: 42 },
-    { id: '4', title: 'تقنيات العرض الفعال', page: 67 },
-    { id: '5', title: 'استراتيجيات الإقناع', page: 95 },
-    { id: '6', title: 'التعامل مع الاعتراضات', page: 127 },
-    { id: '7', title: 'إتمام عملية البيع', page: 168 },
-    { id: '8', title: 'خدمة ما بعد البيع', page: 198 },
-    { id: '9', title: 'بناء سمعة قوية', page: 230 },
-    { id: '10', title: 'استراتيجيات التطوير المستمر', page: 252 },
-  ],
-  content: [
-    `<h1>الفصل الأول: مقدمة عن البيع</h1>
-    <p>البيع هو فن وعلم في آن واحد. يتطلب مهارات خاصة ومعرفة عميقة بنفسية العميل واحتياجاته. في هذا الفصل، سنتعرف على المبادئ الأساسية للبيع الناجح والصفات التي يجب أن يتحلى بها البائع المحترف.</p>
-    <p>يعتبر البيع من أقدم المهن في التاريخ، حيث بدأ الإنسان بتبادل السلع والخدمات منذ فجر الحضارة. ومع تطور المجتمعات والاقتصادات، تطورت معها مفاهيم وتقنيات البيع لتصبح أكثر تعقيدًا وتخصصًا.</p>
-    <h2>لماذا يُعتبر البيع مهمًا؟</h2>
-    <p>البيع هو المحرك الأساسي لأي نشاط تجاري. بدون مبيعات، لا يمكن لأي شركة أو مؤسسة أن تستمر وتنمو. كما أن البيع يساهم في:</p>
-    <ul>
-      <li>تحقيق الإيرادات والأرباح للشركات</li>
-      <li>توفير المنتجات والخدمات التي يحتاجها المستهلكون</li>
-      <li>خلق فرص عمل جديدة</li>
-      <li>دفع عجلة الاقتصاد</li>
-    </ul>
-    <h2>صفات البائع الناجح</h2>
-    <p>ليس كل شخص يمكنه أن يكون بائعًا ناجحًا. هناك مجموعة من الصفات والمهارات التي يجب أن يتمتع بها البائع المحترف، ومنها:</p>
-    <ul>
-      <li><strong>الثقة بالنفس:</strong> يجب أن يكون البائع واثقًا من نفسه ومن المنتج أو الخدمة التي يبيعها.</li>
-      <li><strong>مهارات التواصل:</strong> القدرة على الاستماع الجيد والتحدث بوضوح وإقناع.</li>
-      <li><strong>المعرفة:</strong> معرفة تفاصيل المنتج أو الخدمة وكيف يمكن أن تلبي احتياجات العميل.</li>
-      <li><strong>المثابرة:</strong> القدرة على مواجهة الرفض والاستمرار في المحاولة.</li>
-      <li><strong>التعاطف:</strong> القدرة على فهم مشاعر واحتياجات العميل.</li>
-    </ul>`,
-    `<h1>الفصل الثاني: فهم نفسية العميل</h1>
-    <p>فهم نفسية العميل هو أحد أهم مفاتيح النجاح في عالم المبيعات. في هذا الفصل، سنتعرف على الدوافع النفسية التي تحرك العملاء وكيفية استخدامها لتحقيق مبيعات ناجحة.</p>
-    <h2>الدوافع الأساسية للشراء</h2>
-    <p>هناك عدة دوافع أساسية تحرك الناس للشراء، منها:</p>
-    <ul>
-      <li><strong>الحاجة الفعلية:</strong> العميل يحتاج فعلًا للمنتج أو الخدمة لحل مشكلة معينة.</li>
-      <li><strong>الرغبة:</strong> العميل يرغب في المنتج لإشباع رغبة شخصية، وليس بالضرورة حاجة أساسية.</li>
-      <li><strong>المكانة الاجتماعية:</strong> بعض المنتجات تُشترى للتباهي أو لتعزيز المكانة الاجتماعية.</li>
-      <li><strong>الأمان:</strong> شراء منتجات تعزز الشعور بالأمان والاستقرار.</li>
-      <li><strong>الانتماء:</strong> شراء منتجات تعزز الشعور بالانتماء لمجموعة معينة.</li>
-    </ul>
-    <h2>أنماط الشخصيات وتأثيرها على قرار الشراء</h2>
-    <p>يمكن تقسيم العملاء إلى عدة أنماط شخصية، ولكل نمط طريقة تفكير وتفضيلات مختلفة:</p>
-    <ul>
-      <li><strong>المحلل:</strong> يهتم بالتفاصيل والأرقام والإحصاءات. يحتاج إلى معلومات دقيقة قبل اتخاذ القرار.</li>
-      <li><strong>المسيطر:</strong> يحب السيطرة واتخاذ القرارات بسرعة. يهتم بالنتائج أكثر من التفاصيل.</li>
-      <li><strong>الودود:</strong> يهتم بالعلاقات والمشاعر. يحتاج إلى الشعور بالثقة والاطمئنان.</li>
-      <li><strong>المعبر:</strong> يهتم بالابتكار والإبداع. يفضل المنتجات الفريدة والمميزة.</li>
-    </ul>
-    <p>فهم هذه الأنماط يساعدك على تكييف أسلوب البيع الخاص بك لتلبية احتياجات كل عميل.</p>`,
-    `<h1>الفصل الثالث: بناء العلاقات مع العملاء</h1>
-    <p>بناء علاقات قوية مع العملاء هو أساس النجاح على المدى الطويل في عالم المبيعات. في هذا الفصل، سنتعرف على كيفية بناء هذه العلاقات والحفاظ عليها.</p>
-    <h2>أهمية بناء العلاقات</h2>
-    <p>بناء علاقات قوية مع العملاء يحقق العديد من الفوائد، منها:</p>
-    <ul>
-      <li>زيادة ولاء العملاء وتكرار عمليات الشراء</li>
-      <li>الحصول على توصيات وإحالات لعملاء جدد</li>
-      <li>تقليل حساسية السعر لدى العملاء</li>
-      <li>الحصول على تغذية راجعة قيمة لتحسين المنتجات والخدمات</li>
-    </ul>
-    <h2>استراتيجيات لبناء علاقات قوية</h2>
-    <p>هناك عدة استراتيجيات يمكن اتباعها لبناء علاقات قوية مع العملاء:</p>
-    <ul>
-      <li><strong>الصدق والشفافية:</strong> كن صادقًا دائمًا مع عملائك. لا تبالغ في وعودك ولا تخفي المعلومات المهمة.</li>
-      <li><strong>الاستماع الفعال:</strong> استمع بانتباه لاحتياجات وشكاوى العملاء. اطرح أسئلة مفتوحة للحصول على المزيد من المعلومات.</li>
-      <li><strong>تقديم قيمة مضافة:</strong> قدم للعميل أكثر مما يتوقع. يمكن أن تكون هذه القيمة معلومات مفيدة، نصائح، أو خدمات إضافية.</li>
-      <li><strong>المتابعة المستمرة:</strong> لا تنتهي العلاقة بمجرد إتمام عملية البيع. تابع مع العميل للتأكد من رضاه واستفادته من المنتج أو الخدمة.</li>
-      <li><strong>حل المشكلات بسرعة:</strong> عندما تظهر مشكلة، بادر بحلها بسرعة وكفاءة. اعتبر الشكاوى فرصة لإظهار التزامك بخدمة العملاء.</li>
-    </ul>`,
-  ]
-};
-
+// تعديل مكون BookReader لاستخدام بيانات من Supabase
 const BookReader = () => {
   const { bookId } = useParams();
   const navigate = useNavigate();
-  const [book, setBook] = useState(BOOK_DATA);
+  const [book, setBook] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [bookmarkNote, setBookmarkNote] = useState("");
   const [bookmarkTitle, setBookmarkTitle] = useState("");
   const [isBookmarkDialogOpen, setIsBookmarkDialogOpen] = useState(false);
+  const [bookmarks, setBookmarks] = useState<any[]>([]);
 
+  // Fetch book data
   useEffect(() => {
-    // In a real app, you would fetch book data from an API
-    setIsLoading(true);
+    const fetchBookData = async () => {
+      try {
+        setIsLoading(true);
+        
+        if (!bookId) {
+          setError('معرف الكتاب غير صحيح');
+          return;
+        }
+        
+        // Fetch book details from Supabase
+        const { data: bookData, error: bookError } = await supabase
+          .from('books')
+          .select('*')
+          .eq('id', bookId)
+          .single();
+        
+        if (bookError) {
+          console.error('Error fetching book:', bookError);
+          setError('فشل في تحميل بيانات الكتاب');
+          return;
+        }
+        
+        if (!bookData) {
+          setError('الكتاب غير موجود');
+          return;
+        }
+        
+        // Check if PDF is available
+        if (!bookData.pdf_url) {
+          setError('ملف الكتاب غير متوفر');
+          return;
+        }
+        
+        // Load mock data for book content and chapters for now
+        // In a real app, you would fetch these from your backend
+        const mockBook = {
+          ...bookData,
+          readPages: Math.floor(bookData.pages ? bookData.pages / 2 : 50), // As an example
+          bookmarks: [
+            { id: 1, page: 24, title: 'ملاحظة مهمة', note: 'تذكر هذه النقطة للاستفادة منها' },
+            { id: 2, page: 58, title: 'مفهوم أساسي', note: 'يجب مراجعة هذا المفهوم لاحقًا' },
+          ],
+          chapters: Array.from({ length: 10 }, (_, i) => ({
+            id: String(i + 1),
+            title: `الفصل ${i + 1}: عنوان الفصل`,
+            page: i * Math.floor((bookData.pages || 100) / 10) + 1
+          })),
+          content: Array.from({ length: 10 }, (_, i) => (
+            `<h1>الفصل ${i + 1}</h1>
+            <p>هذا هو محتوى الفصل ${i + 1} من الكتاب. في نسخة واقعية من التطبيق، سيتم استبدال هذا بالمحتوى الفعلي للكتاب من قاعدة البيانات أو من ملف PDF محول.</p>
+            <p>يمكنك تقليب الصفحات باستخدام الأزرار في الأسفل أو بالضغط على السهم الأيمن والأيسر في لوحة المفاتيح.</p>
+            <h2>قسم فرعي ${i + 1}.1</h2>
+            <p>هذا هو محتوى القسم الفرعي الأول من الفصل ${i + 1}. يمكنك إضافة إشارات مرجعية للصفحات المهمة للرجوع إليها لاحقًا.</p>
+            <ul>
+              <li>نقطة مهمة 1</li>
+              <li>نقطة مهمة 2</li>
+              <li>نقطة مهمة 3</li>
+            </ul>
+            <h2>قسم فرعي ${i + 1}.2</h2>
+            <p>هذا هو محتوى القسم الفرعي الثاني من الفصل ${i + 1}. استمتع بالقراءة!</p>`
+          ))
+        };
+        
+        setBook(mockBook);
+        setBookmarks(mockBook.bookmarks || []);
+      } catch (err) {
+        console.error('Unexpected error:', err);
+        setError('حدث خطأ غير متوقع أثناء تحميل الكتاب');
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
-    // Simulate API call
-    setTimeout(() => {
-      setBook(BOOK_DATA);
-      setIsLoading(false);
-    }, 1000);
+    fetchBookData();
   }, [bookId]);
 
+  // Handle page navigation
   const handlePageChange = (page: number) => {
+    if (!book) return;
+    
     if (page < 1) return;
-    if (page > book.pages) return;
+    if (page > (book.pages || 100)) return;
     
     setCurrentPage(page);
     
-    // Update read progress
+    // في تطبيق حقيقي، ستقوم بحفظ تقدم القراءة في قاعدة البيانات
     if (page > book.readPages) {
       setBook(prev => ({
         ...prev,
         readPages: page
       }));
       
-      // In a real app, you would save this progress to a database
       console.log(`Updated reading progress to page ${page}`);
     }
   };
 
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') {
+        // للتنقل للصفحة السابقة في اللغة العربية (اتجاه القراءة من اليمين لليسار)
+        handlePageChange(currentPage - 1);
+      } else if (e.key === 'ArrowLeft') {
+        // للتنقل للصفحة التالية في اللغة العربية
+        handlePageChange(currentPage + 1);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentPage]);
+
+  // Bookmark functions
   const toggleBookmark = () => {
-    // Check if current page is already bookmarked
-    const existingBookmark = book.bookmarks.find(b => b.page === currentPage);
+    // التحقق مما إذا كانت الصفحة الحالية مرجعية بالفعل
+    const existingBookmark = bookmarks.find(b => b.page === currentPage);
     
     if (existingBookmark) {
-      // Remove bookmark
-      const updatedBookmarks = book.bookmarks.filter(b => b.page !== currentPage);
-      setBook(prev => ({
-        ...prev,
-        bookmarks: updatedBookmarks
-      }));
-      
+      // إزالة الإشارة المرجعية
+      setBookmarks(bookmarks.filter(b => b.page !== currentPage));
       toast.success("تم إزالة الإشارة المرجعية");
     } else {
-      // Open the bookmark dialog to add a new bookmark
+      // فتح مربع حوار لإضافة إشارة مرجعية جديدة
       setBookmarkTitle("");
       setBookmarkNote("");
       setIsBookmarkDialogOpen(true);
@@ -167,7 +158,7 @@ const BookReader = () => {
   };
 
   const addBookmark = () => {
-    // Add new bookmark
+    // إضافة إشارة مرجعية جديدة
     const newBookmark = {
       id: Date.now(),
       page: currentPage,
@@ -175,11 +166,7 @@ const BookReader = () => {
       note: bookmarkNote
     };
     
-    setBook(prev => ({
-      ...prev,
-      bookmarks: [...prev.bookmarks, newBookmark]
-    }));
-    
+    setBookmarks([...bookmarks, newBookmark]);
     setIsBookmarkDialogOpen(false);
     toast.success("تم إضافة إشارة مرجعية جديدة");
   };
@@ -190,33 +177,55 @@ const BookReader = () => {
   };
 
   const shareBook = () => {
-    toast.success("تم نسخ رابط الكتاب", {
-      description: "يمكنك الآن مشاركته مع أصدقائك"
+    // نسخ الرابط إلى الحافظة
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      toast.success("تم نسخ رابط الكتاب", {
+        description: "يمكنك الآن مشاركته مع أصدقائك"
+      });
+    }).catch(err => {
+      console.error('Failed to copy URL:', err);
+      toast.error("فشل نسخ الرابط");
     });
   };
 
   const downloadBook = () => {
-    toast.success("جاري تحميل الكتاب", {
-      description: "سيبدأ التحميل خلال لحظات"
-    });
+    if (book && book.pdf_url) {
+      // فتح رابط PDF في نافذة جديدة
+      window.open(book.pdf_url, '_blank');
+      toast.success("جاري تحميل الكتاب", {
+        description: "سيبدأ التحميل خلال لحظات"
+      });
+    } else {
+      toast.error("ملف الكتاب غير متوفر");
+    }
   };
 
-  // Calculate progress percentage
-  const progressPercentage = Math.round((book.readPages / book.pages) * 100);
+  // حساب نسبة التقدم
+  const calculateProgress = () => {
+    if (!book) return 0;
+    return Math.round((book.readPages / (book.pages || 100)) * 100);
+  };
 
-  // Get chapter content based on current page
+  // الحصول على محتوى الصفحة الحالية
   const getContent = () => {
-    // For demo purposes, just cycling through the available content
+    if (!book || !book.content) return '<p>المحتوى غير متوفر</p>';
+    
+    // للتبسيط، نستخدم مؤشر الصفحة الحالية للدوران في المحتوى المتاح
     return book.content[currentPage % book.content.length];
   };
 
-  // Get current chapter
+  // الحصول على الفصل الحالي
   const getCurrentChapter = () => {
+    if (!book || !book.chapters || book.chapters.length === 0) {
+      return { title: 'الكتاب', page: 1 };
+    }
+    
     for (let i = book.chapters.length - 1; i >= 0; i--) {
       if (currentPage >= book.chapters[i].page) {
         return book.chapters[i];
       }
     }
+    
     return book.chapters[0];
   };
 
@@ -226,6 +235,24 @@ const BookReader = () => {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-gray-600">جاري تحميل الكتاب...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !book) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center max-w-md mx-auto p-6 bg-white rounded-xl shadow-md">
+          <BookOpen className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-primary mb-2">عفواً، لا يمكن عرض الكتاب</h2>
+          <p className="text-gray-600 mb-6">{error || 'حدث خطأ أثناء تحميل الكتاب'}</p>
+          <Button onClick={() => navigate('/books')} className="mr-2">
+            عرض جميع الكتب
+          </Button>
+          <Button variant="outline" onClick={() => navigate(-1)}>
+            العودة للصفحة السابقة
+          </Button>
         </div>
       </div>
     );
@@ -241,11 +268,11 @@ const BookReader = () => {
           <div className="mb-6 flex flex-wrap items-center justify-between">
             <div>
               <div className="flex items-center text-sm text-gray-500 mb-2">
-                <Link to="/dashboard" className="hover:text-primary">لوحة التحكم</Link>
+                <Link to="/books" className="hover:text-primary">الكتب</Link>
                 <ChevronLeft className="mx-2 h-4 w-4" />
-                <Link to="/dashboard" className="hover:text-primary">كتبي</Link>
+                <Link to={`/books/${book.id}`} className="hover:text-primary">{book.title}</Link>
                 <ChevronLeft className="mx-2 h-4 w-4" />
-                <span>{book.title}</span>
+                <span>قارئ الكتاب</span>
               </div>
               
               <h1 className="text-2xl md:text-3xl font-bold text-primary">{book.title}</h1>
@@ -272,12 +299,12 @@ const BookReader = () => {
               </Button>
               
               <Button 
-                variant={book.bookmarks.some(b => b.page === currentPage) ? "secondary" : "outline"}
+                variant={bookmarks.some(b => b.page === currentPage) ? "secondary" : "outline"}
                 onClick={toggleBookmark}
                 className="flex items-center"
               >
                 <Bookmark className="ml-1 h-4 w-4" />
-                <span>{book.bookmarks.some(b => b.page === currentPage) ? "إزالة الإشارة" : "إضافة إشارة"}</span>
+                <span>{bookmarks.some(b => b.page === currentPage) ? "إزالة الإشارة" : "إضافة إشارة"}</span>
               </Button>
               
               <Button 
@@ -320,6 +347,7 @@ const BookReader = () => {
                   </div>
                   <BookSidebar 
                     book={book} 
+                    bookmarks={bookmarks}
                     currentPage={currentPage} 
                     onNavigate={goToBookmark}
                   />
@@ -335,6 +363,7 @@ const BookReader = () => {
                 </div>
                 <BookSidebar 
                   book={book} 
+                  bookmarks={bookmarks}
                   currentPage={currentPage} 
                   onNavigate={goToBookmark}
                 />
@@ -348,7 +377,7 @@ const BookReader = () => {
                   {/* Current chapter title */}
                   <div className="mb-6 text-center">
                     <h2 className="text-xl font-bold text-primary">{getCurrentChapter().title}</h2>
-                    <p className="text-gray-500">صفحة {currentPage} من {book.pages}</p>
+                    <p className="text-gray-500">صفحة {currentPage} من {book.pages || 100}</p>
                   </div>
                   
                   {/* Book content */}
@@ -370,13 +399,13 @@ const BookReader = () => {
                     </Button>
                     
                     <span className="text-sm text-gray-500">
-                      صفحة {currentPage} من {book.pages}
+                      صفحة {currentPage} من {book.pages || 100}
                     </span>
                     
                     <Button 
                       variant="outline" 
                       onClick={() => handlePageChange(currentPage + 1)}
-                      disabled={currentPage >= book.pages}
+                      disabled={currentPage >= (book.pages || 100)}
                       className="flex items-center"
                     >
                       <span>الصفحة التالية</span>
@@ -436,12 +465,13 @@ const BookReader = () => {
 };
 
 type BookSidebarProps = {
-  book: typeof BOOK_DATA;
+  book: any;
+  bookmarks: any[];
   currentPage: number;
   onNavigate: (page: number) => void;
 };
 
-const BookSidebar = ({ book, currentPage, onNavigate }: BookSidebarProps) => {
+const BookSidebar = ({ book, bookmarks, currentPage, onNavigate }: BookSidebarProps) => {
   const [activeTab, setActiveTab] = useState<'toc' | 'bookmarks'>('toc');
   
   return (
@@ -450,11 +480,11 @@ const BookSidebar = ({ book, currentPage, onNavigate }: BookSidebarProps) => {
       <div className="p-4">
         <div className="flex justify-between text-sm text-gray-600 mb-1">
           <span>تقدم القراءة</span>
-          <span>{Math.round((book.readPages / book.pages) * 100)}%</span>
+          <span>{Math.round((book.readPages / (book.pages || 100)) * 100)}%</span>
         </div>
-        <Progress value={(book.readPages / book.pages) * 100} className="h-2" />
+        <Progress value={(book.readPages / (book.pages || 100)) * 100} className="h-2" />
         <div className="text-xs text-gray-500 mt-1">
-          {book.readPages} من {book.pages} صفحة
+          {book.readPages} من {book.pages || 100} صفحة
         </div>
       </div>
       
@@ -488,33 +518,40 @@ const BookSidebar = ({ book, currentPage, onNavigate }: BookSidebarProps) => {
       <ScrollArea className="h-[60vh]">
         {activeTab === 'toc' ? (
           <div className="p-4">
-            {book.chapters.map((chapter) => (
-              <button
-                key={chapter.id}
-                onClick={() => onNavigate(chapter.page)}
-                className={`w-full text-right px-3 py-2 rounded-md mb-1 ${
-                  currentPage >= chapter.page && 
-                  (book.chapters[parseInt(chapter.id)] 
-                    ? currentPage < book.chapters[parseInt(chapter.id)].page 
-                    : true)
-                    ? 'bg-primary text-white'
-                    : 'hover:bg-gray-100 text-gray-700'
-                }`}
-              >
-                <div className="flex items-center">
-                  <BookOpen className="ml-2 h-4 w-4" />
-                  <div>
-                    <p className="font-medium">{chapter.title}</p>
-                    <p className="text-xs opacity-80">صفحة {chapter.page}</p>
+            {book.chapters && book.chapters.length > 0 ? (
+              book.chapters.map((chapter: any) => (
+                <button
+                  key={chapter.id}
+                  onClick={() => onNavigate(chapter.page)}
+                  className={`w-full text-right px-3 py-2 rounded-md mb-1 ${
+                    currentPage >= chapter.page && 
+                    (book.chapters[parseInt(chapter.id)] 
+                      ? currentPage < book.chapters[parseInt(chapter.id)].page 
+                      : true)
+                      ? 'bg-primary text-white'
+                      : 'hover:bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <BookOpen className="ml-2 h-4 w-4" />
+                    <div>
+                      <p className="font-medium">{chapter.title}</p>
+                      <p className="text-xs opacity-80">صفحة {chapter.page}</p>
+                    </div>
                   </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              ))
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <BookOpen className="mx-auto h-12 w-12 text-gray-300 mb-2" />
+                <p>لا يوجد فهرس متاح لهذا الكتاب</p>
+              </div>
+            )}
           </div>
         ) : (
           <div className="p-4">
-            {book.bookmarks.length > 0 ? (
-              book.bookmarks.map((bookmark) => (
+            {bookmarks.length > 0 ? (
+              bookmarks.map((bookmark) => (
                 <div key={bookmark.id} className="mb-3">
                   <button
                     onClick={() => onNavigate(bookmark.page)}

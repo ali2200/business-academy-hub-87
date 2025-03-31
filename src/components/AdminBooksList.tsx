@@ -1,51 +1,16 @@
 
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
-  PlusCircle, 
-  Search, 
   Eye, 
-  Edit, 
+  Pencil, 
   Trash2, 
-  Download, 
-  RefreshCw,
-  Filter,
-  MoreHorizontal,
-  Check,
-  X,
-  AlertCircle
+  Plus, 
+  Search, 
+  BookOpenText,
+  FileText,
+  BookOpen
 } from 'lucide-react';
-import { toast } from "sonner";
-
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-  DialogClose
-} from "@/components/ui/dialog";
-import { 
-  Pagination, 
-  PaginationContent, 
-  PaginationItem, 
-  PaginationLink, 
-  PaginationNext, 
-  PaginationPrevious 
-} from "@/components/ui/pagination";
 import { 
   Table, 
   TableBody, 
@@ -54,909 +19,309 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-
-type BookStatus = "published" | "draft";
-
-interface BookItem {
-  id: string;
-  title: string;
-  author: string;
-  price: number;
-  currency: string;
-  description?: string;
-  category?: string;
-  purchasesCount: number;
-  pages?: number;
-  cover_url?: string;
-  pdf_url?: string;
-  status: BookStatus;
-  lastUpdated?: string;
-  updated_at?: string;
-}
-
-interface NewBookForm {
-  title: string;
-  author: string;
-  price: number;
-  currency: string;
-  description?: string;
-  category?: string;
-  pages?: number;
-  cover_url?: string;
-  pdf_url?: string;
-  status: BookStatus;
-}
-
-const defaultNewBook: NewBookForm = {
-  title: '',
-  author: '',
-  price: 0,
-  currency: 'EGP',
-  description: '',
-  category: '',
-  pages: 0,
-  cover_url: '',
-  pdf_url: '',
-  status: 'draft'
-};
+import BookDetailsDialog from './BookDetailsDialog';
+import BookEditDialog from './BookEditDialog';
 
 const AdminBooksList = () => {
-  const [books, setBooks] = useState<BookItem[]>([]);
+  const navigate = useNavigate();
+  const [books, setBooks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedBooks, setSelectedBooks] = useState<string[]>([]);
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedBook, setSelectedBook] = useState<BookItem | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string | null>(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [newBook, setNewBook] = useState<NewBookForm>(defaultNewBook);
-
-  useEffect(() => {
-    fetchBooks();
-  }, [refreshTrigger]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [bookToDelete, setBookToDelete] = useState<any>(null);
+  const [bookDetailsDialogOpen, setBookDetailsDialogOpen] = useState(false);
+  const [bookEditDialogOpen, setBookEditDialogOpen] = useState(false);
+  const [selectedBook, setSelectedBook] = useState<any>(null);
 
   const fetchBooks = async () => {
     try {
       setLoading(true);
-      
-      // Fetch real data from Supabase
       const { data, error } = await supabase
         .from('books')
-        .select('*');
+        .select('*')
+        .order('created_at', { ascending: false });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching books:', error);
+        toast.error('فشل في تحميل قائمة الكتب');
+        return;
+      }
       
-      // Transform the data to match our component's format
-      const formattedBooks = data.map(book => ({
-        id: book.id,
-        title: book.title,
-        author: book.author,
-        price: book.price,
-        currency: book.currency,
-        description: book.description,
-        category: book.category,
-        purchasesCount: book.purchases_count || 0,
-        pages: book.pages,
-        cover_url: book.cover_url,
-        pdf_url: book.pdf_url,
-        status: book.status as BookStatus,
-        lastUpdated: new Date(book.updated_at).toLocaleDateString('ar-EG'),
-        updated_at: book.updated_at
-      }));
-      
-      setBooks(formattedBooks);
-    } catch (error) {
-      console.error('Error fetching books:', error);
-      toast.error('فشل في تحميل الكتب');
-      
-      // Fallback to mock data if API fails
-      const mockBooks: BookItem[] = [
-        {
-          id: '1',
-          title: 'إدارة الأعمال للمبتدئين',
-          author: 'أحمد محمد',
-          price: 99.99,
-          currency: 'EGP',
-          description: 'كتاب شامل للمبتدئين في عالم إدارة الأعمال',
-          category: 'إدارة أعمال',
-          purchasesCount: 255,
-          pages: 320,
-          cover_url: '/images/book-cover-1.jpg',
-          status: 'published',
-          lastUpdated: '2025-02-15'
-        },
-        {
-          id: '2',
-          title: 'أساسيات التسويق الإلكتروني',
-          author: 'سارة أحمد',
-          price: 149.99,
-          currency: 'EGP',
-          description: 'تعلم أساسيات التسويق الإلكتروني في عصر التكنولوجيا',
-          category: 'تسويق',
-          purchasesCount: 178,
-          pages: 250,
-          cover_url: '/images/book-cover-2.jpg',
-          status: 'published',
-          lastUpdated: '2025-02-20'
-        },
-        {
-          id: '3',
-          title: 'التخطيط الاستراتيجي للشركات الناشئة',
-          author: 'محمد عبد الرحمن',
-          price: 199.99,
-          currency: 'EGP',
-          description: 'دليل شامل للتخطيط الاستراتيجي للشركات الناشئة',
-          category: 'استراتيجية',
-          purchasesCount: 120,
-          pages: 380,
-          cover_url: '/images/book-cover-3.jpg',
-          status: 'draft',
-          lastUpdated: '2025-02-25'
-        }
-      ];
-      
-      setBooks(mockBooks);
+      setBooks(data || []);
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      toast.error('حدث خطأ غير متوقع');
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredBooks = books.filter(book => {
-    const matchesSearch = 
-      book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      book.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (book.category && book.category.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    if (statusFilter) {
-      return matchesSearch && book.status === statusFilter;
-    }
-    
-    return matchesSearch;
-  });
+  useEffect(() => {
+    fetchBooks();
+  }, []);
 
-  const toggleBookSelection = (bookId: string) => {
-    if (selectedBooks.includes(bookId)) {
-      setSelectedBooks(selectedBooks.filter(id => id !== bookId));
-    } else {
-      setSelectedBooks([...selectedBooks, bookId]);
-    }
-  };
-
-  const toggleAllBooks = () => {
-    if (selectedBooks.length === filteredBooks.length) {
-      setSelectedBooks([]);
-    } else {
-      setSelectedBooks(filteredBooks.map(book => book.id));
-    }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    if (selectedBook) {
-      // Edit mode - update selected book
-      setSelectedBook({
-        ...selectedBook,
-        [name]: value
-      });
-    } else {
-      // Add mode - update new book
-      setNewBook({
-        ...newBook,
-        [name]: value
-      });
-    }
-  };
-
-  const handleSelectChange = (value: string, fieldName: string) => {
-    if (selectedBook) {
-      // Edit mode
-      setSelectedBook({
-        ...selectedBook,
-        [fieldName]: value
-      });
-    } else {
-      // Add mode
-      setNewBook({
-        ...newBook,
-        [fieldName]: value
-      });
-    }
-  };
-
-  const handleNumberInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    const numValue = parseFloat(value);
-    
-    if (selectedBook) {
-      // Edit mode
-      setSelectedBook({
-        ...selectedBook,
-        [name]: numValue
-      });
-    } else {
-      // Add mode
-      setNewBook({
-        ...newBook,
-        [name]: numValue
-      });
-    }
-  };
-
-  const handleAddBook = async () => {
-    try {
-      // Insert new book into database
-      const { data, error } = await supabase
-        .from('books')
-        .insert({
-          title: newBook.title,
-          author: newBook.author,
-          price: newBook.price,
-          currency: newBook.currency,
-          description: newBook.description,
-          category: newBook.category,
-          pages: newBook.pages,
-          cover_url: newBook.cover_url,
-          pdf_url: newBook.pdf_url,
-          status: newBook.status,
-          purchases_count: 0
-        })
-        .select();
-      
-      if (error) throw error;
-      
-      toast.success('تمت إضافة الكتاب بنجاح');
-      setIsAddDialogOpen(false);
-      setNewBook(defaultNewBook);
-      setRefreshTrigger(prev => prev + 1);
-    } catch (error) {
-      console.error('Error adding book:', error);
-      toast.error('حدث خطأ أثناء إضافة الكتاب');
-    }
-  };
-
-  const handleUpdateBook = async () => {
-    if (!selectedBook) return;
+  const handleDelete = async () => {
+    if (!bookToDelete) return;
     
     try {
-      // Update book in database
-      const { error } = await supabase
-        .from('books')
-        .update({
-          title: selectedBook.title,
-          author: selectedBook.author,
-          price: selectedBook.price,
-          currency: selectedBook.currency,
-          description: selectedBook.description,
-          category: selectedBook.category,
-          pages: selectedBook.pages,
-          cover_url: selectedBook.cover_url,
-          pdf_url: selectedBook.pdf_url,
-          status: selectedBook.status
-        })
-        .eq('id', selectedBook.id);
-      
-      if (error) throw error;
-      
-      toast.success('تم تحديث الكتاب بنجاح');
-      setIsEditDialogOpen(false);
-      setSelectedBook(null);
-      setRefreshTrigger(prev => prev + 1);
-    } catch (error) {
-      console.error('Error updating book:', error);
-      toast.error('حدث خطأ أثناء تحديث الكتاب');
-    }
-  };
-
-  const handleDeleteBook = async () => {
-    if (!selectedBook) return;
-    
-    try {
-      // Delete book from database
+      // حذف الكتاب من قاعدة البيانات
       const { error } = await supabase
         .from('books')
         .delete()
-        .eq('id', selectedBook.id);
+        .eq('id', bookToDelete.id);
       
-      if (error) throw error;
+      if (error) {
+        console.error('Error deleting book:', error);
+        toast.error('فشل في حذف الكتاب');
+        return;
+      }
       
+      // حذف الملفات المرتبطة بالكتاب من التخزين
+      if (bookToDelete.cover_url) {
+        const coverPath = bookToDelete.cover_url.split('/').pop();
+        const { error: coverDeleteError } = await supabase.storage
+          .from('book-covers')
+          .remove([coverPath]);
+        
+        if (coverDeleteError) {
+          console.error('Error deleting cover file:', coverDeleteError);
+        }
+      }
+      
+      if (bookToDelete.pdf_url) {
+        const pdfPath = bookToDelete.pdf_url.split('/').pop();
+        const { error: pdfDeleteError } = await supabase.storage
+          .from('book-files')
+          .remove([pdfPath]);
+        
+        if (pdfDeleteError) {
+          console.error('Error deleting PDF file:', pdfDeleteError);
+        }
+      }
+      
+      // تحديث قائمة الكتب بعد الحذف
+      setBooks(books.filter(book => book.id !== bookToDelete.id));
       toast.success('تم حذف الكتاب بنجاح');
-      setIsDeleteDialogOpen(false);
-      setSelectedBook(null);
-      setRefreshTrigger(prev => prev + 1);
-    } catch (error) {
-      console.error('Error deleting book:', error);
+    } catch (err) {
+      console.error('Unexpected error during deletion:', err);
       toast.error('حدث خطأ أثناء حذف الكتاب');
+    } finally {
+      setDeleteDialogOpen(false);
+      setBookToDelete(null);
     }
   };
 
-  const handleBulkDelete = async () => {
-    if (selectedBooks.length === 0) return;
-    
-    try {
-      // Delete multiple books
-      const { error } = await supabase
-        .from('books')
-        .delete()
-        .in('id', selectedBooks);
-      
-      if (error) throw error;
-      
-      toast.success(`تم حذف ${selectedBooks.length} كتب بنجاح`);
-      setSelectedBooks([]);
-      setRefreshTrigger(prev => prev + 1);
-    } catch (error) {
-      console.error('Error bulk deleting books:', error);
-      toast.error('حدث خطأ أثناء حذف الكتب');
-    }
+  const confirmDelete = (book: any) => {
+    setBookToDelete(book);
+    setDeleteDialogOpen(true);
   };
 
-  const handleBulkStatusChange = async (status: BookStatus) => {
-    if (selectedBooks.length === 0) return;
-    
-    try {
-      // Update status for multiple books
-      const { error } = await supabase
-        .from('books')
-        .update({ status })
-        .in('id', selectedBooks);
-      
-      if (error) throw error;
-      
-      toast.success(`تم تغيير حالة ${selectedBooks.length} كتب إلى "${status === 'published' ? 'منشور' : 'مسودة'}"`);
-      setSelectedBooks([]);
-      setRefreshTrigger(prev => prev + 1);
-    } catch (error) {
-      console.error('Error changing status:', error);
-      toast.error('حدث خطأ أثناء تغيير حالة الكتب');
-    }
+  const showBookDetails = (book: any) => {
+    setSelectedBook(book);
+    setBookDetailsDialogOpen(true);
   };
+
+  const editBookDetails = (book: any) => {
+    setSelectedBook(book);
+    setBookEditDialogOpen(true);
+  };
+
+  const viewBookReader = (bookId: string) => {
+    window.open(`/book-reader/${bookId}`, '_blank');
+  };
+
+  // تصفية الكتب بناءً على مصطلح البحث
+  const filteredBooks = books.filter(book => 
+    book.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    book.author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    book.category?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <Card>
-      <CardContent className="p-6">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-          <div className="flex gap-2">
-            <Button
-              onClick={() => setIsAddDialogOpen(true)}
-              className="flex items-center gap-2"
-            >
-              <PlusCircle className="h-4 w-4" />
-              إضافة كتاب جديد
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                  disabled={selectedBooks.length === 0}
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                  <span>إجراءات جماعية</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>الإجراءات الجماعية</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => handleBulkStatusChange('published')}>
-                  <Check className="h-4 w-4 mr-2" />
-                  نشر المحدد
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleBulkStatusChange('draft')}>
-                  <AlertCircle className="h-4 w-4 mr-2" />
-                  تحويل إلى مسودة
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem 
-                  onClick={handleBulkDelete}
-                  className="text-red-600"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  حذف المحدد
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button 
-              variant="outline"
-              onClick={() => setRefreshTrigger(prev => prev + 1)}
-              className="flex items-center gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              تحديث
-            </Button>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <div className="relative w-full sm:w-64">
-              <Search className="absolute right-3 top-2.5 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="بحث في الكتب..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pr-10"
-              />
-            </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <Filter className="h-4 w-4" />
-                  <span>تصفية</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>تصفية حسب الحالة</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setStatusFilter(null)}>
-                  الكل
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setStatusFilter('published')}>
-                  منشور
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setStatusFilter('draft')}>
-                  مسودة
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+    <div className="space-y-6">
+      {/* أدوات البحث وإضافة كتاب جديد */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={18} />
+          <Input
+            className="pl-4 pr-10"
+            placeholder="بحث عن كتاب..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
+        <Button onClick={() => navigate('/add-book')} className="w-full sm:w-auto">
+          <Plus className="ml-2" size={18} />
+          إضافة كتاب جديد
+        </Button>
+      </div>
 
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
+      {/* جدول الكتب */}
+      <div className="border rounded-lg overflow-hidden bg-white">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-right">الكتاب</TableHead>
+              <TableHead className="text-right hidden md:table-cell">المؤلف</TableHead>
+              <TableHead className="text-right hidden md:table-cell">الفئة</TableHead>
+              <TableHead className="text-right">السعر</TableHead>
+              <TableHead className="text-right">الحالة</TableHead>
+              <TableHead className="text-right">الإجراءات</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
               <TableRow>
-                <TableHead className="w-12">
-                  <input
-                    type="checkbox"
-                    checked={selectedBooks.length === filteredBooks.length && filteredBooks.length > 0}
-                    onChange={toggleAllBooks}
-                    className="h-4 w-4 rounded border-gray-300"
-                  />
-                </TableHead>
-                <TableHead>الكتاب</TableHead>
-                <TableHead>السعر</TableHead>
-                <TableHead>المبيعات</TableHead>
-                <TableHead>الحالة</TableHead>
-                <TableHead>آخر تحديث</TableHead>
-                <TableHead className="text-left">الإجراءات</TableHead>
+                <TableCell colSpan={6} className="text-center py-8">
+                  <div className="flex justify-center items-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                    <span className="ml-2">جاري التحميل...</span>
+                  </div>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    جاري التحميل...
+            ) : filteredBooks.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8">
+                  {searchTerm ? 'لا توجد كتب تطابق البحث' : 'لا توجد كتب متاحة'}
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredBooks.map((book) => (
+                <TableRow key={book.id}>
+                  <TableCell>
+                    <div className="flex items-center">
+                      <div className="h-12 w-9 bg-gray-100 rounded overflow-hidden mr-3">
+                        {book.cover_url ? (
+                          <img 
+                            src={book.cover_url} 
+                            alt={book.title} 
+                            className="h-full w-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/placeholder.svg';
+                            }}
+                          />
+                        ) : (
+                          <BookOpenText className="h-full w-full p-2 text-gray-400" />
+                        )}
+                      </div>
+                      <span className="font-medium">{book.title}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell">{book.author}</TableCell>
+                  <TableCell className="hidden md:table-cell">{book.category || 'غير مصنف'}</TableCell>
+                  <TableCell>{book.price} {book.currency}</TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant={
+                        book.status === 'published' ? 'success' : 
+                        book.status === 'draft' ? 'outline' : 'secondary'
+                      }
+                    >
+                      {book.status === 'published' ? 'منشور' : 
+                       book.status === 'draft' ? 'مسودة' : 'مراجعة'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex space-x-2 rtl:space-x-reverse">
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => showBookDetails(book)}
+                        title="عرض التفاصيل"
+                      >
+                        <Eye size={18} />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon"
+                        onClick={() => editBookDetails(book)}
+                        title="تعديل"
+                      >
+                        <Pencil size={18} />
+                      </Button>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        onClick={() => confirmDelete(book)}
+                        title="حذف"
+                      >
+                        <Trash2 size={18} />
+                      </Button>
+                      {book.pdf_url && (
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => viewBookReader(book.id)}
+                          title="عرض قارئ الكتاب"
+                        >
+                          <BookOpen size={18} />
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
-              ) : filteredBooks.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
-                    لا توجد كتب متاحة
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredBooks.map(book => (
-                  <TableRow key={book.id}>
-                    <TableCell>
-                      <input
-                        type="checkbox"
-                        checked={selectedBooks.includes(book.id)}
-                        onChange={() => toggleBookSelection(book.id)}
-                        className="h-4 w-4 rounded border-gray-300"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <img 
-                          src={book.cover_url} 
-                          alt={book.title} 
-                          className="h-12 w-10 object-cover rounded"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = "/placeholder.svg";
-                          }}
-                        />
-                        <div>
-                          <p className="font-medium">{book.title}</p>
-                          <p className="text-gray-500 text-sm">{book.author}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{book.price} {book.currency}</TableCell>
-                    <TableCell>{book.purchasesCount}</TableCell>
-                    <TableCell>
-                      <Badge variant={book.status === 'published' ? 'default' : 'secondary'} 
-                        className={book.status === 'published' ? 'bg-green-500 hover:bg-green-600' : ''}>
-                        {book.status === 'published' ? 'منشور' : 'مسودة'}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{book.lastUpdated}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="عرض"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="تعديل"
-                          onClick={() => {
-                            setSelectedBook(book);
-                            setIsEditDialogOpen(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="حذف"
-                          onClick={() => {
-                            setSelectedBook(book);
-                            setIsDeleteDialogOpen(true);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </div>
-        
-        <Pagination className="mt-4">
-          <PaginationContent>
-            <PaginationItem>
-              <PaginationPrevious href="#" />
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationLink href="#" isActive>1</PaginationLink>
-            </PaginationItem>
-            <PaginationItem>
-              <PaginationNext href="#" />
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      </CardContent>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
-      {/* Dialog for adding a new book */}
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>إضافة كتاب جديد</DialogTitle>
-            <DialogDescription>
-              أدخل معلومات الكتاب الجديد. اضغط "حفظ" عند الانتهاء.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="title">عنوان الكتاب</Label>
-                <Input 
-                  id="title" 
-                  name="title" 
-                  value={newBook.title} 
-                  onChange={handleInputChange} 
-                  placeholder="أدخل عنوان الكتاب"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="author">المؤلف</Label>
-                <Input 
-                  id="author" 
-                  name="author" 
-                  value={newBook.author} 
-                  onChange={handleInputChange} 
-                  placeholder="اسم المؤلف"
-                />
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="price">السعر</Label>
-                <Input 
-                  id="price" 
-                  name="price" 
-                  type="number" 
-                  value={newBook.price} 
-                  onChange={handleNumberInputChange} 
-                  placeholder="أدخل السعر"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="currency">العملة</Label>
-                <Select 
-                  value={newBook.currency} 
-                  onValueChange={(value) => handleSelectChange(value, 'currency')}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر العملة" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="EGP">جنيه مصري</SelectItem>
-                    <SelectItem value="USD">دولار أمريكي</SelectItem>
-                    <SelectItem value="SAR">ريال سعودي</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="category">التصنيف</Label>
-                <Input 
-                  id="category" 
-                  name="category" 
-                  value={newBook.category || ''} 
-                  onChange={handleInputChange} 
-                  placeholder="أدخل التصنيف"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="pages">عدد الصفحات</Label>
-                <Input 
-                  id="pages" 
-                  name="pages" 
-                  type="number"
-                  value={newBook.pages || ''} 
-                  onChange={handleNumberInputChange} 
-                  placeholder="أدخل عدد الصفحات"
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="status">الحالة</Label>
-              <Select 
-                value={newBook.status} 
-                onValueChange={(value) => handleSelectChange(value as BookStatus, 'status')}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="اختر الحالة" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="published">منشور</SelectItem>
-                  <SelectItem value="draft">مسودة</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="cover_url">رابط صورة الغلاف</Label>
-              <Input 
-                id="cover_url" 
-                name="cover_url" 
-                value={newBook.cover_url || ''} 
-                onChange={handleInputChange} 
-                placeholder="أدخل رابط صورة الغلاف"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="pdf_url">رابط ملف PDF</Label>
-              <Input 
-                id="pdf_url" 
-                name="pdf_url" 
-                value={newBook.pdf_url || ''} 
-                onChange={handleInputChange} 
-                placeholder="أدخل رابط ملف PDF للكتاب"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="description">وصف الكتاب</Label>
-              <Textarea 
-                id="description" 
-                name="description" 
-                value={newBook.description || ''} 
-                onChange={handleInputChange} 
-                placeholder="أدخل وصفاً تفصيلياً للكتاب"
-                rows={5}
-              />
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">إلغاء</Button>
-            </DialogClose>
-            <Button onClick={handleAddBook}>حفظ</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog for editing a book */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>تعديل الكتاب</DialogTitle>
-            <DialogDescription>
-              تعديل معلومات الكتاب. اضغط "حفظ" عند الانتهاء.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedBook && (
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-title">عنوان الكتاب</Label>
-                  <Input 
-                    id="edit-title" 
-                    name="title" 
-                    value={selectedBook.title} 
-                    onChange={handleInputChange} 
-                    placeholder="أدخل عنوان الكتاب"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-author">المؤلف</Label>
-                  <Input 
-                    id="edit-author" 
-                    name="author" 
-                    value={selectedBook.author} 
-                    onChange={handleInputChange} 
-                    placeholder="اسم المؤلف"
-                  />
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-price">السعر</Label>
-                  <Input 
-                    id="edit-price" 
-                    name="price" 
-                    type="number" 
-                    value={selectedBook.price} 
-                    onChange={handleNumberInputChange} 
-                    placeholder="أدخل السعر"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-currency">العملة</Label>
-                  <Select 
-                    value={selectedBook.currency} 
-                    onValueChange={(value) => handleSelectChange(value, 'currency')}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="اختر العملة" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="EGP">جنيه مصري</SelectItem>
-                      <SelectItem value="USD">دولار أمريكي</SelectItem>
-                      <SelectItem value="SAR">ريال سعودي</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="edit-category">التصنيف</Label>
-                  <Input 
-                    id="edit-category" 
-                    name="category" 
-                    value={selectedBook.category || ''} 
-                    onChange={handleInputChange} 
-                    placeholder="أدخل التصنيف"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="edit-pages">عدد الصفحات</Label>
-                  <Input 
-                    id="edit-pages" 
-                    name="pages" 
-                    type="number"
-                    value={selectedBook.pages || ''} 
-                    onChange={handleNumberInputChange} 
-                    placeholder="أدخل عدد الصفحات"
-                  />
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="edit-status">الحالة</Label>
-                <Select 
-                  value={selectedBook.status} 
-                  onValueChange={(value) => handleSelectChange(value as BookStatus, 'status')}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="اختر الحالة" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="published">منشور</SelectItem>
-                    <SelectItem value="draft">مسودة</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="edit-cover_url">رابط صورة الغلاف</Label>
-                <Input 
-                  id="edit-cover_url" 
-                  name="cover_url" 
-                  value={selectedBook.cover_url || ''} 
-                  onChange={handleInputChange} 
-                  placeholder="أدخل رابط صورة الغلاف"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="edit-pdf_url">رابط ملف PDF</Label>
-                <Input 
-                  id="edit-pdf_url" 
-                  name="pdf_url" 
-                  value={selectedBook.pdf_url || ''} 
-                  onChange={handleInputChange} 
-                  placeholder="أدخل رابط ملف PDF للكتاب"
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="edit-description">وصف الكتاب</Label>
-                <Textarea 
-                  id="edit-description" 
-                  name="description" 
-                  value={selectedBook.description || ''} 
-                  onChange={handleInputChange} 
-                  placeholder="أدخل وصفاً تفصيلياً للكتاب"
-                  rows={5}
-                />
-              </div>
-            </div>
-          )}
-          
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">إلغاء</Button>
-            </DialogClose>
-            <Button onClick={handleUpdateBook}>حفظ</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Dialog for deleting a book */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent className="sm:max-w-[400px]">
-          <DialogHeader>
-            <DialogTitle>حذف الكتاب</DialogTitle>
-            <DialogDescription>
-              هل أنت متأكد من حذف هذا الكتاب؟ هذا الإجراء لا يمكن التراجع عنه.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">إلغاء</Button>
-            </DialogClose>
-            <Button variant="destructive" onClick={handleDeleteBook}>
+      {/* مربع حوار تأكيد الحذف */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>هل أنت متأكد من حذف هذا الكتاب؟</AlertDialogTitle>
+            <AlertDialogDescription>
+              سيتم حذف الكتاب بشكل نهائي من قاعدة البيانات وجميع الملفات المرتبطة به.
+              هذا الإجراء لا يمكن التراجع عنه.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDelete}
+              className="bg-destructive hover:bg-destructive/90"
+            >
               حذف
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </Card>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* مربع حوار عرض تفاصيل الكتاب */}
+      {selectedBook && (
+        <BookDetailsDialog 
+          book={selectedBook}
+          open={bookDetailsDialogOpen}
+          onOpenChange={setBookDetailsDialogOpen}
+        />
+      )}
+
+      {/* مربع حوار تعديل الكتاب */}
+      {selectedBook && (
+        <BookEditDialog 
+          book={selectedBook}
+          open={bookEditDialogOpen}
+          onOpenChange={setBookEditDialogOpen}
+          onBookUpdated={fetchBooks}
+        />
+      )}
+    </div>
   );
 };
 

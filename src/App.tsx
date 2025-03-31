@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from "sonner";
@@ -37,17 +36,14 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   
   useEffect(() => {
-    // Check authentication status on load and session changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setIsAuthenticated(!!session);
     });
 
-    // Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
       setIsAuthenticated(!!session);
     });
 
-    // Clean up subscription
     return () => subscription.unsubscribe();
   }, []);
 
@@ -55,10 +51,8 @@ function App() {
     setTheme(theme === 'light' ? 'dark' : 'light');
   };
 
-  // Route that requires authentication
   const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
     if (isAuthenticated === null) {
-      // Still checking auth status
       return <div className="min-h-screen flex items-center justify-center">جاري التحميل...</div>;
     }
     
@@ -74,7 +68,6 @@ function App() {
       <Toaster richColors position="top-center" />
       <BrowserRouter>
         <Routes>
-          {/* Public Routes */}
           <Route path="/" element={<Index />} />
           <Route path="/courses" element={<Courses />} />
           <Route path="/courses/:id" element={<CourseDetail />} />
@@ -89,7 +82,6 @@ function App() {
           <Route path="/signup" element={<SignUp />} />
           <Route path="/admin-signin" element={<AdminSignIn />} />
           
-          {/* Protected User Routes */}
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <Dashboard />
@@ -101,14 +93,12 @@ function App() {
             </ProtectedRoute>
           } />
           
-          {/* Admin Routes */}
           <Route path="/admin-dashboard" element={
             <AdminRoute>
               <AdminDashboard />
             </AdminRoute>
           } />
           
-          {/* Content Management Routes - now only for website content */}
           <Route path="/content-management" element={
             <AdminRoute>
               <ContentManagement />
@@ -120,7 +110,6 @@ function App() {
             </AdminRoute>
           } />
           
-          {/* Courses management routes */}
           <Route path="/courses-management" element={
             <AdminRoute>
               <CoursesManagement />
@@ -147,49 +136,47 @@ function App() {
             </AdminRoute>
           } />
           
-          {/* Books management routes */}
           <Route path="/books-management" element={
             <AdminRoute>
               <BooksManagement />
             </AdminRoute>
           } />
+          <Route path="/add-book" element={
+            <AdminRoute>
+              <BookForm />
+            </AdminRoute>
+          } />
           
-          {/* Media management routes */}
           <Route path="/media-management" element={
             <AdminRoute>
               <MediaManagement />
             </AdminRoute>
           } />
           
-          {/* Pages management routes */}
           <Route path="/pages-management" element={
             <AdminRoute>
               <PagesManagement />
             </AdminRoute>
           } />
           
-          {/* Articles management routes */}
           <Route path="/articles-management" element={
             <AdminRoute>
               <ArticlesManagement />
             </AdminRoute>
           } />
           
-          {/* Users management routes */}
           <Route path="/users-management" element={
             <AdminRoute>
               <UsersManagement />
             </AdminRoute>
           } />
           
-          {/* Settings routes */}
           <Route path="/settings" element={
             <AdminRoute>
               <Settings />
             </AdminRoute>
           } />
           
-          {/* 404 Page */}
           <Route path="*" element={<NotFound />} />
         </Routes>
         <WhatsAppButton />
