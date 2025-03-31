@@ -14,203 +14,174 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 
-// Define NavItem and other helper components
-interface NavItemProps {
-  icon: React.ElementType;
-  label: string;
-  href: string;
-  active: boolean;
+// NavItem component
+const NavItem = ({ 
+  icon: Icon, 
+  label, 
+  href, 
+  active, 
+  onClick 
+}: { 
+  icon: React.ComponentType<any>; 
+  label: string; 
+  href: string; 
+  active: boolean; 
   onClick: () => void;
-}
-
-const NavItem = ({ icon: Icon, label, href, active, onClick }: NavItemProps) => {
+}) => {
   return (
     <li>
       <Link
         to={href}
-        className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-          active
-            ? "bg-primary text-white hover:bg-primary-dark"
-            : "text-gray-700 hover:bg-gray-100"
+        className={`flex items-center py-2 px-3 rounded-lg transition-colors ${
+          active 
+            ? 'bg-primary text-white' 
+            : 'text-gray-600 hover:bg-gray-100'
         }`}
         onClick={onClick}
       >
-        <Icon size={18} />
+        <Icon size={18} className="ml-2" />
         <span>{label}</span>
       </Link>
     </li>
   );
 };
 
-interface CourseCardProps {
-  course: {
-    id: string;
-    title: string;
-    image: string;
-    progress: number;
-    totalLessons: number;
-    completedLessons: number;
-    lastAccessed: string;
-    certificate: boolean;
-  };
+// CourseCard component
+const CourseCard = ({ 
+  course, 
+  onContinue 
+}: { 
+  course: any; 
   onContinue: () => void;
-}
-
-const CourseCard = ({ course, onContinue }: CourseCardProps) => {
+}) => {
   return (
-    <Card className="overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all">
-      <div className="relative">
+    <Card className="overflow-hidden border-gray-200 shadow-sm hover:shadow-md transition-all">
+      <div className="relative h-40 overflow-hidden">
         <img 
           src={course.image} 
           alt={course.title} 
-          className="w-full h-48 object-cover"
+          className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
-          <div className="p-4 text-white">
-            <h3 className="font-bold text-lg">{course.title}</h3>
-          </div>
+        <div className="absolute bottom-0 right-0 p-2 bg-primary text-white rounded-tl-lg text-xs">
+          {course.instructor}
         </div>
-        <Badge 
-          className={`absolute top-3 left-3 ${
-            course.progress === 100 
-              ? "bg-green-500" 
-              : course.progress > 50 
-                ? "bg-yellow-500" 
-                : "bg-blue-500"
-          }`}
-        >
-          {course.progress === 100 
-            ? "مكتمل" 
-            : course.progress > 0 
-              ? "قيد التقدم" 
-              : "جديد"}
-        </Badge>
       </div>
       
-      <CardContent className="p-4">
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-sm text-gray-500">نسبة الإنجاز</span>
-          <span className="text-sm font-medium">{course.progress}%</span>
-        </div>
-        <Progress value={course.progress} className="h-2 mb-4" />
-        
-        <div className="grid grid-cols-2 gap-2 mb-2">
-          <div className="text-sm text-gray-500">الدروس</div>
-          <div className="text-sm text-right font-medium">
-            {course.completedLessons}/{course.totalLessons}
-          </div>
-          <div className="text-sm text-gray-500">آخر نشاط</div>
-          <div className="text-sm text-right font-medium">
-            {course.lastAccessed}
-          </div>
-        </div>
-      </CardContent>
-      
-      <CardFooter className="p-4 pt-0 flex justify-between gap-3">
-        <Button 
-          className="flex-1 bg-primary hover:bg-primary-light"
-          onClick={onContinue}
-        >
-          {course.progress > 0 ? "متابعة التعلم" : "ابدأ التعلم"}
-        </Button>
-        {course.certificate && (
-          <Button 
-            variant="outline" 
-            size="icon"
-            title="شهادة متاحة"
-            className="text-yellow-600 border-yellow-200"
-          >
-            <Award size={18} />
-          </Button>
-        )}
-      </CardFooter>
-    </Card>
-  );
-};
-
-interface BookCardProps {
-  book: {
-    id: string;
-    title: string;
-    cover: string;
-    author: string;
-    purchaseDate: string;
-    pages: number;
-    readPages: number;
-  };
-  onRead: () => void;
-}
-
-const BookCard = ({ book, onRead }: BookCardProps) => {
-  const progress = Math.round((book.readPages / book.pages) * 100);
-  
-  return (
-    <Card className="overflow-hidden border border-gray-100 shadow-sm hover:shadow-md transition-all">
-      <div className="relative h-64 bg-gray-50">
-        <img 
-          src={book.cover} 
-          alt={book.title} 
-          className="w-full h-full object-contain"
-        />
-      </div>
+      <CardHeader className="p-4 pb-0">
+        <h3 className="text-lg font-bold text-primary line-clamp-1">{course.title}</h3>
+      </CardHeader>
       
       <CardContent className="p-4">
-        <h3 className="font-bold text-lg mb-1 text-primary">{book.title}</h3>
-        <p className="text-sm text-gray-600 mb-3">
-          {book.author}
-        </p>
-        
-        <div className="flex justify-between items-center mb-2">
-          <span className="text-sm text-gray-500">نسبة القراءة</span>
-          <span className="text-sm font-medium">{progress}%</span>
-        </div>
-        <Progress value={progress} className="h-2 mb-4" />
-        
-        <div className="grid grid-cols-2 gap-2">
-          <div className="text-sm text-gray-500">تاريخ الشراء</div>
-          <div className="text-sm text-right font-medium">
-            {book.purchaseDate}
+        <div className="mb-3">
+          <div className="flex justify-between text-sm mb-1">
+            <span>تقدمك</span>
+            <span className="font-medium">{course.progress}%</span>
           </div>
-          <div className="text-sm text-gray-500">الصفحات</div>
-          <div className="text-sm text-right font-medium">
-            {book.readPages}/{book.pages}
+          <Progress value={course.progress} className="h-2" />
+        </div>
+        
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div className="flex items-center text-gray-600">
+            <Clock className="w-3.5 h-3.5 ml-1" />
+            <span>{course.lastAccessed}</span>
+          </div>
+          <div className="flex items-center text-gray-600 justify-end">
+            <Check className="w-3.5 h-3.5 ml-1" />
+            <span>{course.completedLessons}/{course.totalLessons} درس</span>
           </div>
         </div>
       </CardContent>
       
       <CardFooter className="p-4 pt-0">
         <Button 
-          className="w-full bg-primary hover:bg-primary-light"
-          onClick={onRead}
+          className="w-full flex items-center justify-center gap-2"
+          onClick={onContinue}
         >
-          {progress > 0 ? "متابعة القراءة" : "ابدأ القراءة"}
+          <Play className="w-4 h-4 ml-1" />
+          متابعة التعلم
         </Button>
       </CardFooter>
     </Card>
   );
 };
 
-interface EmptyStateProps {
-  title: string;
-  description: string;
-  buttonText: string;
-  buttonHref: string;
-}
-
-const EmptyState = ({ title, description, buttonText, buttonHref }: EmptyStateProps) => {
+// BookCard component
+const BookCard = ({ 
+  book, 
+  onRead 
+}: { 
+  book: any; 
+  onRead: () => void;
+}) => {
+  const progress = Math.round((book.readPages / book.pages) * 100);
+  
   return (
-    <div className="text-center py-12 px-4 border border-dashed border-gray-200 rounded-lg">
-      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-4">
-        <Info className="h-6 w-6 text-gray-400" />
+    <Card className="overflow-hidden border-gray-200 shadow-sm hover:shadow-md transition-all">
+      <div className="p-4 flex flex-col sm:flex-row gap-4">
+        <div className="w-full sm:w-1/3 aspect-[2/3] rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+          <img 
+            src={book.cover} 
+            alt={book.title} 
+            className="w-full h-full object-cover"
+          />
+        </div>
+        
+        <div className="flex-grow">
+          <h3 className="text-lg font-bold text-primary line-clamp-1 mb-1">{book.title}</h3>
+          <p className="text-sm text-gray-600 mb-2">{book.author}</p>
+          
+          <div className="mb-3">
+            <div className="flex justify-between text-sm mb-1">
+              <span>تقدمك في القراءة</span>
+              <span className="font-medium">{progress}%</span>
+            </div>
+            <Progress value={progress} className="h-2" />
+          </div>
+          
+          <div className="text-sm text-gray-600 mb-3">
+            <span>قرأت {book.readPages} من {book.pages} صفحة</span>
+          </div>
+          
+          <div className="text-sm text-gray-600 mb-4">
+            <span>تاريخ الشراء: {book.purchaseDate}</span>
+          </div>
+          
+          <Button 
+            className="w-full flex items-center justify-center gap-2"
+            onClick={onRead}
+          >
+            <Book className="w-4 h-4 ml-1" />
+            متابعة القراءة
+          </Button>
+        </div>
       </div>
-      <h3 className="text-lg font-medium text-primary mb-2">{title}</h3>
-      <p className="text-gray-500 mb-6 max-w-md mx-auto">{description}</p>
-      <Button 
-        asChild 
-        className="bg-primary hover:bg-primary-light"
-      >
-        <Link to={buttonHref}>{buttonText}</Link>
-      </Button>
+    </Card>
+  );
+};
+
+// EmptyState component
+const EmptyState = ({ 
+  title, 
+  description, 
+  buttonText, 
+  buttonHref 
+}: { 
+  title: string; 
+  description: string; 
+  buttonText: string; 
+  buttonHref: string;
+}) => {
+  return (
+    <div className="text-center py-12 bg-gray-50 rounded-xl">
+      <div className="max-w-md mx-auto">
+        <h3 className="text-xl font-bold mb-2">{title}</h3>
+        <p className="text-gray-600 mb-6">{description}</p>
+        <Link to={buttonHref}>
+          <Button>
+            {buttonText}
+          </Button>
+        </Link>
+      </div>
     </div>
   );
 };
