@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Dialog, 
@@ -85,10 +84,14 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
     pdf_url: book.pdf_url || '',
     publish_date: book.publish_date || '',
     availability: book.availability || 'متوفر',
-    what_you_will_learn: book.what_you_will_learn || [],
-    target_audience: book.target_audience || [],
-    benefits: book.benefits || [],
-    table_of_contents: book.table_of_contents || [],
+    what_you_will_learn: book.what_you_will_learn ? 
+      (Array.isArray(book.what_you_will_learn) ? book.what_you_will_learn : []) : [],
+    target_audience: book.target_audience ? 
+      (Array.isArray(book.target_audience) ? book.target_audience : []) : [],
+    benefits: book.benefits ? 
+      (Array.isArray(book.benefits) ? book.benefits : []) : [],
+    table_of_contents: book.table_of_contents ? 
+      (Array.isArray(book.table_of_contents) ? book.table_of_contents : []) : [],
   });
   
   const [coverFile, setCoverFile] = useState<File | null>(null);
@@ -109,12 +112,10 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
   const coverInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
 
-  // New inputs for list items
   const [newLearningItem, setNewLearningItem] = useState('');
   const [newTargetAudienceItem, setNewTargetAudienceItem] = useState('');
   const [newBenefitItem, setNewBenefitItem] = useState('');
   
-  // New chapter/topic inputs for table of contents
   const [newChapter, setNewChapter] = useState('');
   const [newTopic, setNewTopic] = useState('');
   const [selectedChapterIndex, setSelectedChapterIndex] = useState<number | null>(null);
@@ -136,48 +137,55 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
       }
     }
     
-    // Parse JSON data if it's stored as a string
     if (book.what_you_will_learn && typeof book.what_you_will_learn === 'string') {
       try {
+        const parsed = JSON.parse(book.what_you_will_learn);
         setFormData(prev => ({
           ...prev,
-          what_you_will_learn: JSON.parse(book.what_you_will_learn)
+          what_you_will_learn: Array.isArray(parsed) ? parsed : []
         }));
       } catch (e) {
         console.error('Error parsing what_you_will_learn:', e);
+        setFormData(prev => ({ ...prev, what_you_will_learn: [] }));
       }
     }
     
     if (book.target_audience && typeof book.target_audience === 'string') {
       try {
+        const parsed = JSON.parse(book.target_audience);
         setFormData(prev => ({
           ...prev,
-          target_audience: JSON.parse(book.target_audience)
+          target_audience: Array.isArray(parsed) ? parsed : []
         }));
       } catch (e) {
         console.error('Error parsing target_audience:', e);
+        setFormData(prev => ({ ...prev, target_audience: [] }));
       }
     }
     
     if (book.benefits && typeof book.benefits === 'string') {
       try {
+        const parsed = JSON.parse(book.benefits);
         setFormData(prev => ({
           ...prev,
-          benefits: JSON.parse(book.benefits)
+          benefits: Array.isArray(parsed) ? parsed : []
         }));
       } catch (e) {
         console.error('Error parsing benefits:', e);
+        setFormData(prev => ({ ...prev, benefits: [] }));
       }
     }
     
     if (book.table_of_contents && typeof book.table_of_contents === 'string') {
       try {
+        const parsed = JSON.parse(book.table_of_contents);
         setFormData(prev => ({
           ...prev,
-          table_of_contents: JSON.parse(book.table_of_contents)
+          table_of_contents: Array.isArray(parsed) ? parsed : []
         }));
       } catch (e) {
         console.error('Error parsing table_of_contents:', e);
+        setFormData(prev => ({ ...prev, table_of_contents: [] }));
       }
     }
   }, [book]);
@@ -256,7 +264,6 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
     }
   };
 
-  // New handlers for learning items
   const addLearningItem = () => {
     if (newLearningItem.trim() === '') return;
     setFormData(prev => ({
@@ -273,7 +280,6 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
     }));
   };
 
-  // New handlers for target audience
   const addTargetAudienceItem = () => {
     if (newTargetAudienceItem.trim() === '') return;
     setFormData(prev => ({
@@ -290,7 +296,6 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
     }));
   };
 
-  // New handlers for benefits
   const addBenefitItem = () => {
     if (newBenefitItem.trim() === '') return;
     setFormData(prev => ({
@@ -307,7 +312,6 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
     }));
   };
 
-  // New handlers for table of contents
   const addChapter = () => {
     if (newChapter.trim() === '') return;
     setFormData(prev => ({
@@ -472,22 +476,21 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
         pdfUrl = null;
       }
       
-      // Prepare extra fields as JSON if they're arrays
       const what_you_will_learn = Array.isArray(formData.what_you_will_learn) 
         ? JSON.stringify(formData.what_you_will_learn) 
-        : formData.what_you_will_learn;
+        : JSON.stringify([]);
         
       const target_audience = Array.isArray(formData.target_audience) 
         ? JSON.stringify(formData.target_audience) 
-        : formData.target_audience;
+        : JSON.stringify([]);
         
       const benefits = Array.isArray(formData.benefits) 
         ? JSON.stringify(formData.benefits) 
-        : formData.benefits;
+        : JSON.stringify([]);
         
       const table_of_contents = Array.isArray(formData.table_of_contents) 
         ? JSON.stringify(formData.table_of_contents) 
-        : formData.table_of_contents;
+        : JSON.stringify([]);
       
       const { error: updateError } = await supabase
         .from('books')
@@ -915,7 +918,6 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
             </p>
           </TabsContent>
           
-          {/* Tab: ما ستتعلمه (What You Will Learn) */}
           <TabsContent value="learning" className="space-y-4">
             <div className="flex justify-between items-center">
               <Label>ما ستتعلمه</Label>
@@ -926,7 +928,7 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
             
             <div className="border rounded-lg p-4 bg-gray-50">
               <div className="space-y-3">
-                {formData.what_you_will_learn && formData.what_you_will_learn.length > 0 ? (
+                {formData.what_you_will_learn && Array.isArray(formData.what_you_will_learn) && formData.what_you_will_learn.length > 0 ? (
                   <ul className="space-y-2">
                     {formData.what_you_will_learn.map((item, index) => (
                       <li key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border">
@@ -970,7 +972,6 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
             </div>
           </TabsContent>
           
-          {/* Tab: الفئة المستهدفة (Target Audience) */}
           <TabsContent value="audience" className="space-y-4">
             <div className="flex justify-between items-center">
               <Label>الفئة المستهدفة</Label>
@@ -981,7 +982,7 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
             
             <div className="border rounded-lg p-4 bg-gray-50">
               <div className="space-y-3">
-                {formData.target_audience && formData.target_audience.length > 0 ? (
+                {formData.target_audience && Array.isArray(formData.target_audience) && formData.target_audience.length > 0 ? (
                   <ul className="space-y-2">
                     {formData.target_audience.map((item, index) => (
                       <li key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border">
@@ -1025,7 +1026,6 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
             </div>
           </TabsContent>
           
-          {/* Tab: محتويات الكتاب (Table of Contents) */}
           <TabsContent value="toc" className="space-y-4">
             <div className="flex justify-between items-center">
               <Label>محتويات الكتاب</Label>
@@ -1056,7 +1056,7 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
                   </Button>
                 </div>
                 
-                {formData.table_of_contents && formData.table_of_contents.length > 0 ? (
+                {formData.table_of_contents && Array.isArray(formData.table_of_contents) && formData.table_of_contents.length > 0 ? (
                   <div className="mt-6 space-y-4">
                     {formData.table_of_contents.map((chapter, chapterIndex) => (
                       <div key={chapterIndex} className="border rounded-lg overflow-hidden">
@@ -1112,7 +1112,7 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
                           </div>
                         )}
                         
-                        {chapter.topics && chapter.topics.length > 0 && (
+                        {chapter.topics && Array.isArray(chapter.topics) && chapter.topics.length > 0 && (
                           <ul className="p-3 pt-0 list-disc list-inside">
                             {chapter.topics.map((topic, topicIndex) => (
                               <li key={topicIndex} className="flex items-center justify-between py-1">

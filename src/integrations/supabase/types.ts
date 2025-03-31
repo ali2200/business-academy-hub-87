@@ -177,6 +177,8 @@ export type Database = {
       books: {
         Row: {
           author: string
+          availability: string | null
+          benefits: Json | null
           category: string | null
           cover_url: string | null
           created_at: string
@@ -187,13 +189,19 @@ export type Database = {
           pdf_url: string | null
           preview_available: boolean | null
           price: number
+          publish_date: string | null
           purchases_count: number | null
           status: string | null
+          table_of_contents: Json | null
+          target_audience: Json | null
           title: string
           updated_at: string
+          what_you_will_learn: Json | null
         }
         Insert: {
           author: string
+          availability?: string | null
+          benefits?: Json | null
           category?: string | null
           cover_url?: string | null
           created_at?: string
@@ -204,13 +212,19 @@ export type Database = {
           pdf_url?: string | null
           preview_available?: boolean | null
           price: number
+          publish_date?: string | null
           purchases_count?: number | null
           status?: string | null
+          table_of_contents?: Json | null
+          target_audience?: Json | null
           title: string
           updated_at?: string
+          what_you_will_learn?: Json | null
         }
         Update: {
           author?: string
+          availability?: string | null
+          benefits?: Json | null
           category?: string | null
           cover_url?: string | null
           created_at?: string
@@ -221,10 +235,14 @@ export type Database = {
           pdf_url?: string | null
           preview_available?: boolean | null
           price?: number
+          publish_date?: string | null
           purchases_count?: number | null
           status?: string | null
+          table_of_contents?: Json | null
+          target_audience?: Json | null
           title?: string
           updated_at?: string
+          what_you_will_learn?: Json | null
         }
         Relationships: []
       }
