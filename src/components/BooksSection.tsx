@@ -157,6 +157,10 @@ const BookCard = ({ book, index }: BookCardProps) => {
   const handleViewDetails = () => {
     setShowDetails(true);
   };
+  
+  const handleNavigateToBookPage = () => {
+    navigate(`/book/${book.id}`);
+  };
 
   return (
     <>
@@ -176,7 +180,7 @@ const BookCard = ({ book, index }: BookCardProps) => {
               <Button 
                 size="sm" 
                 className="bg-white text-primary hover:bg-primary hover:text-white transition-all mb-2 md:mb-4 text-xs md:text-sm"
-                onClick={handleViewDetails}
+                onClick={handleNavigateToBookPage}
               >
                 عرض التفاصيل
               </Button>
@@ -226,7 +230,7 @@ const BookCard = ({ book, index }: BookCardProps) => {
             variant="outline" 
             size="sm" 
             className="border-primary text-primary hover:bg-primary hover:text-white transition-all text-xs md:text-sm"
-            onClick={handleViewDetails}
+            onClick={handleNavigateToBookPage}
           >
             اشتري الآن
           </Button>
