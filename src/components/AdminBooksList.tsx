@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -79,7 +78,6 @@ const AdminBooksList = () => {
     if (!bookToDelete) return;
     
     try {
-      // حذف الكتاب من قاعدة البيانات
       const { error } = await supabase
         .from('books')
         .delete()
@@ -91,7 +89,6 @@ const AdminBooksList = () => {
         return;
       }
       
-      // حذف الملفات المرتبطة بالكتاب من التخزين
       if (bookToDelete.cover_url) {
         const coverPath = bookToDelete.cover_url.split('/').pop();
         const { error: coverDeleteError } = await supabase.storage
@@ -114,7 +111,6 @@ const AdminBooksList = () => {
         }
       }
       
-      // تحديث قائمة الكتب بعد الحذف
       setBooks(books.filter(book => book.id !== bookToDelete.id));
       toast.success('تم حذف الكتاب بنجاح');
     } catch (err) {
@@ -145,7 +141,6 @@ const AdminBooksList = () => {
     window.open(`/book-reader/${bookId}`, '_blank');
   };
 
-  // تصفية الكتب بناءً على مصطلح البحث
   const filteredBooks = books.filter(book => 
     book.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     book.author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -154,7 +149,6 @@ const AdminBooksList = () => {
 
   return (
     <div className="space-y-6">
-      {/* أدوات البحث وإضافة كتاب جديد */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div className="relative w-full sm:w-64">
           <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500" size={18} />
@@ -171,7 +165,6 @@ const AdminBooksList = () => {
         </Button>
       </div>
 
-      {/* جدول الكتب */}
       <div className="border rounded-lg overflow-hidden bg-white">
         <Table>
           <TableHeader>
@@ -228,7 +221,7 @@ const AdminBooksList = () => {
                   <TableCell>
                     <Badge 
                       variant={
-                        book.status === 'published' ? 'success' : 
+                        book.status === 'published' ? 'default' : 
                         book.status === 'draft' ? 'outline' : 'secondary'
                       }
                     >
@@ -281,7 +274,6 @@ const AdminBooksList = () => {
         </Table>
       </div>
 
-      {/* مربع حوار تأكيد الحذف */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -303,7 +295,6 @@ const AdminBooksList = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* مربع حوار عرض تفاصيل الكتاب */}
       {selectedBook && (
         <BookDetailsDialog 
           book={selectedBook}
@@ -312,7 +303,6 @@ const AdminBooksList = () => {
         />
       )}
 
-      {/* مربع حوار تعديل الكتاب */}
       {selectedBook && (
         <BookEditDialog 
           book={selectedBook}

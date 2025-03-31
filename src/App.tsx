@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from "sonner";
@@ -29,6 +30,7 @@ import MediaManagement from "@/pages/MediaManagement";
 import PagesManagement from "@/pages/PagesManagement";
 import ArticlesManagement from "@/pages/ArticlesManagement";
 import Settings from "@/pages/Settings";
+import BookForm from "@/pages/BookForm";
 import { supabase } from "@/integrations/supabase/client";
 
 function App() {

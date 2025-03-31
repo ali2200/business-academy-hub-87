@@ -76,7 +76,7 @@ const BookDetailsDialog: React.FC<BookDetailsDialogProps> = ({
               <Badge 
                 className="w-full justify-center py-1"
                 variant={
-                  book.status === 'published' ? 'success' : 
+                  book.status === 'published' ? 'default' : 
                   book.status === 'draft' ? 'outline' : 'secondary'
                 }
               >
