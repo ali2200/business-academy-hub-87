@@ -362,7 +362,6 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
       };
     });
   };
-  
 
   const validateForm = () => {
     if (!formData.title || !formData.author || !formData.price) {
@@ -915,7 +914,7 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
             </p>
           </TabsContent>
           
-          {/* New Tab: ما ستتعلمه (What You Will Learn) */}
+          {/* Tab: ما ستتعلمه (What You Will Learn) */}
           <TabsContent value="learning" className="space-y-4">
             <div className="flex justify-between items-center">
               <Label>ما ستتعلمه</Label>
@@ -927,4 +926,4 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
             <div className="border rounded-lg p-4 bg-gray-50">
               <div className="space-y-3">
                 {formData.what_you_will_learn && formData.what_you_will_learn.length > 0 ? (
-                  <ul className="space-y
+                  <ul className="space-y-2">
