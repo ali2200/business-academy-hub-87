@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { 
@@ -14,7 +14,9 @@ import {
   AlignCenter, 
   AlignRight, 
   Heading1, 
-  Heading2 
+  Heading2,
+  Eye,
+  Code
 } from 'lucide-react';
 
 interface RichTextEditorProps {
@@ -33,8 +35,10 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
   rows = 12
 }) => {
   const [previewMode, setPreviewMode] = useState(false);
+  const [editMode, setEditMode] = useState<'visual' | 'html'>('visual');
   const textareaRef = React.useRef<HTMLTextAreaElement>(null);
 
+  // This will handle auto-focusing after inserting a tag
   const insertTag = (startTag: string, endTag: string = "") => {
     if (!textareaRef.current) return;
     
@@ -73,6 +77,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
     { icon: <Heading2 size={18} />, action: () => insertTag("<h2>", "</h2>"), title: "عنوان 2" },
   ];
 
+  // Toggle between visual and HTML mode
+  const toggleEditMode = () => {
+    setEditMode(editMode === 'visual' ? 'html' : 'visual');
+  };
+
   return (
     <div className={`rich-text-editor ${className}`}>
       <div className="flex flex-wrap gap-1 mb-2 p-1 border rounded bg-gray-50">
@@ -88,6 +97,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
               action.action();
             }}
             className="h-8 w-8 p-0"
+            disabled={previewMode || editMode === 'html'}
           >
             {action.icon}
           </Button>
@@ -95,11 +105,22 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         <div className="flex-grow"></div>
         <Button
           type="button"
+          variant="outline"
+          size="sm"
+          onClick={toggleEditMode}
+          className="text-xs mr-1"
+          disabled={previewMode}
+        >
+          {editMode === 'visual' ? 'عرض HTML' : 'محرر مرئي'}
+        </Button>
+        <Button
+          type="button"
           variant={previewMode ? "default" : "outline"}
           size="sm"
           onClick={() => setPreviewMode(!previewMode)}
-          className="text-xs"
+          className="text-xs flex items-center gap-1"
         >
+          <Eye className="h-3.5 w-3.5" />
           {previewMode ? "تحرير" : "معاينة"}
         </Button>
       </div>
@@ -116,7 +137,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="font-mono text-sm"
+          className={`font-${editMode === 'html' ? 'mono' : 'normal'} text-sm`}
           dir="auto"
           rows={rows}
         />

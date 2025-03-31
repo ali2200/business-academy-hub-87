@@ -10,7 +10,8 @@ import {
   DialogClose
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { LinkIcon, Printer } from 'lucide-react';
+import { LinkIcon, Printer, Download, Share2 } from 'lucide-react';
+import { toast } from "sonner";
 
 interface ArticleViewerProps {
   isOpen: boolean;
@@ -82,8 +83,75 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
   const copyUrl = () => {
     const url = `${window.location.origin}/articles/${article.slug}`;
     navigator.clipboard.writeText(url)
-      .then(() => alert('تم نسخ الرابط'))
+      .then(() => toast.success('تم نسخ الرابط'))
       .catch(err => console.error('فشل نسخ الرابط:', err));
+  };
+
+  const downloadArticle = () => {
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html dir="rtl">
+      <head>
+        <title>${article.title}</title>
+        <meta charset="UTF-8">
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+          }
+          h1 {
+            text-align: center;
+            margin-bottom: 20px;
+          }
+          img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 15px auto;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>${article.title}</h1>
+        <div>${article.content}</div>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${article.slug}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast.success('تم تنزيل المقال بنجاح');
+  };
+
+  const shareArticle = async () => {
+    const url = `${window.location.origin}/articles/${article.slug}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: article.title,
+          text: `اقرأ مقال: ${article.title}`,
+          url: url
+        });
+        toast.success('تمت مشاركة المقال');
+      } catch (error) {
+        console.error('Error sharing:', error);
+        copyUrl(); // Fallback to copying URL
+      }
+    } else {
+      copyUrl(); // Fallback for browsers that don't support Web Share API
+    }
   };
 
   return (
@@ -97,7 +165,10 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
         </DialogHeader>
         
         <div className="article-content mt-4 border rounded-md p-4 bg-white">
-          <div dangerouslySetInnerHTML={{ __html: article.content }} />
+          <div 
+            dangerouslySetInnerHTML={{ __html: article.content }} 
+            className="prose prose-sm max-w-none"
+          />
         </div>
         
         <DialogFooter className="sm:justify-between gap-2 flex-wrap">
@@ -119,6 +190,24 @@ const ArticleViewer: React.FC<ArticleViewerProps> = ({
             >
               <Printer className="h-4 w-4" />
               طباعة
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="flex items-center gap-1"
+              onClick={downloadArticle}
+            >
+              <Download className="h-4 w-4" />
+              تنزيل
+            </Button>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="flex items-center gap-1"
+              onClick={shareArticle}
+            >
+              <Share2 className="h-4 w-4" />
+              مشاركة
             </Button>
           </div>
           <DialogClose asChild>
