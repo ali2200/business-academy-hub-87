@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   PlusCircle, 
@@ -14,7 +14,8 @@ import {
   AlertCircle,
   FileCode,
   Upload,
-  Calendar
+  Calendar,
+  FileUp
 } from 'lucide-react';
 import { toast } from "sonner";
 
@@ -50,6 +51,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { 
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { 
   Table, 
   TableBody, 
@@ -95,6 +106,7 @@ const ArticlesManagement = () => {
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [activeTab, setActiveTab] = useState('editor');
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Article editor state
   const [articleForm, setArticleForm] = useState({
@@ -110,6 +122,8 @@ const ArticlesManagement = () => {
   // HTML import state
   const [htmlContent, setHtmlContent] = useState('');
   const [htmlTitle, setHtmlTitle] = useState('');
+  const [htmlPreview, setHtmlPreview] = useState('');
+  const [previewVisible, setPreviewVisible] = useState(false);
 
   useEffect(() => {
     fetchArticles();
@@ -229,6 +243,8 @@ const ArticlesManagement = () => {
   const openImportDialog = () => {
     setHtmlContent('');
     setHtmlTitle('');
+    setHtmlPreview('');
+    setPreviewVisible(false);
     setIsImportDialogOpen(true);
   };
 
@@ -389,6 +405,55 @@ const ArticlesManagement = () => {
       console.error('Error changing articles status:', error);
       toast.error('فشل في تغيير حالة المقالات المحددة');
     }
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    // Check if it's an HTML file
+    if (!file.name.endsWith('.html') && !file.name.toLowerCase().endsWith('.htm')) {
+      toast.error('يرجى تحميل ملف HTML فقط (.html or .htm)');
+      return;
+    }
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      
+      // Extract title from HTML content (from title tag if possible)
+      let title = '';
+      const titleMatch = content.match(/<title[^>]*>([^<]+)<\/title>/i);
+      if (titleMatch && titleMatch[1]) {
+        title = titleMatch[1].trim();
+      } else {
+        // Fallback: use filename without extension as title
+        title = file.name.replace(/\.(html|htm)$/i, '');
+      }
+      
+      setHtmlContent(content);
+      setHtmlTitle(title);
+      setHtmlPreview(content);
+      setPreviewVisible(true);
+      
+      toast.success('تم تحميل ملف HTML بنجاح');
+    };
+    
+    reader.onerror = () => {
+      toast.error('حدث خطأ أثناء قراءة الملف');
+    };
+    
+    reader.readAsText(file);
+  };
+
+  const handleTriggerFileInput = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleHtmlContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const content = e.target.value;
+    setHtmlContent(content);
+    setHtmlPreview(content);
   };
 
   const handleImportHtml = async () => {
@@ -893,52 +958,4 @@ const ArticlesManagement = () => {
                   id="edit-tags"
                   name="tags"
                   value={articleForm.tags.join(', ')}
-                  onChange={handleTagsChange}
-                  placeholder="أدخل التصنيفات مفصولة بفواصل (مثال: تعليم, تكنولوجيا)"
-                />
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="edit-featured_image">رابط الصورة المميزة</Label>
-                <Input
-                  id="edit-featured_image"
-                  name="featured_image"
-                  value={articleForm.featured_image}
-                  onChange={handleInputChange}
-                  placeholder="أدخل رابط الصورة المميزة"
-                />
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="edit-status">حالة المقال</Label>
-                <select
-                  id="edit-status"
-                  name="status"
-                  value={articleForm.status}
-                  onChange={(e) => setArticleForm(prev => ({ ...prev, status: e.target.value as ArticleStatus }))}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  <option value="draft">مسودة</option>
-                  <option value="review">مراجعة</option>
-                  <option value="published">منشور</option>
-                </select>
-              </div>
-            </TabsContent>
-          </Tabs>
-          
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button variant="outline">إلغاء</Button>
-            </DialogClose>
-            <Button onClick={handleUpdateArticle}>حفظ التغييرات</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Import HTML Dialog */}
-      <Dialog open={isImportDialogOpen} onOpenChange={setIsImportDialogOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>استيراد مقال HTML</DialogTitle>
-            <DialogDescription>
-              أدخل عنوان المقال ثم قم بلصق كود HTML للمقال.
+                  onChange={handleTagsChange
