@@ -20,6 +20,7 @@ const BookReader = () => {
   const [zoom, setZoom] = useState(100);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isPurchased, setIsPurchased] = useState(false); // New state to track if book is purchased
   const bookContainerRef = useRef<HTMLDivElement>(null);
   
   // فهرس الكتاب الوهمي
@@ -64,9 +65,18 @@ const BookReader = () => {
       setTotalPages(data.pages || 40); // استخدام عدد الصفحات الفعلي أو قيمة افتراضية
       
       // في النسخة الحقيقية، يجب التحقق مما إذا كان المستخدم قد اشترى الكتاب
-      // وإذا كان isPreview=true، يجب عرض صفحات المعاينة فقط
-      if (isPreview && !data.is_purchased) {
+      // هنا يمكن إضافة منطق للتحقق من شراء الكتاب
+      // للآن، نفترض أنه غير مشترى في وضع المعاينة
+      
+      // Check if this is a preview or if user has purchased the book
+      // In a real app, we would query the purchases or orders table
+      if (isPreview) {
+        setIsPurchased(false); // Not purchased in preview mode
         setTotalPages(4); // عرض 4 صفحات فقط للمعاينة
+      } else {
+        // For now, we'll assume it's purchased if not in preview mode
+        // In a real app, you would check the user's purchases
+        setIsPurchased(true);
       }
       
     } catch (err) {
@@ -87,7 +97,7 @@ const BookReader = () => {
       setCurrentPage(newPage);
       
       // إذا كانت المعاينة والمستخدم يحاول الوصول إلى صفحة بعد نهاية المعاينة
-      if (isPreview && newPage > 4 && !book?.is_purchased) {
+      if (isPreview && newPage > 4 && !isPurchased) {
         toast.error("هذه معاينة محدودة فقط", {
           description: "لقراءة الكتاب كاملاً، يرجى شراؤه",
         });
@@ -221,7 +231,7 @@ const BookReader = () => {
             </div>
             
             {/* إذا كانت آخر صفحة في المعاينة، أظهر إشعار شراء */}
-            {isPreview && currentPage === 4 && (
+            {isPreview && currentPage === 4 && !isPurchased && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                 <div className="bg-white p-6 rounded-lg shadow-lg max-w-md text-center">
                   <h3 className="text-xl font-bold text-primary mb-2">انتهت المعاينة</h3>
