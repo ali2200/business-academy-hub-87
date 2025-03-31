@@ -97,7 +97,7 @@ const Navbar = () => {
         </div>
 
         {/* Right Side Actions */}
-        <div className="hidden md:flex items-center space-x-3 rtl:space-x-reverse bg-gray-950">
+        <div className="hidden md:flex items-center space-x-3 rtl:space-x-reverse bg-slate-50">
           <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-primary" aria-label="سلة التسوق">
             <ShoppingCart size={20} />
           </Button>
