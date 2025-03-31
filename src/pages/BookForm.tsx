@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -7,7 +8,10 @@ import {
   X, 
   ChevronLeft,
   Save,
-  Eye
+  Eye,
+  Link,
+  ExternalLink,
+  CheckCircle2
 } from 'lucide-react';
 import { toast } from "sonner";
 import { v4 as uuidv4 } from 'uuid';
@@ -19,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -59,8 +64,13 @@ const BookForm = () => {
   
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverUrl, setCoverUrl] = useState<string>('');
+  const [useExternalCoverUrl, setUseExternalCoverUrl] = useState<boolean>(false);
+  
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfFileName, setPdfFileName] = useState<string | null>(null);
+  const [pdfUrl, setPdfUrl] = useState<string>('');
+  const [useExternalPdfUrl, setUseExternalPdfUrl] = useState<boolean>(false);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewContent, setPreviewContent] = useState(false);
@@ -81,6 +91,7 @@ const BookForm = () => {
     const file = e.target.files && e.target.files[0];
     if (file) {
       setCoverFile(file);
+      setUseExternalCoverUrl(false);
       
       // Create preview URL
       const reader = new FileReader();
@@ -96,22 +107,79 @@ const BookForm = () => {
     if (file) {
       setPdfFile(file);
       setPdfFileName(file.name);
+      setUseExternalPdfUrl(false);
     }
+  };
+
+  const handleCoverUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCoverUrl(e.target.value);
+  };
+
+  const handlePdfUrlChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPdfUrl(e.target.value);
+  };
+
+  const toggleCoverUrlMode = () => {
+    setUseExternalCoverUrl(prev => {
+      if (!prev) {
+        removeCover();
+      }
+      return !prev;
+    });
+  };
+
+  const togglePdfUrlMode = () => {
+    setUseExternalPdfUrl(prev => {
+      if (!prev) {
+        removePdf();
+      }
+      return !prev;
+    });
   };
 
   const removeCover = () => {
     setCoverFile(null);
     setCoverPreview(null);
+    if (useExternalCoverUrl) {
+      setCoverUrl('');
+    }
   };
 
   const removePdf = () => {
     setPdfFile(null);
     setPdfFileName(null);
+    if (useExternalPdfUrl) {
+      setPdfUrl('');
+    }
+  };
+
+  const validateForm = () => {
+    if (!formData.title || !formData.author || !formData.price) {
+      toast.error('يرجى ملء جميع الحقول المطلوبة');
+      return false;
+    }
+
+    // Check if we have at least a cover image (either file or URL)
+    const hasCover = coverFile || (useExternalCoverUrl && coverUrl);
+    if (!hasCover) {
+      toast.error('يرجى تحميل صورة غلاف الكتاب أو إضافة رابط للصورة');
+      setActiveTab('files');
+      return false;
+    }
+
+    // Check if we have at least a PDF file (either file or URL)
+    const hasPdf = pdfFile || (useExternalPdfUrl && pdfUrl);
+    if (!hasPdf) {
+      toast.error('يرجى تحميل ملف الكتاب (PDF) أو إضافة رابط للملف');
+      setActiveTab('files');
+      return false;
+    }
+
+    return true;
   };
 
   const handleSubmit = async () => {
-    if (!formData.title || !formData.author || !formData.price) {
-      toast.error('يرجى ملء جميع الحقول المطلوبة');
+    if (!validateForm()) {
       return;
     }
 
@@ -119,59 +187,73 @@ const BookForm = () => {
       setIsSubmitting(true);
       
       // تحميل الملفات إلى التخزين
-      let coverUrl = null;
-      let pdfUrl = null;
+      let coverUrlFinal = null;
+      let pdfUrlFinal = null;
       
-      // تحميل صورة الغلاف (إذا وجدت)
-      if (coverFile) {
-        // إنشاء اسم فريد للملف
-        const fileExt = coverFile.name.split('.').pop();
-        const fileName = `${uuidv4()}.${fileExt}`;
-        
-        // تحميل الملف
-        const { data: coverData, error: coverError } = await supabase.storage
-          .from('book-covers')
-          .upload(fileName, coverFile, {
-            upsert: true,
-            contentType: coverFile.type
-          });
+      // Handle cover image - either use external URL or upload file
+      if (useExternalCoverUrl) {
+        coverUrlFinal = coverUrl;
+      } else if (coverFile) {
+        try {
+          // إنشاء اسم فريد للملف
+          const fileExt = coverFile.name.split('.').pop();
+          const fileName = `${uuidv4()}.${fileExt}`;
           
-        if (coverError) {
-          throw new Error(`فشل في تحميل صورة الغلاف: ${coverError.message}`);
+          // تحميل الملف
+          const { data: coverData, error: coverError } = await supabase.storage
+            .from('book-covers')
+            .upload(fileName, coverFile, {
+              upsert: true,
+              contentType: coverFile.type
+            });
+            
+          if (coverError) {
+            throw new Error(`فشل في تحميل صورة الغلاف: ${coverError.message}`);
+          }
+          
+          // الحصول على URL العام
+          const { data: coverPublicUrl } = supabase.storage
+            .from('book-covers')
+            .getPublicUrl(fileName);
+            
+          coverUrlFinal = coverPublicUrl.publicUrl;
+        } catch (error) {
+          toast.error('فشل في تحميل صورة الغلاف');
+          throw error;
         }
-        
-        // الحصول على URL العام
-        const { data: coverPublicUrl } = supabase.storage
-          .from('book-covers')
-          .getPublicUrl(fileName);
-          
-        coverUrl = coverPublicUrl.publicUrl;
       }
       
-      // تحميل ملف PDF (إذا وجد)
-      if (pdfFile) {
-        // إنشاء اسم فريد للملف
-        const fileExt = pdfFile.name.split('.').pop();
-        const fileName = `${uuidv4()}.${fileExt}`;
-        
-        // تحميل الملف
-        const { data: pdfData, error: pdfError } = await supabase.storage
-          .from('book-files')
-          .upload(fileName, pdfFile, {
-            upsert: true,
-            contentType: pdfFile.type
-          });
+      // Handle PDF file - either use external URL or upload file
+      if (useExternalPdfUrl) {
+        pdfUrlFinal = pdfUrl;
+      } else if (pdfFile) {
+        try {
+          // إنشاء اسم فريد للملف
+          const fileExt = pdfFile.name.split('.').pop();
+          const fileName = `${uuidv4()}.${fileExt}`;
           
-        if (pdfError) {
-          throw new Error(`فشل في تحميل ملف PDF: ${pdfError.message}`);
+          // تحميل الملف
+          const { data: pdfData, error: pdfError } = await supabase.storage
+            .from('book-files')
+            .upload(fileName, pdfFile, {
+              upsert: true,
+              contentType: pdfFile.type
+            });
+            
+          if (pdfError) {
+            throw new Error(`فشل في تحميل ملف PDF: ${pdfError.message}`);
+          }
+          
+          // الحصول على URL العام
+          const { data: pdfPublicUrl } = supabase.storage
+            .from('book-files')
+            .getPublicUrl(fileName);
+            
+          pdfUrlFinal = pdfPublicUrl.publicUrl;
+        } catch (error) {
+          toast.error('فشل في تحميل ملف PDF');
+          throw error;
         }
-        
-        // الحصول على URL العام
-        const { data: pdfPublicUrl } = supabase.storage
-          .from('book-files')
-          .getPublicUrl(fileName);
-          
-        pdfUrl = pdfPublicUrl.publicUrl;
       }
       
       // إضافة الكتاب إلى قاعدة البيانات
@@ -187,8 +269,8 @@ const BookForm = () => {
             pages: formData.pages ? parseInt(formData.pages.toString()) : null,
             status: formData.status,
             currency: formData.currency,
-            cover_url: coverUrl,
-            pdf_url: pdfUrl,
+            cover_url: coverUrlFinal,
+            pdf_url: pdfUrlFinal,
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString()
           }
@@ -270,14 +352,14 @@ const BookForm = () => {
                   <div className="text-sm font-medium mb-1">ملفات الكتاب</div>
                   <div className="text-gray-600 text-sm">
                     <div className="flex items-center gap-1 mb-1">
-                      <span className={coverPreview ? 'text-green-500' : 'text-gray-400'}>
-                        {coverPreview ? '✓' : '○'}
+                      <span className={(coverPreview || (useExternalCoverUrl && coverUrl)) ? 'text-green-500' : 'text-gray-400'}>
+                        {(coverPreview || (useExternalCoverUrl && coverUrl)) ? '✓' : '○'}
                       </span>
                       <span>صورة الغلاف</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span className={pdfFileName ? 'text-green-500' : 'text-gray-400'}>
-                        {pdfFileName ? '✓' : '○'}
+                      <span className={(pdfFileName || (useExternalPdfUrl && pdfUrl)) ? 'text-green-500' : 'text-gray-400'}>
+                        {(pdfFileName || (useExternalPdfUrl && pdfUrl)) ? '✓' : '○'}
                       </span>
                       <span>ملف الكتاب PDF</span>
                     </div>
@@ -436,104 +518,204 @@ const BookForm = () => {
                   <TabsContent value="files" className="space-y-6">
                     {/* صورة الغلاف */}
                     <div className="space-y-2">
-                      <Label>صورة الغلاف</Label>
-                      <div className="border rounded-lg p-4 bg-gray-50">
-                        <div className="flex flex-col md:flex-row items-center gap-4">
-                          {/* معاينة الصورة */}
-                          {coverPreview && (
-                            <div className="relative w-36 h-48 bg-white rounded-lg overflow-hidden border">
-                              <img 
-                                src={coverPreview} 
-                                alt="معاينة الغلاف" 
-                                className="w-full h-full object-cover"
+                      <div className="flex justify-between items-center mb-2">
+                        <Label>صورة الغلاف</Label>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={toggleCoverUrlMode}
+                          className="text-xs flex items-center gap-1"
+                        >
+                          {useExternalCoverUrl ? <Upload className="h-3.5 w-3.5" /> : <Link className="h-3.5 w-3.5" />}
+                          {useExternalCoverUrl ? 'تحميل ملف' : 'استخدام رابط'}
+                        </Button>
+                      </div>
+
+                      {useExternalCoverUrl ? (
+                        <div className="border rounded-lg p-4 bg-gray-50">
+                          <div className="space-y-2">
+                            <div className="flex items-center">
+                              <Input
+                                value={coverUrl}
+                                onChange={handleCoverUrlChange}
+                                placeholder="https://example.com/image.jpg"
+                                className="flex-1"
                               />
-                              <button
-                                type="button"
-                                onClick={removeCover}
-                                className="absolute top-1 right-1 bg-white rounded-full p-1 shadow-md"
-                                title="إزالة الصورة"
-                              >
-                                <X size={16} className="text-red-500" />
-                              </button>
+                              {coverUrl && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => window.open(coverUrl, '_blank')}
+                                  className="mr-2"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
-                          )}
-                          
-                          {/* زر تحميل الصورة */}
-                          <div className="flex-1">
-                            <input
-                              type="file"
-                              ref={coverInputRef}
-                              onChange={handleCoverChange}
-                              accept="image/*"
-                              className="hidden"
-                            />
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => coverInputRef.current?.click()}
-                              className="w-full"
-                            >
-                              <Upload className="ml-2 h-4 w-4" />
-                              {coverPreview ? 'تغيير الصورة' : 'تحميل صورة الغلاف'}
-                            </Button>
-                            <p className="text-xs text-gray-500 mt-2">
-                              يفضل صورة بنسبة 3:4 بدقة جيدة وحجم لا يتجاوز 2 ميجابايت
+                            <p className="text-xs text-gray-500">
+                              أدخل رابط مباشر لصورة غلاف الكتاب
                             </p>
+                            {coverUrl && (
+                              <div className="mt-2 flex items-center gap-2">
+                                <Badge variant="outline" className="flex items-center gap-1 px-2 py-1">
+                                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                                  <span className="text-xs">تم إضافة رابط الصورة</span>
+                                </Badge>
+                              </div>
+                            )}
                           </div>
                         </div>
-                      </div>
-                    </div>
-                    
-                    {/* ملف الكتاب */}
-                    <div className="space-y-2">
-                      <Label>ملف الكتاب (PDF)</Label>
-                      <div className="border rounded-lg p-4 bg-gray-50">
-                        <div className="flex flex-col md:flex-row items-center gap-4">
-                          {/* معلومات الملف */}
-                          {pdfFileName && (
-                            <div className="relative flex items-center p-3 bg-white rounded-lg overflow-hidden border flex-1">
-                              <FileText className="h-8 w-8 text-primary ml-3" />
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">{pdfFileName}</p>
-                                <p className="text-xs text-gray-500">ملف جديد</p>
+                      ) : (
+                        <div className="border rounded-lg p-4 bg-gray-50">
+                          <div className="flex flex-col md:flex-row items-center gap-4">
+                            {/* معاينة الصورة */}
+                            {coverPreview && (
+                              <div className="relative w-36 h-48 bg-white rounded-lg overflow-hidden border">
+                                <img 
+                                  src={coverPreview} 
+                                  alt="معاينة الغلاف" 
+                                  className="w-full h-full object-cover"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={removeCover}
+                                  className="absolute top-1 right-1 bg-white rounded-full p-1 shadow-md"
+                                  title="إزالة الصورة"
+                                >
+                                  <X size={16} className="text-red-500" />
+                                </button>
                               </div>
-                              <button
-                                type="button"
-                                onClick={removePdf}
-                                className="mr-2 text-red-500"
-                                title="إزالة الملف"
-                              >
-                                <X size={18} />
-                              </button>
-                            </div>
-                          )}
-                          
-                          {/* زر تحميل الملف */}
-                          {!pdfFileName && (
-                            <div className="flex-1 w-full">
+                            )}
+                            
+                            {/* زر تحميل الصورة */}
+                            <div className="flex-1">
                               <input
                                 type="file"
-                                ref={pdfInputRef}
-                                onChange={handlePdfChange}
-                                accept=".pdf"
+                                ref={coverInputRef}
+                                onChange={handleCoverChange}
+                                accept="image/*"
                                 className="hidden"
                               />
                               <Button
                                 type="button"
                                 variant="outline"
-                                onClick={() => pdfInputRef.current?.click()}
+                                onClick={() => coverInputRef.current?.click()}
                                 className="w-full"
                               >
                                 <Upload className="ml-2 h-4 w-4" />
-                                تحميل ملف الكتاب (PDF)
+                                {coverPreview ? 'تغيير الصورة' : 'تحميل صورة الغلاف'}
                               </Button>
                               <p className="text-xs text-gray-500 mt-2">
-                                يرجى تحميل الكتاب بصيغة PDF. الحجم الأقصى هو 50 ميجابايت.
+                                يفضل صورة بنسبة 3:4 بدقة جيدة وحجم لا يتجاوز 2 ميجابايت
                               </p>
                             </div>
-                          )}
+                          </div>
                         </div>
+                      )}
+                    </div>
+                    
+                    {/* ملف الكتاب */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center mb-2">
+                        <Label>ملف الكتاب (PDF)</Label>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={togglePdfUrlMode}
+                          className="text-xs flex items-center gap-1"
+                        >
+                          {useExternalPdfUrl ? <Upload className="h-3.5 w-3.5" /> : <Link className="h-3.5 w-3.5" />}
+                          {useExternalPdfUrl ? 'تحميل ملف' : 'استخدام رابط'}
+                        </Button>
                       </div>
+                      
+                      {useExternalPdfUrl ? (
+                        <div className="border rounded-lg p-4 bg-gray-50">
+                          <div className="space-y-2">
+                            <div className="flex items-center">
+                              <Input
+                                value={pdfUrl}
+                                onChange={handlePdfUrlChange}
+                                placeholder="https://example.com/document.pdf"
+                                className="flex-1"
+                              />
+                              {pdfUrl && (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => window.open(pdfUrl, '_blank')}
+                                  className="mr-2"
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                </Button>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500">
+                              أدخل رابط مباشر لملف الكتاب (PDF)
+                            </p>
+                            {pdfUrl && (
+                              <div className="mt-2 flex items-center gap-2">
+                                <Badge variant="outline" className="flex items-center gap-1 px-2 py-1">
+                                  <CheckCircle2 className="h-3 w-3 text-green-500" />
+                                  <span className="text-xs">تم إضافة رابط الملف</span>
+                                </Badge>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="border rounded-lg p-4 bg-gray-50">
+                          <div className="flex flex-col md:flex-row items-center gap-4">
+                            {/* معلومات الملف */}
+                            {pdfFileName && (
+                              <div className="relative flex items-center p-3 bg-white rounded-lg overflow-hidden border flex-1">
+                                <FileText className="h-8 w-8 text-primary ml-3" />
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium truncate">{pdfFileName}</p>
+                                  <p className="text-xs text-gray-500">ملف جديد</p>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={removePdf}
+                                  className="mr-2 text-red-500"
+                                  title="إزالة الملف"
+                                >
+                                  <X size={18} />
+                                </button>
+                              </div>
+                            )}
+                            
+                            {/* زر تحميل الملف */}
+                            {!pdfFileName && (
+                              <div className="flex-1 w-full">
+                                <input
+                                  type="file"
+                                  ref={pdfInputRef}
+                                  onChange={handlePdfChange}
+                                  accept=".pdf"
+                                  className="hidden"
+                                />
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  onClick={() => pdfInputRef.current?.click()}
+                                  className="w-full"
+                                >
+                                  <Upload className="ml-2 h-4 w-4" />
+                                  تحميل ملف الكتاب (PDF)
+                                </Button>
+                                <p className="text-xs text-gray-500 mt-2">
+                                  يرجى تحميل الكتاب بصيغة PDF. الحجم الأقصى هو 50 ميجابايت.
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </TabsContent>
                   
