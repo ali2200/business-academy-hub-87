@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
   DialogContent,
@@ -9,9 +9,10 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ArrowRight, X, ShoppingCart } from 'lucide-react';
+import { ArrowLeft, ArrowRight, X, ShoppingCart, Loader2 } from 'lucide-react';
 import { toast } from "sonner";
 import { useNavigate } from 'react-router-dom';
+import { supabase } from "@/integrations/supabase/client";
 
 interface BookPreviewDialogProps {
   book: any;
@@ -26,29 +27,94 @@ const BookPreviewDialog: React.FC<BookPreviewDialogProps> = ({
 }) => {
   const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
+  const [pdfPages, setPdfPages] = useState<string[]>([]);
+  const [totalPages, setTotalPages] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // هذه مجرد صفحات عينة للعرض التوضيحي
-  // في التطبيق الحقيقي، يجب جلب صفحات المعاينة من الخادم
-  const previewPages = [
-    {
-      image: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=2574',
-      content: 'صفحة العنوان - ' + book.title
-    },
-    {
-      image: 'https://images.unsplash.com/photo-1456513080867-f24f120341e0?q=80&w=2574',
-      content: 'مقدمة الكتاب - ' + book.title
-    },
-    {
-      image: 'https://images.unsplash.com/photo-1471970394675-613138e45da3?q=80&w=2580',
-      content: 'الفصل الأول - ' + book.title
-    },
-    {
-      image: 'https://images.unsplash.com/photo-1580894894513-541e068a3e2b?q=80&w=2670',
-      content: 'نهاية المعاينة - ' + book.title
+  // عدد صفحات المعاينة (3 صفحات)
+  const MAX_PREVIEW_PAGES = 3;
+  
+  useEffect(() => {
+    if (open && book?.pdf_url) {
+      fetchPdfPreview();
     }
-  ];
+  }, [open, book]);
   
-  const totalPages = previewPages.length;
+  const fetchPdfPreview = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // التحقق من وجود رابط للملف
+      if (!book.pdf_url) {
+        setError("لا يوجد ملف PDF لهذا الكتاب");
+        setIsLoading(false);
+        return;
+      }
+      
+      // استخراج اسم الملف من الرابط
+      const filename = book.pdf_url.split('/').pop();
+      
+      // تنزيل الملف من التخزين
+      const { data: fileData, error: fileError } = await supabase
+        .storage
+        .from('books')
+        .download(`pdfs/${filename}`);
+      
+      if (fileError) {
+        console.error('Error downloading PDF:', fileError);
+        setError("فشل في تحميل ملف PDF");
+        setIsLoading(false);
+        return;
+      }
+      
+      // استخدام PDF.js لعرض معاينة الصفحات
+      const pdfjsLib = await import('pdfjs-dist');
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+      
+      const pdf = await pdfjsLib.getDocument(await fileData.arrayBuffer()).promise;
+      const pageCount = pdf.numPages;
+      
+      // تحديد عدد الصفحات المتاحة للمعاينة (بحد أقصى 3 صفحات)
+      const previewPagesCount = Math.min(pageCount, MAX_PREVIEW_PAGES);
+      setTotalPages(previewPagesCount);
+      
+      // جلب معلومات الصفحات
+      const pagesDataUrls: string[] = [];
+      
+      for (let i = 1; i <= previewPagesCount; i++) {
+        const page = await pdf.getPage(i);
+        const viewport = page.getViewport({ scale: 1.5 });
+        
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+        
+        if (!context) {
+          continue;
+        }
+        
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+        
+        await page.render({
+          canvasContext: context,
+          viewport: viewport
+        }).promise;
+        
+        pagesDataUrls.push(canvas.toDataURL('image/jpeg', 0.8));
+      }
+      
+      setPdfPages(pagesDataUrls);
+      setCurrentPage(1);
+      
+    } catch (err) {
+      console.error('Error with PDF preview:', err);
+      setError("حدث خطأ أثناء تحميل معاينة الكتاب");
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   const handleNextPage = () => {
     if (currentPage < totalPages) {
@@ -89,61 +155,86 @@ const BookPreviewDialog: React.FC<BookPreviewDialogProps> = ({
             </Button>
           </DialogTitle>
           <DialogDescription>
-            هذه معاينة محدودة لمحتوى الكتاب. اشترِ الكتاب للوصول إلى المحتوى الكامل.
+            هذه معاينة محدودة لمحتوى الكتاب ({MAX_PREVIEW_PAGES} صفحات). اشترِ الكتاب للوصول إلى المحتوى الكامل.
           </DialogDescription>
         </DialogHeader>
         
         <div className="flex flex-col items-center my-4">
           <div className="relative w-full aspect-[3/4] max-h-[70vh] overflow-hidden rounded-lg border shadow mb-4">
-            {/* صفحة الكتاب الحالية */}
-            <div className="absolute inset-0 bg-gray-100">
-              <img 
-                src={previewPages[currentPage - 1].image}
-                alt={`صفحة ${currentPage}`}
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                <div className="p-6 bg-white/90 rounded-lg shadow-lg max-w-md text-center">
-                  <h3 className="text-2xl font-bold text-primary mb-4">
-                    {previewPages[currentPage - 1].content}
-                  </h3>
-                  <p className="mb-4">
-                    هذه معاينة محدودة فقط، لقراءة الكتاب كاملاً يرجى شراؤه.
-                  </p>
-                  {currentPage === totalPages && (
-                    <Button onClick={handleBuy} className="bg-secondary hover:bg-secondary-light">
-                      <ShoppingCart className="ml-2 h-4 w-4" />
-                      اشتري الآن
-                    </Button>
-                  )}
+            {isLoading ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                <div className="text-center">
+                  <Loader2 className="h-10 w-10 animate-spin text-primary mx-auto mb-4" />
+                  <p className="text-gray-600">جاري تحميل معاينة الكتاب...</p>
                 </div>
               </div>
-            </div>
+            ) : error ? (
+              <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+                <div className="p-6 bg-white/90 rounded-lg shadow-lg max-w-md text-center">
+                  <h3 className="text-xl font-bold text-red-500 mb-4">
+                    حدث خطأ
+                  </h3>
+                  <p className="mb-4 text-gray-700">
+                    {error}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="absolute inset-0 bg-gray-100">
+                {pdfPages.length > 0 ? (
+                  <img 
+                    src={pdfPages[currentPage - 1]}
+                    alt={`صفحة ${currentPage}`}
+                    className="w-full h-full object-contain"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <p className="text-gray-500">لا توجد صفحات متاحة للمعاينة</p>
+                  </div>
+                )}
+                
+                {currentPage === totalPages && (
+                  <div className="absolute bottom-10 left-0 right-0 flex justify-center">
+                    <div className="p-4 bg-white/90 rounded-lg shadow-lg max-w-md text-center">
+                      <p className="mb-4">
+                        انتهت المعاينة المجانية، لقراءة الكتاب كاملاً يرجى شراؤه.
+                      </p>
+                      <Button onClick={handleBuy} className="bg-secondary hover:bg-secondary-light">
+                        <ShoppingCart className="ml-2 h-4 w-4" />
+                        اشتري الآن
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             
             {/* أزرار التنقل */}
-            <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-2 rtl:space-x-reverse">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handlePrevPage}
-                disabled={currentPage === 1}
-                className="rounded-full h-10 w-10 p-0"
-              >
-                <ArrowRight className="h-5 w-5" />
-              </Button>
-              <span className="p-2 bg-white/80 rounded-md">
-                {currentPage} / {totalPages}
-              </span>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={handleNextPage}
-                disabled={currentPage === totalPages}
-                className="rounded-full h-10 w-10 p-0"
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </div>
+            {!isLoading && !error && pdfPages.length > 0 && (
+              <div className="absolute bottom-4 left-0 right-0 flex justify-center space-x-2 rtl:space-x-reverse">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handlePrevPage}
+                  disabled={currentPage === 1}
+                  className="rounded-full h-10 w-10 p-0"
+                >
+                  <ArrowRight className="h-5 w-5" />
+                </Button>
+                <span className="p-2 bg-white/80 rounded-md">
+                  {currentPage} / {totalPages}
+                </span>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages}
+                  className="rounded-full h-10 w-10 p-0"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+              </div>
+            )}
           </div>
         </div>
         

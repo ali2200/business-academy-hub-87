@@ -201,7 +201,13 @@ const BookDetail = () => {
   };
 
   const handlePreviewBook = () => {
-    navigate(`/book-reader/${id}?preview=true`);
+    if (book.pdf_url) {
+      navigate(`/book-reader/${id}?preview=true`);
+    } else {
+      toast.error("لا يوجد ملف PDF لهذا الكتاب", {
+        description: "لا يمكن معاينة هذا الكتاب حالياً"
+      });
+    }
   };
 
   if (isLoading) {
