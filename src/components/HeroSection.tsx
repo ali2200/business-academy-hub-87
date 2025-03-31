@@ -1,12 +1,13 @@
-
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from 'lucide-react';
 import { useContent } from "@/hooks/use-content";
-
 const HeroSection = () => {
-  const { content, loading } = useContent('hero');
+  const {
+    content,
+    loading
+  } = useContent('hero');
 
   // Default content that will be shown while loading
   const defaultContent = {
@@ -20,9 +21,7 @@ const HeroSection = () => {
     ...defaultContent,
     ...content
   };
-
-  return (
-    <section className="py-16 md:py-24 lg:py-32 bg-gradient-to-b from-secondary-light to-white">
+  return <section className="py-16 md:py-24 bg-gradient-to-b from-secondary-light to-white lg:py-[76px] my-0">
       <div className="container mx-auto px-4 flex flex-col-reverse md:flex-row items-center">
         {/* Text Content */}
         <div className="md:w-1/2 text-right">
@@ -44,15 +43,9 @@ const HeroSection = () => {
 
         {/* Hero Image */}
         <div className="md:w-1/2 mb-10 md:mb-0">
-          <img 
-            src="/images/hero.svg" 
-            alt="Business Academy" 
-            className="w-full"
-          />
+          <img src="/images/hero.svg" alt="Business Academy" className="w-full" />
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default HeroSection;

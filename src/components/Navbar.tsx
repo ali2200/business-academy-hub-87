@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, ShoppingCart, User, LogIn, MessageSquare, LogOut, Settings } from 'lucide-react';
@@ -7,17 +6,9 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from "@/components/ui/navigation-menu";
 import { Sheet, SheetContent, SheetClose, SheetTrigger } from "@/components/ui/sheet";
 import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -28,7 +19,6 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 10) {
@@ -41,19 +31,19 @@ const Navbar = () => {
     // Check for user authentication
     const checkAuth = async () => {
       // Get current session from Supabase
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      const {
+        data: {
+          session
+        }
+      } = await supabase.auth.getSession();
       if (session) {
         setIsAuthenticated(true);
         setUserEmail(session.user.email || '');
-        
+
         // Get user profile to check admin status and display name
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('is_admin, display_name, first_name, last_name')
-          .eq('id', session.user.id)
-          .single();
-        
+        const {
+          data: profileData
+        } = await supabase.from('profiles').select('is_admin, display_name, first_name, last_name').eq('id', session.user.id).single();
         if (profileData) {
           setIsAdmin(!!profileData.is_admin);
           setUserName(profileData.display_name || `${profileData.first_name || ''} ${profileData.last_name || ''}`);
@@ -72,11 +62,9 @@ const Navbar = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [location.pathname]);
-
   const isActive = (path: string) => {
     return location.pathname === path;
   };
-
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -90,9 +78,7 @@ const Navbar = () => {
       toast.error("حدث خطأ أثناء تسجيل الخروج");
     }
   };
-
-  return (
-    <header className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${isScrolled ? 'py-2 bg-white/10 backdrop-blur-md shadow-md' : 'py-3 lg:py-5 bg-white/5 backdrop-blur-sm'}`}>
+  return <header className={`fixed top-0 left-0 right-0 z-40 transition-all duration-300 ${isScrolled ? 'py-2 bg-white/10 backdrop-blur-md shadow-md' : 'py-3 lg:py-5 bg-white/5 backdrop-blur-sm'}`}>
       <div className="container mx-auto px-4 flex justify-between items-center">
         {/* Logo */}
         <Link to="/" className="flex items-center animate-fade-in">
@@ -111,13 +97,12 @@ const Navbar = () => {
         </div>
 
         {/* Right Side Actions */}
-        <div className="hidden md:flex items-center space-x-3 rtl:space-x-reverse">
+        <div className="hidden md:flex items-center space-x-3 rtl:space-x-reverse bg-gray-950">
           <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 hover:text-primary" aria-label="سلة التسوق">
             <ShoppingCart size={20} />
           </Button>
           
-          {isAuthenticated ? (
-            <DropdownMenu>
+          {isAuthenticated ? <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="flex items-center gap-2 text-white border-white/50 bg-white/10 hover:bg-primary hover:text-white hover:border-primary">
                   <User size={18} />
@@ -140,12 +125,10 @@ const Navbar = () => {
                   <span>إدارة الملف الشخصي</span>
                 </DropdownMenuItem>
                 
-                {isAdmin && (
-                  <DropdownMenuItem onClick={() => navigate('/admin-dashboard')} className="cursor-pointer flex items-center gap-2 py-2">
+                {isAdmin && <DropdownMenuItem onClick={() => navigate('/admin-dashboard')} className="cursor-pointer flex items-center gap-2 py-2">
                     <User className="h-4 w-4 text-primary" />
                     <span>لوحة تحكم المشرف</span>
-                  </DropdownMenuItem>
-                )}
+                  </DropdownMenuItem>}
                 
                 <DropdownMenuSeparator />
                 
@@ -154,9 +137,7 @@ const Navbar = () => {
                   <span>تسجيل الخروج</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <div className="flex flex-col items-end gap-2">
+            </DropdownMenu> : <div className="flex flex-col items-end gap-2">
               <div className="flex overflow-hidden rounded-full shadow-md">
                 <Link to="/signin" className="group">
                   <div className="bg-primary hover:bg-white text-white hover:text-primary transition-all duration-300 px-4 py-2 rounded-r-full font-hacen flex items-center">
@@ -172,8 +153,7 @@ const Navbar = () => {
               <Link to="/admin-signin" className="text-xs text-amber-200 hover:text-amber-100 transition-colors duration-200">
                 دخول المسؤولين
               </Link>
-            </div>
-          )}
+            </div>}
         </div>
 
         {/* Mobile Menu Button */}
@@ -212,108 +192,81 @@ const Navbar = () => {
           </Sheet>
         </div>
       </div>
-    </header>
-  );
+    </header>;
 };
-
 type NavLinksProps = {
   isActive: (path: string) => boolean;
   onClick?: () => void;
 };
-
 const NavLinks = ({
   isActive,
   onClick
 }: NavLinksProps) => {
-  const links = [
-    {
-      path: '/',
-      label: 'الرئيسية'
-    },
-    {
-      path: '/courses',
-      label: 'الدورات'
-    },
-    {
-      path: '/books',
-      label: 'الكتب'
-    },
-    {
-      path: '/articles',
-      label: 'المقالات'
-    },
-    {
-      path: '/contact',
-      label: 'اتصل بنا'
-    }
-  ];
-
-  return (
-    <>
-      {links.map(link => (
-        <NavigationMenuItem key={link.path}>
+  const links = [{
+    path: '/',
+    label: 'الرئيسية'
+  }, {
+    path: '/courses',
+    label: 'الدورات'
+  }, {
+    path: '/books',
+    label: 'الكتب'
+  }, {
+    path: '/articles',
+    label: 'المقالات'
+  }, {
+    path: '/contact',
+    label: 'اتصل بنا'
+  }];
+  return <>
+      {links.map(link => <NavigationMenuItem key={link.path}>
           <Link to={link.path} className={`${isActive(link.path) ? 'text-primary bg-white/90 font-bold' : 'text-primary hover:text-primary/80 hover:bg-white/20'} font-hacen px-4 py-2 transition-all duration-300 text-base rounded-md`} onClick={onClick}>
             {link.label}
           </Link>
-        </NavigationMenuItem>
-      ))}
-    </>
-  );
+        </NavigationMenuItem>)}
+    </>;
 };
-
 type MobileNavLinksProps = {
   isActive: (path: string) => boolean;
   isAuthenticated: boolean;
   isAdmin: boolean;
   handleLogout: () => void;
 };
-
 const MobileNavLinks = ({
   isActive,
   isAuthenticated,
   isAdmin,
   handleLogout
 }: MobileNavLinksProps) => {
-  const links = [
-    {
-      path: '/',
-      label: 'الرئيسية'
-    },
-    {
-      path: '/courses',
-      label: 'الدورات'
-    },
-    {
-      path: '/books',
-      label: 'الكتب'
-    },
-    {
-      path: '/articles',
-      label: 'المقالات'
-    },
-    {
-      path: '/contact',
-      label: 'اتصل بنا'
-    }
-  ];
-
-  return (
-    <div className="flex flex-col space-y-4">
+  const links = [{
+    path: '/',
+    label: 'الرئيسية'
+  }, {
+    path: '/courses',
+    label: 'الدورات'
+  }, {
+    path: '/books',
+    label: 'الكتب'
+  }, {
+    path: '/articles',
+    label: 'المقالات'
+  }, {
+    path: '/contact',
+    label: 'اتصل بنا'
+  }];
+  return <div className="flex flex-col space-y-4">
       {/* Main Navigation Links */}
       <div className="space-y-2">
-        {links.map(link => (
-          <SheetClose asChild key={link.path}>
+        {links.map(link => <SheetClose asChild key={link.path}>
             <Link to={link.path} className={`${isActive(link.path) ? 'bg-white text-primary font-bold' : 'text-white hover:bg-white/10'} block w-full text-right py-3 px-4 rounded-lg font-hacen text-lg transition-all`}>
               {link.label}
             </Link>
-          </SheetClose>
-        ))}
+          </SheetClose>)}
       </div>
       
       <div className="border-t border-white/10 pt-4 mt-4">
         {/* Account Actions */}
-        {isAuthenticated ? (
-          <div className="space-y-2">
+        {isAuthenticated ? <div className="space-y-2">
             <SheetClose asChild>
               <Link to="/dashboard" className="block w-full">
                 <Button variant="outline" className="w-full flex items-center justify-center gap-2 text-white border-white/50 bg-white/10 hover:bg-white hover:text-primary">
@@ -332,30 +285,22 @@ const MobileNavLinks = ({
               </Link>
             </SheetClose>
             
-            {isAdmin && (
-              <SheetClose asChild>
+            {isAdmin && <SheetClose asChild>
                 <Link to="/admin-dashboard" className="block w-full">
                   <Button variant="outline" className="w-full flex items-center justify-center gap-2 text-white border-white/50 bg-white/10 hover:bg-white hover:text-primary">
                     <User size={18} />
                     <span className="font-hacen">لوحة تحكم المشرف</span>
                   </Button>
                 </Link>
-              </SheetClose>
-            )}
+              </SheetClose>}
             
             <SheetClose asChild>
-              <Button 
-                variant="outline" 
-                className="w-full text-red-100 border-red-300/50 bg-red-500/20 hover:bg-red-100 hover:text-red-700 flex items-center justify-center gap-2"
-                onClick={handleLogout}
-              >
+              <Button variant="outline" className="w-full text-red-100 border-red-300/50 bg-red-500/20 hover:bg-red-100 hover:text-red-700 flex items-center justify-center gap-2" onClick={handleLogout}>
                 <LogOut size={18} />
                 <span className="font-hacen">تسجيل الخروج</span>
               </Button>
             </SheetClose>
-          </div>
-        ) : (
-          <div className="flex flex-col space-y-2">
+          </div> : <div className="flex flex-col space-y-2">
             <SheetClose asChild>
               <Link to="/signin" className="block w-full">
                 <Button className="w-full bg-white text-primary hover:bg-white/90">
@@ -377,8 +322,7 @@ const MobileNavLinks = ({
                 دخول المسؤولين
               </Link>
             </SheetClose>
-          </div>
-        )}
+          </div>}
         
         {/* Shopping Cart */}
         <SheetClose asChild>
@@ -388,8 +332,6 @@ const MobileNavLinks = ({
           </Link>
         </SheetClose>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default Navbar;
