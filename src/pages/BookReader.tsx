@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, ZoomIn, ZoomOut, X, Menu, Home, ChevronLeft, Book, Bookmark } from 'lucide-react';
@@ -20,10 +19,9 @@ const BookReader = () => {
   const [zoom, setZoom] = useState(100);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isPurchased, setIsPurchased] = useState(false); // New state to track if book is purchased
+  const [isPurchased, setIsPurchased] = useState(false);
   const bookContainerRef = useRef<HTMLDivElement>(null);
   
-  // فهرس الكتاب الوهمي
   const bookIndex = [
     { title: 'المقدمة', page: 1 },
     { title: 'الفصل الأول: أساسيات البيع', page: 3 },
@@ -34,41 +32,36 @@ const BookReader = () => {
     { title: 'الخاتمة', page: 40 },
   ];
 
-  // التحقق مما إذا كان المستخدم قد اشترى الكتاب
   const checkPurchaseStatus = async (bookId: string) => {
     try {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) {
-        // المستخدم غير مسجل دخول
         return false;
       }
       
-      const { data: purchases, error } = await supabase
-        .from('book_purchases')
-        .select('*')
-        .eq('book_id', bookId)
-        .eq('user_id', session.session.user.id)
-        .single();
+      const { data, error } = await supabase.rpc('check_book_purchase', {
+        p_book_id: bookId,
+        p_user_id: session.session.user.id
+      });
       
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Error checking purchase status:', error);
         return false;
       }
       
-      return !!purchases; // إذا كان هناك مشتريات، فالمستخدم قد اشترى الكتاب
+      return data;
     } catch (err) {
       console.error('Unexpected error checking purchase status:', err);
       return false;
     }
   };
   
-  // جلب بيانات الكتاب من Supabase
   const fetchBookDetails = async () => {
     try {
       setIsLoading(true);
       
       if (!id) {
-        setError('معرف الكتاب غير صحيح');
+        setError('Invalid book ID');
         return;
       }
       
@@ -80,30 +73,28 @@ const BookReader = () => {
       
       if (error) {
         console.error('Error fetching book details:', error);
-        setError('فشل في تحميل بيانات الكتاب');
+        setError('Failed to load book details');
         return;
       }
       
       if (!data) {
-        setError('الكتاب غير موجود أو غير متاح حالياً');
+        setError('Book not found or currently unavailable');
         return;
       }
       
       setBook(data);
-      setTotalPages(data.pages || 40); // استخدام عدد الصفحات الفعلي أو قيمة افتراضية
+      setTotalPages(data.pages || 40);
       
-      // التحقق مما إذا كان المستخدم قد اشترى الكتاب
       const hasPurchased = await checkPurchaseStatus(id);
       setIsPurchased(hasPurchased);
       
-      // في حالة المعاينة ولم يتم الشراء، عرض صفحات محدودة فقط
       if (isPreview && !hasPurchased) {
-        setTotalPages(5); // عرض 5 صفحات فقط للمعاينة كما هو مطلوب
+        setTotalPages(5);
       }
       
     } catch (err) {
       console.error('Unexpected error:', err);
-      setError('حدث خطأ غير متوقع');
+      setError('An unexpected error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -113,28 +104,24 @@ const BookReader = () => {
     fetchBookDetails();
   }, [id]);
   
-  // تغيير الصفحة
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage);
       
-      // إذا كانت المعاينة والمستخدم يحاول الوصول إلى صفحة بعد نهاية المعاينة
       if (isPreview && newPage > 5 && !isPurchased) {
         toast.error("هذه معاينة محدودة فقط", {
           description: "لقراءة الكتاب كاملاً، يرجى شراؤه",
         });
-        setCurrentPage(5); // العودة إلى آخر صفحة في المعاينة
+        setCurrentPage(5);
         return;
       }
     }
   };
   
-  // التكبير والتصغير
   const handleZoomChange = (newZoom: number[]) => {
     setZoom(newZoom[0]);
   };
   
-  // الانتقال إلى صفحة من الفهرس
   const goToIndexPage = (page: number) => {
     handlePageChange(page);
   };
@@ -160,7 +147,6 @@ const BookReader = () => {
     );
   }
   
-  // توليد صفحات الكتاب الوهمية
   const generatePageSrc = (pageNumber: number) => {
     if (pageNumber === 1) {
       return book.cover_url || `https://source.unsplash.com/random/800x1200?book&sig=${pageNumber}`;
@@ -170,7 +156,6 @@ const BookReader = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-900 text-white relative">
-      {/* شريط الأدوات العلوي */}
       <div className="flex justify-between items-center p-4 bg-gray-800 shadow-md">
         <div className="flex items-center">
           <Button variant="ghost" onClick={() => navigate('/books')} className="mr-2">
@@ -225,9 +210,7 @@ const BookReader = () => {
         </div>
       </div>
       
-      {/* محتوى الكتاب */}
       <div className="flex-1 overflow-hidden relative bg-gray-800 flex flex-col">
-        {/* صفحات الكتاب */}
         <div 
           ref={bookContainerRef}
           className="flex-1 flex justify-center items-center overflow-auto p-4 relative"
@@ -246,13 +229,11 @@ const BookReader = () => {
               className="w-full h-full object-cover rounded-sm"
             />
             
-            {/* ترويسة الصفحة */}
             <div className="absolute top-4 left-4 right-4 flex justify-between text-gray-800 bg-white/70 rounded p-2 text-sm">
               <span>{book.author}</span>
               <span>{currentPage}</span>
             </div>
             
-            {/* إذا كانت آخر صفحة في المعاينة، أظهر إشعار شراء */}
             {isPreview && currentPage === 5 && !isPurchased && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                 <div className="bg-white p-6 rounded-lg shadow-lg max-w-md text-center">
@@ -271,7 +252,6 @@ const BookReader = () => {
             )}
           </div>
           
-          {/* أزرار التنقل بين الصفحات */}
           <Button
             variant="ghost"
             size="icon"
@@ -293,7 +273,6 @@ const BookReader = () => {
           </Button>
         </div>
         
-        {/* شريط التحكم السفلي */}
         <div className="p-3 bg-gray-800 border-t border-gray-700 flex justify-between items-center">
           <div className="flex items-center space-x-2 rtl:space-x-reverse">
             <Button

@@ -30,35 +30,16 @@ const RecommendedBooks = ({ bookId, category }: RecommendedBooksProps) => {
       try {
         setIsLoading(true);
         
-        // Try to get recommendations from the recommendations table
-        const { data: recommendedBooks, error: recommendationsError } = await supabase
-          .from('book_recommendations')
-          .select('recommended_book_id')
-          .eq('book_id', bookId)
-          .limit(4);
+        // Using a stored procedure to get recommendations since types are not updated
+        const { data: recommendedBooks, error } = await supabase.rpc('get_recommended_books', {
+          p_book_id: bookId,
+          p_limit: 4
+        });
         
-        if (recommendationsError) {
-          console.error('Error fetching recommendations:', recommendationsError);
-        }
-        
-        if (recommendedBooks && recommendedBooks.length > 0) {
-          // If recommendations exist, fetch the book details
-          const recommendedIds = recommendedBooks.map(item => item.recommended_book_id);
+        if (error) {
+          console.error('Error fetching recommendations:', error);
           
-          const { data: booksData, error: booksError } = await supabase
-            .from('books')
-            .select('*')
-            .in('id', recommendedIds)
-            .eq('status', 'published')
-            .limit(4);
-          
-          if (booksError) {
-            console.error('Error fetching recommended books:', booksError);
-          } else if (booksData) {
-            setBooks(booksData);
-          }
-        } else {
-          // If no recommendations, fetch books by category
+          // If no recommendations, fetch books by category as fallback
           const { data: similarBooks, error: similarBooksError } = await supabase
             .from('books')
             .select('*')
@@ -73,6 +54,8 @@ const RecommendedBooks = ({ bookId, category }: RecommendedBooksProps) => {
           } else if (similarBooks) {
             setBooks(similarBooks);
           }
+        } else if (recommendedBooks && recommendedBooks.length > 0) {
+          setBooks(recommendedBooks);
         }
       } catch (err) {
         console.error('Unexpected error:', err);

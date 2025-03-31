@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ShoppingCart, ChevronLeft, BookOpen, Star, Check, Award, User, Clock, Calendar, Play } from 'lucide-react';
@@ -26,64 +25,62 @@ const BookDetail = () => {
   const [averageRating, setAverageRating] = useState(0);
   const [reviewCount, setReviewCount] = useState(0);
   
-  // التحقق مما إذا كان المستخدم قد اشترى الكتاب
+  // Check if user has purchased the book
   const checkPurchaseStatus = async (bookId: string) => {
     try {
       const { data: session } = await supabase.auth.getSession();
       if (!session.session) {
-        // المستخدم غير مسجل دخول
+        // User not logged in
         return false;
       }
       
-      const { data: purchases, error } = await supabase
-        .from('book_purchases')
-        .select('*')
-        .eq('book_id', bookId)
-        .eq('user_id', session.session.user.id)
-        .single();
+      // Using RPC to check purchase status since types aren't updated
+      const { data, error } = await supabase.rpc('check_book_purchase', {
+        p_book_id: bookId,
+        p_user_id: session.session.user.id
+      });
       
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Error checking purchase status:', error);
         return false;
       }
       
-      return !!purchases; // إذا كان هناك مشتريات، فالمستخدم قد اشترى الكتاب
+      return data; // Returns true if purchased, false otherwise
     } catch (err) {
       console.error('Unexpected error checking purchase status:', err);
       return false;
     }
   };
   
-  // جلب متوسط التقييمات وعددها
+  // Get average ratings and count
   const fetchRatings = async (bookId: string) => {
     try {
-      const { data, error } = await supabase
-        .from('book_reviews')
-        .select('rating')
-        .eq('book_id', bookId);
+      // Using RPC to get ratings since types aren't updated
+      const { data, error } = await supabase.rpc('get_book_rating', {
+        p_book_id: bookId
+      });
       
       if (error) {
         console.error('Error fetching ratings:', error);
         return;
       }
       
-      if (data && data.length > 0) {
-        const sum = data.reduce((acc, review) => acc + review.rating, 0);
-        setAverageRating(sum / data.length);
-        setReviewCount(data.length);
+      if (data) {
+        setAverageRating(data.average_rating || 0);
+        setReviewCount(data.reviews_count || 0);
       }
     } catch (err) {
       console.error('Unexpected error fetching ratings:', err);
     }
   };
 
-  // جلب بيانات الكتاب من Supabase
+  // Fetch book details from Supabase
   const fetchBookDetails = async () => {
     try {
       setIsLoading(true);
       
       if (!id) {
-        setError('معرف الكتاب غير صحيح');
+        setError('Invalid book ID');
         return;
       }
       
@@ -96,26 +93,26 @@ const BookDetail = () => {
       
       if (error) {
         console.error('Error fetching book details:', error);
-        setError('فشل في تحميل بيانات الكتاب');
+        setError('Failed to load book details');
         return;
       }
       
       if (!data) {
-        setError('الكتاب غير موجود أو غير متاح حالياً');
+        setError('Book not found or currently unavailable');
         return;
       }
       
       setBook(data);
       
-      // التحقق مما إذا كان المستخدم قد اشترى الكتاب
+      // Check if user has purchased the book
       const hasPurchased = await checkPurchaseStatus(id);
       setIsPurchased(hasPurchased);
       
-      // جلب متوسط التقييمات وعددها
+      // Get average ratings and count
       await fetchRatings(id);
     } catch (err) {
       console.error('Unexpected error:', err);
-      setError('حدث خطأ غير متوقع');
+      setError('An unexpected error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -158,16 +155,13 @@ const BookDetail = () => {
         return;
       }
       
-      // In a real app, you would add a payment flow here
-      // For demonstration, we'll add directly to purchases
-      const { error: purchaseError } = await supabase
-        .from('book_purchases')
-        .insert({
-          book_id: id,
-          user_id: session.session.user.id,
-          amount: book.price,
-          currency: book.currency
-        });
+      // Using RPC to create purchase since types aren't updated
+      const { error: purchaseError } = await supabase.rpc('create_book_purchase', {
+        p_book_id: id,
+        p_user_id: session.session.user.id,
+        p_amount: book.price,
+        p_currency: book.currency
+      });
       
       if (purchaseError) {
         if (purchaseError.code === '23505') {
@@ -249,7 +243,7 @@ const BookDetail = () => {
     }).format(date);
   };
 
-  // محتويات الكتاب
+  // Book contents
   const tableOfContents = [
     {
       title: 'الفصل الأول: مقدمة في البيع الاحترافي',
@@ -271,7 +265,7 @@ const BookDetail = () => {
     },
   ];
 
-  // ما ستتعلمه
+  // What you will learn
   const benefits = [
     'تعلم أساسيات ومهارات البيع الاحترافي',
     'تطوير قدراتك في الإقناع والتفاوض',
@@ -282,7 +276,7 @@ const BookDetail = () => {
     'دراسة حالات نجاح واقعية من السوق'
   ];
 
-  // الفئة المستهدفة
+  // Target audience
   const targetAudience = [
     'مندوبي المبيعات الجدد',
     'رواد الأعمال وأصحاب المشاريع الصغيرة',
@@ -319,7 +313,7 @@ const BookDetail = () => {
                     className="prose prose-sm max-w-none pt-0" 
                   />
                 ) : (
-                  <p>دورة شاملة لتعلم أساسيات ومهارات البيع الاحترافي وتقنيات الإقناع والتفاوض لتحسين أدائك كمندوب مبيعات وزيادة معدلات إغلاق الصفقات بنجاح.</p>
+                  <p>دورة شاملة لتعلم أساسيات ومه��رات البيع الاحترافي وتقنيات الإقناع والتفاوض لتحسين أدائك كمندوب مبيعات وزيادة معدلات إغلاق الصفقات بنجاح.</p>
                 )}
               </div>
               

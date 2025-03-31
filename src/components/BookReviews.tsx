@@ -10,8 +10,8 @@ interface Review {
   rating: number;
   review_text: string;
   created_at: string;
-  user_email?: string;
   user_name?: string;
+  user_email?: string;
 }
 
 interface BookReviewsProps {
@@ -28,11 +28,10 @@ const BookReviews = ({ bookId }: BookReviewsProps) => {
     try {
       setIsLoading(true);
       
-      const { data, error } = await supabase
-        .from('book_reviews')
-        .select('*')
-        .eq('book_id', bookId)
-        .order('created_at', { ascending: false });
+      // Using a stored procedure to get reviews since types are not updated
+      const { data, error } = await supabase.rpc('get_book_reviews', {
+        p_book_id: bookId
+      });
       
       if (error) {
         console.error('Error fetching reviews:', error);
@@ -41,13 +40,13 @@ const BookReviews = ({ bookId }: BookReviewsProps) => {
       
       // Calculate average rating
       if (data && data.length > 0) {
-        const sum = data.reduce((acc, review) => acc + review.rating, 0);
+        const sum = data.reduce((acc: number, review: any) => acc + review.rating, 0);
         setAverageRating(sum / data.length);
         setReviewsCount(data.length);
         
         // Fetch user information for each review
         const reviewsWithUserInfo = await Promise.all(
-          data.map(async (review) => {
+          data.map(async (review: any) => {
             // Fetch user profile
             const { data: profileData } = await supabase
               .from('profiles')
