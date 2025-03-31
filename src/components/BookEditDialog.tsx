@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { 
   Dialog, 
@@ -127,7 +126,7 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
       let coverUrl = book.cover_url;
       let pdfUrl = book.pdf_url;
       
-      // تحميل صورة الغلاف الجديدة
+      // تحميل صورة الغ��اف الجديدة
       if (coverFile) {
         // إنشاء اسم فريد للملف
         const fileExt = coverFile.name.split('.').pop();
@@ -276,14 +275,14 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
               <div className="space-y-2">
                 <Label htmlFor="category">الفئة</Label>
                 <Select 
-                  value={formData.category}
-                  onValueChange={(value) => handleSelectChange('category', value)}
+                  value={formData.category || "none"}
+                  onValueChange={(value) => handleSelectChange('category', value === "none" ? "" : value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="اختر فئة" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">بدون فئة</SelectItem>
+                    <SelectItem value="none">بدون فئة</SelectItem>
                     {CATEGORIES.map((category) => (
                       <SelectItem key={category} value={category}>
                         {category}

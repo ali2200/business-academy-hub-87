@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -358,14 +357,14 @@ const BookForm = () => {
                       <div className="space-y-2">
                         <Label htmlFor="category">الفئة</Label>
                         <Select 
-                          value={formData.category}
-                          onValueChange={(value) => handleSelectChange('category', value)}
+                          value={formData.category || "none"}
+                          onValueChange={(value) => handleSelectChange('category', value === "none" ? "" : value)}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="اختر فئة" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">بدون فئة</SelectItem>
+                            <SelectItem value="none">بدون فئة</SelectItem>
                             {CATEGORIES.map((category) => (
                               <SelectItem key={category} value={category}>
                                 {category}
