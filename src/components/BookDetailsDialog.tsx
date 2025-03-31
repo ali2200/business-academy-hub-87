@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Dialog, 
   DialogContent, 
@@ -33,6 +34,8 @@ const BookDetailsDialog: React.FC<BookDetailsDialogProps> = ({
   open,
   onOpenChange
 }) => {
+  const navigate = useNavigate();
+  
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('ar-EG', {
@@ -40,6 +43,20 @@ const BookDetailsDialog: React.FC<BookDetailsDialogProps> = ({
       month: 'long',
       day: 'numeric'
     }).format(date);
+  };
+
+  const handleOpenBookReader = () => {
+    onOpenChange(false); // Close the dialog first
+    setTimeout(() => {
+      navigate(`/book-reader/${book.id}`);
+    }, 100);
+  };
+
+  const handleOpenBookPage = () => {
+    onOpenChange(false); // Close the dialog first
+    setTimeout(() => {
+      navigate(`/books/${book.id}`);
+    }, 100);
   };
 
   return (
@@ -89,7 +106,7 @@ const BookDetailsDialog: React.FC<BookDetailsDialogProps> = ({
               <Button 
                 variant="outline" 
                 className="mt-2 w-full"
-                onClick={() => window.open(`/book-reader/${book.id}`, '_blank')}
+                onClick={handleOpenBookReader}
               >
                 <BookOpen className="ml-2 h-4 w-4" />
                 فتح قارئ الكتاب
@@ -99,7 +116,7 @@ const BookDetailsDialog: React.FC<BookDetailsDialogProps> = ({
             <Button 
               variant="outline" 
               className="mt-2 w-full"
-              onClick={() => window.open(`/books/${book.id}`, '_blank')}
+              onClick={handleOpenBookPage}
             >
               <ExternalLink className="ml-2 h-4 w-4" />
               عرض صفحة الكتاب
