@@ -927,4 +927,4 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
             <div className="border rounded-lg p-4 bg-gray-50">
               <div className="space-y-3">
                 {formData.what_you_will_learn && formData.what_you_will_learn.length > 0 ? (
-                  <ul className="space-y
+                  <ul className="
