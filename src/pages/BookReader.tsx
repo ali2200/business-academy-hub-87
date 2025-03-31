@@ -33,6 +33,34 @@ const BookReader = () => {
     { title: 'الفصل الخامس: إغلاق الصفقات', page: 32 },
     { title: 'الخاتمة', page: 40 },
   ];
+
+  // التحقق مما إذا كان المستخدم قد اشترى الكتاب
+  const checkPurchaseStatus = async (bookId: string) => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) {
+        // المستخدم غير مسجل دخول
+        return false;
+      }
+      
+      const { data: purchases, error } = await supabase
+        .from('book_purchases')
+        .select('*')
+        .eq('book_id', bookId)
+        .eq('user_id', session.session.user.id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error checking purchase status:', error);
+        return false;
+      }
+      
+      return !!purchases; // إذا كان هناك مشتريات، فالمستخدم قد اشترى الكتاب
+    } catch (err) {
+      console.error('Unexpected error checking purchase status:', err);
+      return false;
+    }
+  };
   
   // جلب بيانات الكتاب من Supabase
   const fetchBookDetails = async () => {
@@ -64,19 +92,13 @@ const BookReader = () => {
       setBook(data);
       setTotalPages(data.pages || 40); // استخدام عدد الصفحات الفعلي أو قيمة افتراضية
       
-      // في النسخة الحقيقية، يجب التحقق مما إذا كان المستخدم قد اشترى الكتاب
-      // هنا يمكن إضافة منطق للتحقق من شراء الكتاب
-      // للآن، نفترض أنه غير مشترى في وضع المعاينة
+      // التحقق مما إذا كان المستخدم قد اشترى الكتاب
+      const hasPurchased = await checkPurchaseStatus(id);
+      setIsPurchased(hasPurchased);
       
-      // Check if this is a preview or if user has purchased the book
-      // In a real app, we would query the purchases or orders table
-      if (isPreview) {
-        setIsPurchased(false); // Not purchased in preview mode
-        setTotalPages(4); // عرض 4 صفحات فقط للمعاينة
-      } else {
-        // For now, we'll assume it's purchased if not in preview mode
-        // In a real app, you would check the user's purchases
-        setIsPurchased(true);
+      // في حالة المعاينة ولم يتم الشراء، عرض صفحات محدودة فقط
+      if (isPreview && !hasPurchased) {
+        setTotalPages(5); // عرض 5 صفحات فقط للمعاينة كما هو مطلوب
       }
       
     } catch (err) {
@@ -97,11 +119,11 @@ const BookReader = () => {
       setCurrentPage(newPage);
       
       // إذا كانت المعاينة والمستخدم يحاول الوصول إلى صفحة بعد نهاية المعاينة
-      if (isPreview && newPage > 4 && !isPurchased) {
+      if (isPreview && newPage > 5 && !isPurchased) {
         toast.error("هذه معاينة محدودة فقط", {
           description: "لقراءة الكتاب كاملاً، يرجى شراؤه",
         });
-        setCurrentPage(4); // العودة إلى آخر صفحة في المعاينة
+        setCurrentPage(5); // العودة إلى آخر صفحة في المعاينة
         return;
       }
     }
@@ -231,7 +253,7 @@ const BookReader = () => {
             </div>
             
             {/* إذا كانت آخر صفحة في المعاينة، أظهر إشعار شراء */}
-            {isPreview && currentPage === 4 && !isPurchased && (
+            {isPreview && currentPage === 5 && !isPurchased && (
               <div className="absolute inset-0 flex items-center justify-center bg-black/40">
                 <div className="bg-white p-6 rounded-lg shadow-lg max-w-md text-center">
                   <h3 className="text-xl font-bold text-primary mb-2">انتهت المعاينة</h3>

@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import HtmlPreview from '@/components/HtmlPreview';
-import BookPreviewDialog from '@/components/BookPreviewDialog';
+import BookReviews from '@/components/BookReviews';
+import RecommendedBooks from '@/components/RecommendedBooks';
 
 const BookDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -21,7 +22,60 @@ const BookDetail = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [book, setBook] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showPreview, setShowPreview] = useState(false);
+  const [isPurchased, setIsPurchased] = useState(false);
+  const [averageRating, setAverageRating] = useState(0);
+  const [reviewCount, setReviewCount] = useState(0);
+  
+  // التحقق مما إذا كان المستخدم قد اشترى الكتاب
+  const checkPurchaseStatus = async (bookId: string) => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) {
+        // المستخدم غير مسجل دخول
+        return false;
+      }
+      
+      const { data: purchases, error } = await supabase
+        .from('book_purchases')
+        .select('*')
+        .eq('book_id', bookId)
+        .eq('user_id', session.session.user.id)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        console.error('Error checking purchase status:', error);
+        return false;
+      }
+      
+      return !!purchases; // إذا كان هناك مشتريات، فالمستخدم قد اشترى الكتاب
+    } catch (err) {
+      console.error('Unexpected error checking purchase status:', err);
+      return false;
+    }
+  };
+  
+  // جلب متوسط التقييمات وعددها
+  const fetchRatings = async (bookId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from('book_reviews')
+        .select('rating')
+        .eq('book_id', bookId);
+      
+      if (error) {
+        console.error('Error fetching ratings:', error);
+        return;
+      }
+      
+      if (data && data.length > 0) {
+        const sum = data.reduce((acc, review) => acc + review.rating, 0);
+        setAverageRating(sum / data.length);
+        setReviewCount(data.length);
+      }
+    } catch (err) {
+      console.error('Unexpected error fetching ratings:', err);
+    }
+  };
 
   // جلب بيانات الكتاب من Supabase
   const fetchBookDetails = async () => {
@@ -52,6 +106,13 @@ const BookDetail = () => {
       }
       
       setBook(data);
+      
+      // التحقق مما إذا كان المستخدم قد اشترى الكتاب
+      const hasPurchased = await checkPurchaseStatus(id);
+      setIsPurchased(hasPurchased);
+      
+      // جلب متوسط التقييمات وعددها
+      await fetchRatings(id);
     } catch (err) {
       console.error('Unexpected error:', err);
       setError('حدث خطأ غير متوقع');
@@ -72,14 +133,74 @@ const BookDetail = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [id]);
 
-  const handleBuy = () => {
-    toast.success("تم إضافة الكتاب إلى سلة المشتريات", {
-      description: "يمكنك متابعة عملية الشراء الآن",
-      action: {
-        label: "عرض السلة",
-        onClick: () => console.log("Redirecting to cart"),
-      },
-    });
+  const handleBuy = async () => {
+    try {
+      // Check if user is logged in
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session) {
+        toast.error("يجب تسجيل الدخول أولاً للشراء", {
+          action: {
+            label: "تسجيل الدخول",
+            onClick: () => navigate('/signin'),
+          },
+        });
+        return;
+      }
+      
+      // Check if already purchased
+      if (isPurchased) {
+        toast.info("لقد اشتريت هذا الكتاب بالفعل", {
+          action: {
+            label: "قراءة الكتاب",
+            onClick: () => navigate(`/book-reader/${id}`),
+          },
+        });
+        return;
+      }
+      
+      // In a real app, you would add a payment flow here
+      // For demonstration, we'll add directly to purchases
+      const { error: purchaseError } = await supabase
+        .from('book_purchases')
+        .insert({
+          book_id: id,
+          user_id: session.session.user.id,
+          amount: book.price,
+          currency: book.currency
+        });
+      
+      if (purchaseError) {
+        if (purchaseError.code === '23505') {
+          toast.info("لقد اشتريت هذا الكتاب بالفعل", {
+            action: {
+              label: "قراءة الكتاب",
+              onClick: () => navigate(`/book-reader/${id}`),
+            },
+          });
+          setIsPurchased(true);
+          return;
+        }
+        
+        console.error('Error purchasing book:', purchaseError);
+        toast.error("فشل في إتمام عملية الشراء");
+        return;
+      }
+      
+      // Update purchase status
+      setIsPurchased(true);
+      
+      // Show success message
+      toast.success("تم شراء الكتاب بنجاح", {
+        description: "يمكنك الآن قراءة الكتاب كاملاً",
+        action: {
+          label: "قراءة الكتاب",
+          onClick: () => navigate(`/book-reader/${id}`),
+        },
+      });
+    } catch (err) {
+      console.error('Unexpected error:', err);
+      toast.error("حدث خطأ غير متوقع أثناء الشراء");
+    }
   };
   
   const handleReadBook = () => {
@@ -87,7 +208,7 @@ const BookDetail = () => {
   };
 
   const handlePreviewBook = () => {
-    setShowPreview(true);
+    navigate(`/book-reader/${id}?preview=true`);
   };
 
   if (isLoading) {
@@ -119,9 +240,14 @@ const BookDetail = () => {
     );
   }
 
-  // تحضير البيانات لعرضها
-  const rating = 4.7; 
-  const reviewCount = 85;
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat('ar-EG', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    }).format(date);
+  };
 
   // محتويات الكتاب
   const tableOfContents = [
@@ -163,23 +289,6 @@ const BookDetail = () => {
     'مديري المبيعات والتسويق',
     'أي شخص يرغب في تحسين مهارات البيع والإقناع'
   ];
-
-  // المحتويات
-  const contents = [
-    'لا يشترط خبرة سابقة في المبيعات',
-    'الرغبة في تعلم مهارات البيع الاحترافي',
-    'الالتزام بتطبيق التمارين العملية',
-    'جهاز كمبيوتر أو هاتف ذكي للوصول إلى المحتوى'
-  ];
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('ar-EG', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    }).format(date);
-  };
 
   return (
     <div className="min-h-screen">
@@ -234,8 +343,8 @@ const BookDetail = () => {
                 <div className="flex flex-col items-center">
                   <Star className="w-6 h-6 text-primary mb-2 fill-yellow-400 text-yellow-400" />
                   <div className="text-sm text-gray-600">
-                    <span className="font-bold text-primary block text-lg">{rating}</span>
-                    تقييم
+                    <span className="font-bold text-primary block text-lg">{averageRating.toFixed(1)}</span>
+                    تقييم ({reviewCount})
                   </div>
                 </div>
               </div>
@@ -267,8 +376,18 @@ const BookDetail = () => {
                   onClick={handlePreviewBook}
                 >
                   <Play size={20} />
-                  <span className="text-lg">شاهد مقدمة الكتاب</span>
+                  <span className="text-lg">شاهد معاينة الكتاب</span>
                 </Button>
+                
+                {isPurchased && (
+                  <Button 
+                    className="bg-green-600 hover:bg-green-700 text-white px-8 py-6 rounded-xl flex items-center justify-center space-x-2 rtl:space-x-reverse shadow-lg hover:shadow-xl transition-all"
+                    onClick={handleReadBook}
+                  >
+                    <BookOpen size={20} />
+                    <span className="text-lg">قراءة الكتاب</span>
+                  </Button>
+                )}
               </div>
             </div>
             
@@ -338,7 +457,7 @@ const BookDetail = () => {
                     />
                   ) : (
                     <p className="text-gray-700 mb-8 leading-relaxed">
-                      دورة شاملة لتعلم أساسيات ومهارات البيع الاحترافي وتقنيات الإقناع والتفاوض لتحسين أدائك كمندوب مبيعات وزيادة معدلات إغلاق الصفقات بنجاح.
+                      كتاب شامل لتعلم أساسيات ومهارات البيع الاحترافي وتقنيات الإقناع والتفاوض لتحسين أدائك كمندوب مبيعات وزيادة معدلات إغلاق الصفقات بنجاح.
                     </p>
                   )}
                   
@@ -358,16 +477,6 @@ const BookDetail = () => {
                       <li key={index} className="flex items-start mb-2">
                         <div className="h-2 w-2 bg-primary rounded-full mt-2 ml-3 flex-shrink-0"></div>
                         <span>{audience}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  
-                  <h3 className="text-xl font-bold mb-4 text-primary">المحتويات</h3>
-                  <ul className="mb-8">
-                    {contents.map((content, index) => (
-                      <li key={index} className="flex items-start mb-2">
-                        <div className="h-2 w-2 bg-primary rounded-full mt-2 ml-3 flex-shrink-0"></div>
-                        <span>{content}</span>
                       </li>
                     ))}
                   </ul>
@@ -398,27 +507,7 @@ const BookDetail = () => {
                 
                 <TabsContent value="reviews" className="bg-white rounded-xl p-6 shadow-sm animate-fade-in">
                   <h2 className="text-2xl font-bold mb-6 text-primary">تقييمات القراء</h2>
-                  <div className="flex flex-col md:flex-row gap-8 mb-8">
-                    <div className="bg-gray-50 p-6 rounded-lg text-center flex-shrink-0">
-                      <div className="text-5xl font-bold text-primary mb-2">{rating}</div>
-                      <div className="flex justify-center text-yellow-400 mb-2">
-                        {[...Array(5)].map((_, i) => (
-                          <Star 
-                            key={i} 
-                            size={18}
-                            className={i < Math.floor(rating) ? "fill-yellow-400" : "fill-gray-300"}
-                          />
-                        ))}
-                      </div>
-                      <div className="text-gray-500">{reviewCount} تقييم</div>
-                    </div>
-                    
-                    <div className="flex-grow">
-                      <p className="text-gray-600 text-center py-12">
-                        لا توجد تقييمات لهذا الكتاب حالياً، كن أول من يقيم هذا الكتاب
-                      </p>
-                    </div>
-                  </div>
+                  <BookReviews bookId={id!} />
                 </TabsContent>
               </Tabs>
             </div>
@@ -457,33 +546,32 @@ const BookDetail = () => {
                     </div>
                   </div>
                   
-                  <Button 
-                    className="w-full bg-secondary hover:bg-secondary-light text-white py-6 rounded-xl flex items-center justify-center space-x-2 rtl:space-x-reverse shadow-lg hover:shadow-xl transition-all mb-4"
-                    onClick={handleBuy}
-                  >
-                    <ShoppingCart size={20} />
-                    <span className="text-lg">اشتري الآن</span>
-                  </Button>
-                  
-                  <Button 
-                    variant="outline" 
-                    className="w-full border-primary text-primary hover:bg-primary hover:text-white py-6 rounded-xl flex items-center justify-center space-x-2 rtl:space-x-reverse transition-all mb-4"
-                    onClick={handlePreviewBook}
-                  >
-                    <Play size={20} />
-                    <span className="text-lg">شاهد مقدمة الكتاب</span>
-                  </Button>
-                  
-                  {book.pdf_url && (
+                  {isPurchased ? (
                     <Button 
-                      variant="outline" 
-                      className="w-full border-primary text-primary hover:bg-primary hover:text-white py-6 rounded-xl flex items-center justify-center space-x-2 rtl:space-x-reverse transition-all"
+                      className="w-full bg-green-600 hover:bg-green-700 text-white py-6 rounded-xl flex items-center justify-center space-x-2 rtl:space-x-reverse shadow-lg hover:shadow-xl transition-all mb-4"
                       onClick={handleReadBook}
                     >
                       <BookOpen size={20} />
                       <span className="text-lg">قراءة الكتاب</span>
                     </Button>
+                  ) : (
+                    <Button 
+                      className="w-full bg-secondary hover:bg-secondary-light text-white py-6 rounded-xl flex items-center justify-center space-x-2 rtl:space-x-reverse shadow-lg hover:shadow-xl transition-all mb-4"
+                      onClick={handleBuy}
+                    >
+                      <ShoppingCart size={20} />
+                      <span className="text-lg">اشتري الآن</span>
+                    </Button>
                   )}
+                  
+                  <Button 
+                    variant="outline" 
+                    className="w-full border-primary text-primary hover:bg-primary hover:text-white py-6 rounded-xl flex items-center justify-center space-x-2 rtl:space-x-reverse transition-all"
+                    onClick={handlePreviewBook}
+                  >
+                    <Play size={20} />
+                    <span className="text-lg">معاينة الكتاب</span>
+                  </Button>
                   
                   <div className="mt-6 p-4 bg-gray-50 rounded-lg">
                     <h4 className="font-bold text-primary mb-2">مميزات الشراء</h4>
@@ -513,12 +601,13 @@ const BookDetail = () => {
         </div>
       </section>
       
-      {/* Book Preview Dialog */}
-      <BookPreviewDialog
-        book={book}
-        open={showPreview}
-        onOpenChange={setShowPreview}
-      />
+      {/* Recommended Books Section */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold mb-10 text-center">كتب مشابهة قد تعجبك</h2>
+          <RecommendedBooks bookId={id!} category={book.category} />
+        </div>
+      </section>
       
       <Footer />
     </div>

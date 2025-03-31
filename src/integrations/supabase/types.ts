@@ -62,6 +62,118 @@ export type Database = {
           },
         ]
       }
+      book_purchases: {
+        Row: {
+          amount: number
+          book_id: string
+          currency: string | null
+          id: string
+          purchased_at: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          book_id: string
+          currency?: string | null
+          id?: string
+          purchased_at?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          book_id?: string
+          currency?: string | null
+          id?: string
+          purchased_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_purchases_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      book_recommendations: {
+        Row: {
+          book_id: string
+          created_at: string | null
+          id: string
+          recommended_book_id: string
+          weight: number | null
+        }
+        Insert: {
+          book_id: string
+          created_at?: string | null
+          id?: string
+          recommended_book_id: string
+          weight?: number | null
+        }
+        Update: {
+          book_id?: string
+          created_at?: string | null
+          id?: string
+          recommended_book_id?: string
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_recommendations_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "book_recommendations_recommended_book_id_fkey"
+            columns: ["recommended_book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      book_reviews: {
+        Row: {
+          book_id: string
+          created_at: string | null
+          id: string
+          rating: number
+          review_text: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          book_id: string
+          created_at?: string | null
+          id?: string
+          rating: number
+          review_text?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          book_id?: string
+          created_at?: string | null
+          id?: string
+          rating?: number
+          review_text?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "book_reviews_book_id_fkey"
+            columns: ["book_id"]
+            isOneToOne: false
+            referencedRelation: "books"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       books: {
         Row: {
           author: string
@@ -73,6 +185,7 @@ export type Database = {
           id: string
           pages: number | null
           pdf_url: string | null
+          preview_available: boolean | null
           price: number
           purchases_count: number | null
           status: string | null
@@ -89,6 +202,7 @@ export type Database = {
           id?: string
           pages?: number | null
           pdf_url?: string | null
+          preview_available?: boolean | null
           price: number
           purchases_count?: number | null
           status?: string | null
@@ -105,6 +219,7 @@ export type Database = {
           id?: string
           pages?: number | null
           pdf_url?: string | null
+          preview_available?: boolean | null
           price?: number
           purchases_count?: number | null
           status?: string | null
