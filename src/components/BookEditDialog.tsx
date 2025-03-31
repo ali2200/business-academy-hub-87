@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Dialog, 
@@ -927,3 +928,239 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
               <div className="space-y-3">
                 {formData.what_you_will_learn && formData.what_you_will_learn.length > 0 ? (
                   <ul className="space-y-2">
+                    {formData.what_you_will_learn.map((item, index) => (
+                      <li key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border">
+                        <span className="flex-1">{item}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeLearningItem(index)}
+                          className="h-8 w-8 text-red-500"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-center text-gray-500 py-4">لا توجد نقاط تعليمية بعد</p>
+                )}
+                
+                <div className="flex items-center gap-2 mt-4">
+                  <Input
+                    value={newLearningItem}
+                    onChange={(e) => setNewLearningItem(e.target.value)}
+                    placeholder="أضف نقطة جديدة..."
+                    className="flex-1"
+                    onKeyDown={(e) => e.key === 'Enter' && addLearningItem()}
+                  />
+                  <Button
+                    type="button"
+                    onClick={addLearningItem}
+                    variant="outline"
+                    className="shrink-0"
+                    disabled={!newLearningItem.trim()}
+                  >
+                    <Plus className="h-4 w-4 ml-1" />
+                    إضافة
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+          
+          {/* Tab: الفئة المستهدفة (Target Audience) */}
+          <TabsContent value="audience" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <Label>الفئة المستهدفة</Label>
+              <p className="text-xs text-gray-500">
+                من هم الأشخاص الذين سيستفيدون من هذا الكتاب؟
+              </p>
+            </div>
+            
+            <div className="border rounded-lg p-4 bg-gray-50">
+              <div className="space-y-3">
+                {formData.target_audience && formData.target_audience.length > 0 ? (
+                  <ul className="space-y-2">
+                    {formData.target_audience.map((item, index) => (
+                      <li key={index} className="flex items-center justify-between p-3 bg-white rounded-lg border">
+                        <span className="flex-1">{item}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeTargetAudienceItem(index)}
+                          className="h-8 w-8 text-red-500"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-center text-gray-500 py-4">لم يتم تحديد الفئة المستهدفة بعد</p>
+                )}
+                
+                <div className="flex items-center gap-2 mt-4">
+                  <Input
+                    value={newTargetAudienceItem}
+                    onChange={(e) => setNewTargetAudienceItem(e.target.value)}
+                    placeholder="أضف فئة مستهدفة..."
+                    className="flex-1"
+                    onKeyDown={(e) => e.key === 'Enter' && addTargetAudienceItem()}
+                  />
+                  <Button
+                    type="button"
+                    onClick={addTargetAudienceItem}
+                    variant="outline"
+                    className="shrink-0"
+                    disabled={!newTargetAudienceItem.trim()}
+                  >
+                    <Plus className="h-4 w-4 ml-1" />
+                    إضافة
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+          
+          {/* Tab: محتويات الكتاب (Table of Contents) */}
+          <TabsContent value="toc" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <Label>محتويات الكتاب</Label>
+              <p className="text-xs text-gray-500">
+                أضف فصول وموضوعات الكتاب
+              </p>
+            </div>
+            
+            <div className="border rounded-lg p-4 bg-gray-50">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={newChapter}
+                    onChange={(e) => setNewChapter(e.target.value)}
+                    placeholder="عنوان الفصل الجديد..."
+                    className="flex-1"
+                    onKeyDown={(e) => e.key === 'Enter' && addChapter()}
+                  />
+                  <Button
+                    type="button"
+                    onClick={addChapter}
+                    variant="outline"
+                    className="shrink-0"
+                    disabled={!newChapter.trim()}
+                  >
+                    <Plus className="h-4 w-4 ml-1" />
+                    إضافة فصل
+                  </Button>
+                </div>
+                
+                {formData.table_of_contents && formData.table_of_contents.length > 0 ? (
+                  <div className="mt-6 space-y-4">
+                    {formData.table_of_contents.map((chapter, chapterIndex) => (
+                      <div key={chapterIndex} className="border rounded-lg overflow-hidden">
+                        <div className="flex items-center justify-between p-3 bg-primary-foreground">
+                          <h4 className="font-medium">{chapter.chapter}</h4>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setSelectedChapterIndex(selectedChapterIndex === chapterIndex ? null : chapterIndex)}
+                              className="h-8 w-8"
+                            >
+                              {selectedChapterIndex === chapterIndex ? (
+                                <X className="h-4 w-4" />
+                              ) : (
+                                <Plus className="h-4 w-4" />
+                              )}
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => removeChapter(chapterIndex)}
+                              className="h-8 w-8 text-red-500"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        {selectedChapterIndex === chapterIndex && (
+                          <div className="p-3 border-t">
+                            <div className="flex items-center gap-2 mb-3">
+                              <Input
+                                value={newTopic}
+                                onChange={(e) => setNewTopic(e.target.value)}
+                                placeholder="عنوان الموضوع..."
+                                className="flex-1"
+                                onKeyDown={(e) => e.key === 'Enter' && addTopic()}
+                              />
+                              <Button
+                                type="button"
+                                onClick={addTopic}
+                                variant="outline"
+                                size="sm"
+                                className="shrink-0"
+                                disabled={!newTopic.trim()}
+                              >
+                                إضافة
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {chapter.topics && chapter.topics.length > 0 && (
+                          <ul className="p-3 pt-0 list-disc list-inside">
+                            {chapter.topics.map((topic, topicIndex) => (
+                              <li key={topicIndex} className="flex items-center justify-between py-1">
+                                <span className="flex-1">{topic}</span>
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => removeTopic(chapterIndex, topicIndex)}
+                                  className="h-6 w-6 text-red-500"
+                                >
+                                  <X className="h-3 w-3" />
+                                </Button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-center text-gray-500 py-4">لم يتم إضافة فصول بعد</p>
+                )}
+              </div>
+            </div>
+          </TabsContent>
+        </Tabs>
+        
+        <DialogFooter className="mt-6">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="ml-2"
+          >
+            إلغاء
+          </Button>
+          <Button 
+            type="button" 
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? 'جاري الحفظ...' : 'حفظ التغييرات'}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default BookEditDialog;
