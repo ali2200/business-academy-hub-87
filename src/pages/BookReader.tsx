@@ -39,17 +39,22 @@ const BookReader = () => {
         return false;
       }
       
-      const { data, error } = await supabase.rpc('check_book_purchase', {
-        p_book_id: bookId,
-        p_user_id: session.session.user.id
-      });
+      const { data, error } = await supabase
+        .from('book_purchases')
+        .select('*')
+        .eq('book_id', bookId)
+        .eq('user_id', session.session.user.id)
+        .single();
       
       if (error) {
+        if (error.code === 'PGRST116') {
+          return false;
+        }
         console.error('Error checking purchase status:', error);
         return false;
       }
       
-      return data;
+      return !!data;
     } catch (err) {
       console.error('Unexpected error checking purchase status:', err);
       return false;

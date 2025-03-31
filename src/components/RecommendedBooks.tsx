@@ -30,33 +30,41 @@ const RecommendedBooks = ({ bookId, category }: RecommendedBooksProps) => {
       try {
         setIsLoading(true);
         
-        // Using a stored procedure to get recommendations since types are not updated
-        const { data: recommendedBooks, error } = await supabase.rpc('get_recommended_books', {
-          p_book_id: bookId,
-          p_limit: 4
-        });
+        // Try to fetch books with same category first
+        let booksData: Book[] = [];
+        
+        // Query for books in the same category
+        const { data, error } = await supabase
+          .from('books')
+          .select('*')
+          .eq('status', 'published')
+          .eq(category ? 'category' : 'id', category || 'placeholder') // Use category if provided
+          .neq('id', bookId) // Exclude current book
+          .order('created_at', { ascending: false })
+          .limit(4);
         
         if (error) {
-          console.error('Error fetching recommendations:', error);
-          
-          // If no recommendations, fetch books by category as fallback
-          const { data: similarBooks, error: similarBooksError } = await supabase
+          console.error('Error fetching similar books by category:', error);
+        } else if (data && data.length > 0) {
+          booksData = data;
+        } else {
+          // Fallback: Get latest books if no category matches
+          const { data: latestBooks, error: latestError } = await supabase
             .from('books')
             .select('*')
             .eq('status', 'published')
-            .eq(category ? 'category' : 'id', category || bookId) // Use category if provided
-            .neq('id', bookId) // Exclude current book
+            .neq('id', bookId)
             .order('created_at', { ascending: false })
             .limit(4);
           
-          if (similarBooksError) {
-            console.error('Error fetching similar books:', similarBooksError);
-          } else if (similarBooks) {
-            setBooks(similarBooks);
+          if (latestError) {
+            console.error('Error fetching latest books:', latestError);
+          } else if (latestBooks) {
+            booksData = latestBooks;
           }
-        } else if (recommendedBooks) {
-          setBooks(recommendedBooks);
         }
+        
+        setBooks(booksData);
       } catch (err) {
         console.error('Unexpected error:', err);
       } finally {

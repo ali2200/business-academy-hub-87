@@ -32,17 +32,22 @@ const BookDetail = () => {
         return false;
       }
       
-      const { data, error } = await supabase.rpc('check_book_purchase', {
-        p_book_id: bookId,
-        p_user_id: session.session.user.id
-      });
+      const { data, error } = await supabase
+        .from('book_purchases')
+        .select('*')
+        .eq('book_id', bookId)
+        .eq('user_id', session.session.user.id)
+        .single();
       
       if (error) {
+        if (error.code === 'PGRST116') {
+          return false;
+        }
         console.error('Error checking purchase status:', error);
         return false;
       }
       
-      return data;
+      return !!data;
     } catch (err) {
       console.error('Unexpected error checking purchase status:', err);
       return false;
@@ -51,18 +56,23 @@ const BookDetail = () => {
 
   const fetchRatings = async (bookId: string) => {
     try {
-      const { data, error } = await supabase.rpc('get_book_rating', {
-        p_book_id: bookId
-      });
+      const { data, error } = await supabase
+        .from('book_reviews')
+        .select('rating')
+        .eq('book_id', bookId);
       
       if (error) {
         console.error('Error fetching ratings:', error);
         return;
       }
       
-      if (data) {
-        setAverageRating(data.average_rating || 0);
-        setReviewCount(data.reviews_count || 0);
+      if (data && data.length > 0) {
+        const sum = data.reduce((acc, review) => acc + review.rating, 0);
+        setAverageRating(sum / data.length);
+        setReviewCount(data.length);
+      } else {
+        setAverageRating(0);
+        setReviewCount(0);
       }
     } catch (err) {
       console.error('Unexpected error fetching ratings:', err);
@@ -145,12 +155,14 @@ const BookDetail = () => {
         return;
       }
       
-      const { error: purchaseError } = await supabase.rpc('create_book_purchase', {
-        p_book_id: id,
-        p_user_id: session.session.user.id,
-        p_amount: book.price,
-        p_currency: book.currency
-      });
+      const { error: purchaseError } = await supabase
+        .from('book_purchases')
+        .insert({
+          book_id: id,
+          user_id: session.session.user.id,
+          amount: book.price,
+          currency: book.currency
+        });
       
       if (purchaseError) {
         if (purchaseError.code === '23505') {
@@ -241,7 +253,7 @@ const BookDetail = () => {
       ]
     },
     {
-      title: 'الفصل الثاني: استراتيجيات البيع الحديثة',
+      title: 'الفصل الثاني: استراتي��يات البيع الحديثة',
       sections: [
         'البيع القائم على القيمة',
         'البيع القائم على العلاقات',

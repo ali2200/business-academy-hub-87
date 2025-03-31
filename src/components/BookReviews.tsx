@@ -28,10 +28,12 @@ const BookReviews = ({ bookId }: BookReviewsProps) => {
     try {
       setIsLoading(true);
       
-      // Using a stored procedure to get reviews since types are not updated
-      const { data, error } = await supabase.rpc('get_book_reviews', {
-        p_book_id: bookId
-      });
+      // Using a direct query to the book_reviews table
+      const { data, error } = await supabase
+        .from('book_reviews')
+        .select('*')
+        .eq('book_id', bookId)
+        .order('created_at', { ascending: false });
       
       if (error) {
         console.error('Error fetching reviews:', error);

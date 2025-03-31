@@ -33,13 +33,15 @@ const BookReviewForm = ({ bookId, onReviewSubmitted }: BookReviewFormProps) => {
         return;
       }
       
-      // Submit the review using a direct query since types aren't updated yet
-      const { error } = await supabase.rpc('create_book_review', {
-        p_book_id: bookId,
-        p_user_id: session.session.user.id,
-        p_rating: rating,
-        p_review_text: data.review
-      });
+      // Submit the review using a direct query to the book_reviews table
+      const { error } = await supabase
+        .from('book_reviews')
+        .insert({
+          book_id: bookId,
+          user_id: session.session.user.id,
+          rating: rating,
+          review_text: data.review
+        });
       
       if (error) {
         console.error('Error submitting review:', error);
