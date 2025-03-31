@@ -18,3 +18,6 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     fetch: fetch
   }
 });
+
+// Export the SUPABASE_URL separately to avoid using the protected property
+export { SUPABASE_URL };

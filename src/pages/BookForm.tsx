@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -15,7 +14,7 @@ import {
 } from 'lucide-react';
 import { toast } from "sonner";
 import { v4 as uuidv4 } from 'uuid';
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_URL } from "@/integrations/supabase/client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -48,10 +47,23 @@ const CATEGORIES = [
   'تطوير ذاتي',
 ];
 
+interface FormData {
+  title: string;
+  author: string;
+  description: string;
+  price: string | number;
+  category: string;
+  pages: string | number;
+  status: string;
+  currency: string;
+  cover_url?: string;
+  pdf_url?: string;
+}
+
 const BookForm = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('details');
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     title: '',
     author: '',
     description: '',
@@ -60,6 +72,8 @@ const BookForm = () => {
     pages: '',
     status: 'draft',
     currency: 'EGP',
+    cover_url: '',
+    pdf_url: '',
   });
   
   const [coverFile, setCoverFile] = useState<File | null>(null);

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Dialog, 
@@ -21,7 +20,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, SUPABASE_URL } from "@/integrations/supabase/client";
 import { BookOpen, Upload, FileText, X, Link, ExternalLink, CheckCircle2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import RichTextEditor from '@/components/RichTextEditor';
@@ -33,6 +32,19 @@ interface BookEditDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onBookUpdated: () => void;
+}
+
+interface FormData {
+  title: string;
+  author: string;
+  description: string;
+  price: string | number;
+  category: string;
+  pages: string | number;
+  status: string;
+  currency: string;
+  cover_url?: string;
+  pdf_url?: string;
 }
 
 const CATEGORIES = [
@@ -50,7 +62,7 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
   onBookUpdated
 }) => {
   const [activeTab, setActiveTab] = useState('details');
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     title: book.title || '',
     author: book.author || '',
     description: book.description || '',
@@ -59,19 +71,21 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
     pages: book.pages || '',
     status: book.status || 'draft',
     currency: book.currency || 'EGP',
+    cover_url: book.cover_url || '',
+    pdf_url: book.pdf_url || '',
   });
   
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(book.cover_url);
   const [coverUrl, setCoverUrl] = useState<string>(book.cover_url || '');
-  const [useExternalCoverUrl, setUseExternalCoverUrl] = useState<boolean>(!!book.cover_url && !book.cover_url.includes(supabase.supabaseUrl));
+  const [useExternalCoverUrl, setUseExternalCoverUrl] = useState<boolean>(!!book.cover_url && !book.cover_url.includes(SUPABASE_URL));
 
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [pdfFileName, setPdfFileName] = useState<string | null>(
     book.pdf_url ? book.pdf_url.split('/').pop() : null
   );
   const [pdfUrl, setPdfUrl] = useState<string>(book.pdf_url || '');
-  const [useExternalPdfUrl, setUseExternalPdfUrl] = useState<boolean>(!!book.pdf_url && !book.pdf_url.includes(supabase.supabaseUrl));
+  const [useExternalPdfUrl, setUseExternalPdfUrl] = useState<boolean>(!!book.pdf_url && !book.pdf_url.includes(SUPABASE_URL));
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [previewContent, setPreviewContent] = useState(false);
@@ -79,10 +93,9 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
   const coverInputRef = useRef<HTMLInputElement>(null);
   const pdfInputRef = useRef<HTMLInputElement>(null);
 
-  // Initialize external URL states based on the book URLs
   useEffect(() => {
     if (book.cover_url) {
-      const isExternalCover = !book.cover_url.includes(supabase.supabaseUrl);
+      const isExternalCover = !book.cover_url.includes(SUPABASE_URL);
       setUseExternalCoverUrl(isExternalCover);
       if (isExternalCover) {
         setCoverUrl(book.cover_url);
@@ -90,7 +103,7 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
     }
 
     if (book.pdf_url) {
-      const isExternalPdf = !book.pdf_url.includes(supabase.supabaseUrl);
+      const isExternalPdf = !book.pdf_url.includes(SUPABASE_URL);
       setUseExternalPdfUrl(isExternalPdf);
       if (isExternalPdf) {
         setPdfUrl(book.pdf_url);
@@ -113,7 +126,6 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
       setCoverFile(file);
       setUseExternalCoverUrl(false);
       
-      // Create preview URL
       const reader = new FileReader();
       reader.onloadend = () => {
         setCoverPreview(reader.result as string);
@@ -179,7 +191,6 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
       return false;
     }
 
-    // Check if we have at least a cover image (either file or URL)
     const hasCover = coverFile || (useExternalCoverUrl && coverUrl);
     if (!hasCover) {
       toast.error('يرجى تحميل صورة غلاف الكتاب أو إضافة رابط للصورة');
@@ -187,7 +198,6 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
       return false;
     }
 
-    // Check if we have at least a PDF file (either file or URL)
     const hasPdf = pdfFile || (useExternalPdfUrl && pdfUrl);
     if (!hasPdf) {
       toast.error('يرجى تحميل ملف الكتاب (PDF) أو إضافة رابط للملف');
@@ -206,20 +216,16 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
     try {
       setIsSubmitting(true);
       
-      // تحميل الملفات إلى التخزين (إذا تم تغييرها)
       let coverUrl = book.cover_url;
       let pdfUrl = book.pdf_url;
       
-      // Handle cover image - either upload file or use external URL
       if (useExternalCoverUrl) {
         coverUrl = formData.cover_url;
       } else if (coverFile) {
         try {
-          // إنشاء اسم فريد للملف
           const fileExt = coverFile.name.split('.').pop();
           const fileName = `${uuidv4()}.${fileExt}`;
           
-          // تحميل الملف
           const { data: coverData, error: coverError } = await supabase.storage
             .from('book-covers')
             .upload(fileName, coverFile, {
@@ -231,7 +237,6 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
             throw new Error(`فشل في تحميل صورة الغلاف: ${coverError.message}`);
           }
           
-          // الحصول على URL العام
           const { data: coverPublicUrl } = supabase.storage
             .from('book-covers')
             .getPublicUrl(fileName);
@@ -242,7 +247,6 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
           throw error;
         }
       } else if (coverPreview === null && book.cover_url) {
-        // إذا تم إزالة الصورة، قم بحذفها من التخزين
         const coverPath = book.cover_url.split('/').pop();
         if (coverPath) {
           await supabase.storage
@@ -252,16 +256,13 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
         coverUrl = null;
       }
       
-      // Handle PDF file - either upload file or use external URL
       if (useExternalPdfUrl) {
         pdfUrl = formData.pdf_url;
       } else if (pdfFile) {
         try {
-          // إنشاء اسم فريد للملف
           const fileExt = pdfFile.name.split('.').pop();
           const fileName = `${uuidv4()}.${fileExt}`;
           
-          // تحميل الملف
           const { data: pdfData, error: pdfError } = await supabase.storage
             .from('book-files')
             .upload(fileName, pdfFile, {
@@ -273,7 +274,6 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
             throw new Error(`فشل في تحميل ملف PDF: ${pdfError.message}`);
           }
           
-          // الحصول على URL العام
           const { data: pdfPublicUrl } = supabase.storage
             .from('book-files')
             .getPublicUrl(fileName);
@@ -284,7 +284,6 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
           throw error;
         }
       } else if (pdfFileName === null && book.pdf_url) {
-        // إذا تم إزالة الملف، قم بحذفه من التخزين
         const pdfPath = book.pdf_url.split('/').pop();
         if (pdfPath) {
           await supabase.storage
@@ -294,7 +293,6 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
         pdfUrl = null;
       }
       
-      // تحديث بيانات الكتاب في قاعدة البيانات
       const { error: updateError } = await supabase
         .from('books')
         .update({
@@ -450,7 +448,6 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
           </TabsContent>
           
           <TabsContent value="files" className="space-y-6">
-            {/* صورة الغلاف */}
             <div className="space-y-2">
               <div className="flex justify-between items-center mb-2">
                 <Label>صورة الغلاف</Label>
@@ -504,7 +501,6 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
               ) : (
                 <div className="border rounded-lg p-4 bg-gray-50">
                   <div className="flex flex-col md:flex-row items-center gap-4">
-                    {/* معاينة الصورة */}
                     {coverPreview && (
                       <div className="relative w-36 h-48 bg-white rounded-lg overflow-hidden border">
                         <img 
@@ -523,7 +519,6 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
                       </div>
                     )}
                     
-                    {/* زر تحميل الصورة */}
                     <div className="flex-1">
                       <input
                         type="file"
@@ -550,7 +545,6 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
               )}
             </div>
             
-            {/* ملف الكتاب */}
             <div className="space-y-2">
               <div className="flex justify-between items-center mb-2">
                 <Label>ملف الكتاب (PDF)</Label>
@@ -604,7 +598,6 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
               ) : (
                 <div className="border rounded-lg p-4 bg-gray-50">
                   <div className="flex flex-col md:flex-row items-center gap-4">
-                    {/* معلومات الملف */}
                     {pdfFileName && (
                       <div className="relative flex items-center p-3 bg-white rounded-lg overflow-hidden border flex-1">
                         <FileText className="h-8 w-8 text-primary ml-3" />
@@ -625,7 +618,6 @@ const BookEditDialog: React.FC<BookEditDialogProps> = ({
                       </div>
                     )}
                     
-                    {/* زر تحميل الملف */}
                     {!pdfFileName && (
                       <div className="flex-1 w-full">
                         <input
