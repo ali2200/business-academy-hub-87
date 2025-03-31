@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Search, Star, BookOpen, Filter, Loader2 } from 'lucide-react';
 import Navbar from '@/components/Navbar';
@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { supabase } from "@/integrations/supabase/client";
+import BookDetailsDialog from "@/components/BookDetailsDialog";
 
 // Categories
 const CATEGORIES = ['الكل', 'مبيعات', 'تسويق', 'إدارة', 'ريادة أعمال', 'تطوير ذاتي'];
@@ -248,6 +249,9 @@ type BookCardProps = {
 };
 
 const BookCard = ({ book, index }: BookCardProps) => {
+  const navigate = useNavigate();
+  const [showDetails, setShowDetails] = useState(false);
+  
   // Determine if book is new based on creation date (within last 30 days)
   const isNew = new Date(book.created_at).getTime() > Date.now() - 30 * 24 * 60 * 60 * 1000;
   
@@ -258,82 +262,98 @@ const BookCard = ({ book, index }: BookCardProps) => {
   const rating = 4.7;
   const reviewCount = 85;
 
+  const handleViewDetails = () => {
+    setShowDetails(true);
+  };
+
   return (
-    <Card className="overflow-hidden border-none shadow-card hover:shadow-hover transition-all duration-500 card-hover reveal-on-scroll" style={{ animationDelay: `${index * 0.1}s` }}>
-      <div className="relative group">
-        {/* Cover image with overlay */}
-        <div className="relative h-[320px] overflow-hidden">
-          <img 
-            src={book.cover_url || `https://source.unsplash.com/random/600x900?book,${book.id}`} 
-            alt={book.title} 
-            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = "/placeholder.svg";
-            }}
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-6">
-            <Link to={`/books/${book.id}`}>
-              <Button className="bg-white text-primary hover:bg-primary hover:text-white transition-all mb-4">
+    <>
+      <Card className="overflow-hidden border-none shadow-card hover:shadow-hover transition-all duration-500 card-hover reveal-on-scroll" style={{ animationDelay: `${index * 0.1}s` }}>
+        <div className="relative group">
+          {/* Cover image with overlay */}
+          <div className="relative h-[320px] overflow-hidden">
+            <img 
+              src={book.cover_url || `https://source.unsplash.com/random/600x900?book,${book.id}`} 
+              alt={book.title} 
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = "/placeholder.svg";
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-center p-6">
+              <Button 
+                className="bg-white text-primary hover:bg-primary hover:text-white transition-all mb-4"
+                onClick={handleViewDetails}
+              >
                 عرض التفاصيل
               </Button>
-            </Link>
+            </div>
+          </div>
+          
+          {/* Badges */}
+          <div className="absolute top-3 right-3 flex flex-col gap-2">
+            {isBestseller && (
+              <span className="bg-secondary text-white text-xs px-3 py-1 rounded-full">
+                الأكثر مبيعًا
+              </span>
+            )}
+            {isNew && (
+              <span className="bg-green-500 text-white text-xs px-3 py-1 rounded-full">
+                جديد
+              </span>
+            )}
           </div>
         </div>
         
-        {/* Badges */}
-        <div className="absolute top-3 right-3 flex flex-col gap-2">
-          {isBestseller && (
-            <span className="bg-secondary text-white text-xs px-3 py-1 rounded-full">
-              الأكثر مبيعًا
-            </span>
-          )}
-          {isNew && (
-            <span className="bg-green-500 text-white text-xs px-3 py-1 rounded-full">
-              جديد
-            </span>
-          )}
-        </div>
-      </div>
-      
-      <CardContent className="p-4 text-center">
-        <h3 className="text-xl font-bold text-primary mb-1 line-clamp-1">{book.title}</h3>
-        <p className="text-gray-600 mb-2">{book.author}</p>
-        
-        {/* Rating */}
-        <div className="flex items-center justify-center space-x-1 rtl:space-x-reverse mb-3">
-          <div className="text-yellow-400 flex">
-            {[...Array(5)].map((_, i) => (
-              <Star 
-                key={i} 
-                size={16}
-                className={i < Math.floor(rating) ? "fill-yellow-400" : "fill-gray-300"}
-              />
-            ))}
+        <CardContent className="p-4 text-center">
+          <h3 className="text-xl font-bold text-primary mb-1 line-clamp-1">{book.title}</h3>
+          <p className="text-gray-600 mb-2">{book.author}</p>
+          
+          {/* Rating */}
+          <div className="flex items-center justify-center space-x-1 rtl:space-x-reverse mb-3">
+            <div className="text-yellow-400 flex">
+              {[...Array(5)].map((_, i) => (
+                <Star 
+                  key={i} 
+                  size={16}
+                  className={i < Math.floor(rating) ? "fill-yellow-400" : "fill-gray-300"}
+                />
+              ))}
+            </div>
+            <span className="text-sm font-medium">{rating}</span>
+            <span className="text-xs text-gray-500">({reviewCount} تقييم)</span>
           </div>
-          <span className="text-sm font-medium">{rating}</span>
-          <span className="text-xs text-gray-500">({reviewCount} تقييم)</span>
-        </div>
-        
-        {/* Book details */}
-        <div className="flex justify-center text-sm text-gray-500 mb-3">
-          <div className="flex items-center">
-            <BookOpen size={16} className="ml-1" />
-            <span>{book.pages || 250} صفحة</span>
+          
+          {/* Book details */}
+          <div className="flex justify-center text-sm text-gray-500 mb-3">
+            <div className="flex items-center">
+              <BookOpen size={16} className="ml-1" />
+              <span>{book.pages || 250} صفحة</span>
+            </div>
           </div>
-        </div>
-      </CardContent>
-      
-      <CardFooter className="p-4 pt-0 flex justify-between items-center border-t border-gray-100">
-        <div>
-          <span className="text-secondary font-bold text-xl">{book.price} {book.currency}</span>
-        </div>
-        <Link to={`/books/${book.id}`}>
-          <Button variant="outline" className="border-primary text-primary hover:bg-primary hover:text-white transition-all">
+        </CardContent>
+        
+        <CardFooter className="p-4 pt-0 flex justify-between items-center border-t border-gray-100">
+          <div>
+            <span className="text-secondary font-bold text-xl">{book.price} {book.currency}</span>
+          </div>
+          <Button 
+            variant="outline" 
+            className="border-primary text-primary hover:bg-primary hover:text-white transition-all"
+            onClick={handleViewDetails}
+          >
             اشتري الآن
           </Button>
-        </Link>
-      </CardFooter>
-    </Card>
+        </CardFooter>
+      </Card>
+      
+      {/* Book Details Dialog */}
+      <BookDetailsDialog
+        book={book}
+        open={showDetails}
+        onOpenChange={setShowDetails}
+      />
+    </>
   );
 };
 
