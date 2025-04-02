@@ -143,14 +143,14 @@ const InstructorLessons = () => {
               </div>
               
               <Select 
-                value={selectedCourse || ""}
-                onValueChange={(value) => setSelectedCourse(value || null)}
+                value={selectedCourse || "all"}
+                onValueChange={(value) => setSelectedCourse(value === "all" ? null : value)}
               >
                 <SelectTrigger className="w-[200px]">
                   <SelectValue placeholder="تصفية حسب الدورة" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">جميع الدورات</SelectItem>
+                  <SelectItem value="all">جميع الدورات</SelectItem>
                   {courses.map(course => (
                     <SelectItem key={course.id} value={course.id}>
                       {course.title}
