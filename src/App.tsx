@@ -31,6 +31,7 @@ import PagesManagement from "@/pages/PagesManagement";
 import ArticlesManagement from "@/pages/ArticlesManagement";
 import Settings from "@/pages/Settings";
 import BookForm from "@/pages/BookForm";
+import InstructorDashboard from "@/pages/InstructorDashboard";
 import { supabase } from "@/integrations/supabase/client";
 
 function App() {
@@ -92,6 +93,12 @@ function App() {
           <Route path="/profile" element={
             <ProtectedRoute>
               <UserProfile />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/instructor-dashboard" element={
+            <ProtectedRoute>
+              <InstructorDashboard />
             </ProtectedRoute>
           } />
           
