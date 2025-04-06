@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -19,6 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 // Validation schema
 const formSchema = z.object({
@@ -33,12 +34,34 @@ const formSchema = z.object({
 const AdminSignIn = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   
+  // Check if already authenticated
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // Check if user is admin
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', session.user.id)
+          .single();
+        
+        if (profileData?.is_admin) {
+          navigate('/admin-dashboard');
+        }
+      }
+    };
+    
+    checkSession();
+  }, [navigate]);
+
   // Initialize form
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: "ali@ali.com",
+      email: "",
       password: "",
     },
   });
@@ -47,53 +70,56 @@ const AdminSignIn = () => {
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsLoading(true);
+      setError("");
       
       // Login with Supabase
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: values.email,
         password: values.password,
       });
       
-      if (error) {
-        toast.error(error.message || "حدث خطأ أثناء تسجيل الدخول");
-        console.error("خطأ في تسجيل الدخول:", error);
+      if (signInError) {
+        console.error("خطأ في تسجيل الدخول:", signInError);
+        setError(signInError.message || "حدث خطأ أثناء تسجيل الدخول");
         return;
       }
-      
-      // Check if user is admin
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('is_admin')
-        .eq('id', data.user.id)
-        .single();
-      
-      if (profileError) {
-        toast.error("حدث خطأ أثناء التحقق من صلاحيات المستخدم");
-        console.error("خطأ في جلب بيانات المستخدم:", profileError);
-        return;
+
+      // Success - now check if user is admin
+      if (data && data.user) {
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('is_admin')
+          .eq('id', data.user.id)
+          .single();
+        
+        if (profileError) {
+          console.error("خطأ في جلب بيانات المستخدم:", profileError);
+          setError("حدث خطأ أثناء التحقق من صلاحيات المستخدم");
+          return;
+        }
+        
+        // If not an admin, show error and sign out
+        if (!profileData?.is_admin) {
+          setError("ليس لديك صلاحية الدخول كمسؤول");
+          await supabase.auth.signOut();
+          return;
+        }
+        
+        // Store user info in localStorage 
+        localStorage.setItem('user', JSON.stringify({
+          id: data.user.id,
+          email: data.user.email,
+          isAdmin: profileData?.is_admin || false,
+          isAuthenticated: true
+        }));
+        
+        // Redirect to admin dashboard
+        toast.success("تم تسجيل الدخول كمسؤول بنجاح");
+        navigate('/admin-dashboard');
       }
-      
-      // If not an admin, show error and sign out
-      if (!profileData?.is_admin) {
-        toast.error("ليس لديك صلاحية الدخول كمسؤول");
-        await supabase.auth.signOut();
-        return;
-      }
-      
-      // Store user info in localStorage 
-      localStorage.setItem('user', JSON.stringify({
-        id: data.user.id,
-        email: data.user.email,
-        isAdmin: profileData?.is_admin || false,
-        isAuthenticated: true
-      }));
-      
-      // Redirect to admin dashboard
-      toast.success("تم تسجيل الدخول كمسؤول بنجاح");
-      navigate('/admin-dashboard');
     } catch (err) {
       console.error("خطأ غير متوقع:", err);
-      toast.error("حدث خطأ غير متوقع أثناء تسجيل الدخول");
+      setError("حدث خطأ غير متوقع أثناء تسجيل الدخول");
     } finally {
       setIsLoading(false);
     }
@@ -119,6 +145,13 @@ const AdminSignIn = () => {
         </CardHeader>
         
         <CardContent>
+          {error && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTitle>خطأ</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField

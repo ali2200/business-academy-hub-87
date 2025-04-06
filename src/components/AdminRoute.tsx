@@ -18,7 +18,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
       try {
         setIsLoading(true);
         
-        // Check current session
+        // Get current session
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session) {
@@ -31,7 +31,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
           .from('profiles')
           .select('is_admin')
           .eq('id', session.user.id)
-          .single();
+          .maybeSingle();  // Using maybeSingle instead of single to prevent errors
         
         if (error) {
           console.error("Error checking admin status:", error);
@@ -65,7 +65,7 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
   
   if (!isAdmin) {
     toast.error("ليس لديك صلاحية للوصول إلى هذه الصفحة");
-    return <Navigate to="/signin" state={{ from: location }} replace />;
+    return <Navigate to="/admin-signin" state={{ from: location }} replace />;
   }
 
   return <>{children}</>;
