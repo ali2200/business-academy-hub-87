@@ -22,26 +22,32 @@ const AdminRoute: React.FC<AdminRouteProps> = ({ children }) => {
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session) {
+          console.log("No active session found");
           setIsAdmin(false);
+          setIsLoading(false);
           return;
         }
+        
+        console.log("Active session found for user:", session.user.id);
         
         // Check if user is admin
         const { data, error } = await supabase
           .from('profiles')
           .select('is_admin')
           .eq('id', session.user.id)
-          .maybeSingle();  // Using maybeSingle instead of single to prevent errors
+          .maybeSingle();
         
         if (error) {
           console.error("Error checking admin status:", error);
           setIsAdmin(false);
+          setIsLoading(false);
           return;
         }
         
+        console.log("Admin status:", data?.is_admin);
         setIsAdmin(!!data?.is_admin);
       } catch (err) {
-        console.error("Unexpected error:", err);
+        console.error("Unexpected error in AdminRoute:", err);
         setIsAdmin(false);
       } finally {
         setIsLoading(false);

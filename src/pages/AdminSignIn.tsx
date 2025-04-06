@@ -39,18 +39,23 @@ const AdminSignIn = () => {
   // Check if already authenticated
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        // Check if user is admin
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('is_admin')
-          .eq('id', session.user.id)
-          .single();
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (profileData?.is_admin) {
-          navigate('/admin-dashboard');
+        if (session) {
+          // Check if user is admin
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('is_admin')
+            .eq('id', session.user.id)
+            .maybeSingle();
+          
+          if (profileData?.is_admin) {
+            navigate('/admin-dashboard');
+          }
         }
+      } catch (err) {
+        console.error("Session check error:", err);
       }
     };
     
@@ -72,6 +77,8 @@ const AdminSignIn = () => {
       setIsLoading(true);
       setError("");
       
+      console.log("Attempting to sign in with:", values.email);
+      
       // Login with Supabase
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: values.email,
@@ -79,24 +86,29 @@ const AdminSignIn = () => {
       });
       
       if (signInError) {
-        console.error("خطأ في تسجيل الدخول:", signInError);
-        setError(signInError.message || "حدث خطأ أثناء تسجيل الدخول");
+        console.error("Login error:", signInError);
+        setError(signInError.message || "فشل تسجيل الدخول، تأكد من صحة البيانات");
         return;
       }
 
       // Success - now check if user is admin
       if (data && data.user) {
+        console.log("User authenticated:", data.user.id);
+        
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
           .select('is_admin')
           .eq('id', data.user.id)
-          .single();
+          .maybeSingle();
         
         if (profileError) {
-          console.error("خطأ في جلب بيانات المستخدم:", profileError);
+          console.error("Error fetching user profile:", profileError);
           setError("حدث خطأ أثناء التحقق من صلاحيات المستخدم");
+          await supabase.auth.signOut();
           return;
         }
+        
+        console.log("Profile data:", profileData);
         
         // If not an admin, show error and sign out
         if (!profileData?.is_admin) {
@@ -118,7 +130,7 @@ const AdminSignIn = () => {
         navigate('/admin-dashboard');
       }
     } catch (err) {
-      console.error("خطأ غير متوقع:", err);
+      console.error("Unexpected error:", err);
       setError("حدث خطأ غير متوقع أثناء تسجيل الدخول");
     } finally {
       setIsLoading(false);
